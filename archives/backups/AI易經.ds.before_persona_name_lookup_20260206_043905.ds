@@ -5814,39 +5814,9 @@
 						if(client_info != null)
 						{
 							persona_text = persona_text + "- 八字：" + if(client_info.Full_Bazi != null,client_info.Full_Bazi,"") + "\n";
-							zodiac_name = "";
-							if(client_info.Zodiac_Signs != null)
-							{
-								zodiac_records = Zodiac_Signs[ID == client_info.Zodiac_Signs];
-								for each  z in zodiac_records
-								{
-									zodiac_name = z.Sign_Name;
-									break;
-								}
-							}
-							persona_text = persona_text + "- 星座：" + zodiac_name + "\n";
-							chinese_zodiac_name = "";
-							if(client_info.Chinese_Zodiac != null)
-							{
-								cz_records = Earthly_Branches[ID == client_info.Chinese_Zodiac];
-								for each  cz in cz_records
-								{
-									chinese_zodiac_name = cz.Chinese_Zodiac;
-									break;
-								}
-							}
-							persona_text = persona_text + "- 生肖：" + chinese_zodiac_name + "\n";
-							lunar_mansion_name = "";
-							if(client_info.Twenty_Eight_Lunar_Mansions != null)
-							{
-								mansion_records = Twenty_Eight_Lunar_Mansions[ID == client_info.Twenty_Eight_Lunar_Mansions];
-								for each  m in mansion_records
-								{
-									lunar_mansion_name = m.Full_Name;
-									break;
-								}
-							}
-							persona_text = persona_text + "- 星宿：" + lunar_mansion_name + "\n";
+							persona_text = persona_text + "- 星座：" + if(client_info.Zodiac_Signs != null,client_info.Zodiac_Signs.toString(),"") + "\n";
+							persona_text = persona_text + "- 生肖：" + if(client_info.Chinese_Zodiac != null,client_info.Chinese_Zodiac.toString(),"") + "\n";
+							persona_text = persona_text + "- 星宿：" + if(client_info.Twenty_Eight_Lunar_Mansions != null,client_info.Twenty_Eight_Lunar_Mansions.toString(),"") + "\n";
 							persona_text = persona_text + "- 太歲：" + if(client_info.Taisui_Conflict_Status != null,client_info.Taisui_Conflict_Status,"") + "\n";
 						}
 					}
