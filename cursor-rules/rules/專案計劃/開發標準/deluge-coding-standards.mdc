@@ -1,0 +1,220 @@
+# Deluge 程式設計標準
+
+## 函數宣告規範
+- 函數參數必須宣告資料類型
+- 日期時間參數使用 `date` 類型，不是 `datetime`
+- 函數開頭大括號必須緊接函數簽名，中間不能有註解或空行
+
+```deluge
+// 正確範例
+map MyFunction(date solar_date, string name)
+{
+    // 函數內容
+}
+
+// 錯誤範例
+map MyFunction(datetime solar_date, name)  // 缺少類型宣告
+{
+    // 函數內容
+}
+```
+
+## 迴圈語法限制
+- 只能使用 `for each` 迴圈
+- 不支援傳統的 `for(i=0; i<n; i++)` 或 `while` 迴圈語法
+- 必須使用預定義列表配合 `for each` 來實現迴圈功能
+
+```deluge
+// 正確範例
+batchNumbers = {1,2,3,4,5,6};
+for each batchNum in batchNumbers
+{
+    // 處理邏輯
+}
+```
+
+## 條件判斷最佳實踐
+- 避免過長的條件判斷（多個 || 或 && 連接的表達式）
+- 將複雜的條件分解為多個簡單的 if 判斷
+- 使用 `containKey` 檢查 Map 是否包含某個 key（不是 `containsKey`）
+
+```deluge
+// 推薦做法
+if (condition1)
+{
+    if (condition2)
+    {
+        // 處理邏輯
+    }
+}
+
+// 避免做法
+if (condition1 && condition2 && condition3 || condition4)
+{
+    // 可能導致語法錯誤
+}
+```
+
+## 查詢語法限制
+- 查詢表格時必須提供條件，不能使用空的方括號 `[]`
+- 查詢所有記錄使用 `table[ID != 0]`
+- 查詢條件的左側不能使用函數表達式
+
+```deluge
+// 正確範例
+records = TableName[ID != 0];
+for each record in records
+{
+    if (record.Field.getYear() == 2024)
+    {
+        // 處理邏輯
+    }
+}
+
+// 錯誤範例
+records = TableName[];  // 空條件
+records = TableName[Field.getYear() == 2024];  // 條件左側使用函數
+```
+
+## 字串處理限制
+- 不支援 `getallmatches()` 函數
+- 使用基本函數：`indexOf()`, `substring()`, `toList()`, `replaceAll()`
+- info 語句內不建議直接使用 emoji 符號
+
+## 錯誤處理模式
+- 採用「單一出口」模式避免 'Missing return statement' 錯誤
+- 在函數開頭宣告結果變數
+- 在 try/catch 或 if/else 區塊中僅對變數賦值
+- 最後統一使用一個 return 語句
+
+```deluge
+map MyFunction(string input)
+{
+    map result = {};  // 宣告結果變數
+    
+    try
+    {
+        // 處理邏輯
+        result.put("status", "success");
+    }
+    catch (e)
+    {
+        result.put("status", "error");
+        result.put("message", e);
+    }
+    
+    return result;  // 單一出口
+}
+```
+
+## 命名空間規範
+- 函數名稱支援用一個點號分隔命名空間與函數名：`Namespace.FunctionName`
+- 不支援巢狀命名空間：`Namespace.Sub.Function`
+- 函數名稱中避免使用底線 `_`
+
+## 註解規範
+- 使用行註解 `//` 而非區塊註解 `/* */`
+- 使用繁體中文註解
+- 提供詳細的函數說明
+
+## 亂數生成限制
+- 不支援 `random(min, max)` 語法
+- 使用時間種子配合取餘數運算子
+
+```deluge
+// 正確的亂數生成方法
+random_seed = zoho.currenttime.toLong();
+random_number = 1 + (random_seed % 100).toLong();
+```
+
+## 日期時間處理陷阱
+- `.toDate()` 只解析日期部分，時間設為 00:00:00
+- 需要完整日期時間時使用 `.toDateTime()`
+- 日期加減函數是 `addDay()` 不是 `addDays()`
+
+```deluge
+// 正確用法
+date_time = "1974-11-15 21:05:34".toDateTime();
+future_date = zoho.currenttime.addDay(7);
+
+// 錯誤用法
+date_only = "1974-11-15 21:05:34".toDate();  // 會變成 00:00:00
+future_date = zoho.currenttime.addDays(7);    // 函數不存在
+```
+
+## 查詢結果處理限制
+- 查詢結果記錄不能直接賦值給 Map 變數
+- 在 `for each` 迴圈中不能直接賦值查詢結果記錄
+- 查詢結果記錄不能加入 List
+- 使用 `count()` 而非 `size()` 計算記錄數量
+
+```deluge
+// 正確做法
+records = TableName[ID != 0];
+record_count = records.count();
+for each record in records
+{
+    field_value = record.Field_Name;  // 直接提取欄位值
+}
+
+// 錯誤做法
+record_map = TableName[ID == 1];      // 不能賦值給 Map
+record_list.add(TableName[ID == 1]);  // 不能加入 List
+record_count = records.size();        // 應該用 count()
+```
+
+## 數值處理限制
+- `round()` 函數需要指定小數位數參數
+- 客戶ID 查詢時必須轉換為 `Long` 型別
+
+```deluge
+// 正確用法
+rounded_number = number.round(2);
+client_records = TableName[Client_Link == client_id.toLong()];
+
+// 錯誤用法
+rounded_number = number.round();  // 缺少參數
+client_records = TableName[Client_Link == client_id];  // 類型不匹配
+```
+
+## 三元運算符限制
+- Deluge 對三元運算符 `? :` 支援有限
+- 建議使用明確的 `if-else` 語句
+
+```deluge
+// 推薦做法
+if (condition)
+{
+    result = "yes";
+}
+else
+{
+    result = "no";
+}
+
+// 避免做法
+result = (condition ? "yes" : "no");  // 可能導致語法錯誤
+```
+
+## API 呼叫規範
+- 連接器參數必須作為 map 傳遞：`{"connection":"zohocrm"}`
+- API 回應的 ID 必須轉換為 `long` 型別
+- `postUrl()` 直接回傳 JSON 對象，不是包含 status 和 body 的 Map
+
+```deluge
+// 正確用法
+search_response = zoho.crm.searchRecords("Contacts", criteria, 1, 1, {"connection":"zohocrm"});
+contact_id = response.get("id").toLong();
+api_response = postUrl(url, params.toString(), headers);
+content = api_response.get("choices").get(0).get("message").get("content");
+
+// 錯誤用法
+search_response = zoho.crm.searchRecords("Contacts", criteria, 1, 1, "zohocrm");
+contact_id = response.get("id");  // 未轉換為 long
+content = api_response.get("body").get("choices");  // 錯誤的結構
+```
+
+description:
+globs:
+alwaysApply: false
+---

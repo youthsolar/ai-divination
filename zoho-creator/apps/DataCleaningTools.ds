@@ -1,0 +1,1718 @@
+/*
+ * Author       : uneedwind
+ * Generated on : 03-Feb-2026 20:49:25
+ * Version      : 1.0
+ */
+ application "DataCleaningTools"
+ {
+ 	date format = "dd-MMM-yyyy"
+ 	time zone = "Asia/Taipei"
+ 	time format = "24-hr"
+ 	forms
+	{
+		form Files_Master
+		{
+			displayname = "檔案主表"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			File_ID
+			(
+    			type = autonumber
+				displayname = "檔案編號"
+				start index = 1
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have File_Name
+			(
+    			type = text
+				displayname = "檔案名稱"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Sheet_Resource_ID
+			(
+    			type = text
+				displayname = "Zoho Sheet ID"
+    			description
+    			[
+    				type = help_text
+    			 	message = "從 Sheet URL 中取得的 Resource ID"
+    			]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Worksheet_Name
+			(
+    			type = text
+				displayname = "工作表名稱"
+				initial value = "Sheet1"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Total_Rows
+			(
+				type = number
+				displayname = "總行數"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Processing_Status
+			(
+				type = picklist
+				displayname = "處理狀態"
+				maxchar = 100
+				values = {"待處理","處理中","已完成","失敗"}
+				initial value = "待處理"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Processed_Rows
+			(
+				type = number
+				displayname = "已處理行數"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Success_Count
+			(
+				type = number
+				displayname = "成功數量"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Error_Count
+			(
+				type = number
+				displayname = "失敗數量"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Progress_Percentage
+			(
+    			type = percentage
+				displayname = "進度百分比"
+				initial value = 0%
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Start_Time
+			(
+    			type = datetime
+				displayname = "開始時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			End_Time
+			(
+    			type = datetime
+				displayname = "完成時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Notes
+			(
+    			type = textarea
+				displayname = "備註"
+				height = 100px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Processing_Tasks
+		{
+			displayname = "處理任務表"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			Task_ID
+			(
+    			type = autonumber
+				displayname = "任務編號"
+				start index = 1
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Files_Master
+			(
+				type = picklist	
+				displayname = "檔案主表"
+				values  = Files_Master.ID
+    			displayformat = [File_Name]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Batch_Number
+			(
+				type = number
+				displayname = "批次編號"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Start_Row
+			(
+				type = number
+				displayname = "起始行"
+				initial value = 1
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have End_Row
+			(
+				type = number
+				displayname = "結束行"
+				initial value = 1
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Row_Count
+			(
+				type = number
+				displayname = "行數"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Task_Status
+			(
+				type = picklist
+				displayname = "任務狀態"
+				maxchar = 100
+				values = {"待處理","處理中","已完成","失敗","跳過"}
+				initial value = "待處理"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Success_Count
+			(
+				type = number
+				displayname = "成功數量"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Error_Count
+			(
+				type = number
+				displayname = "失敗數量"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Processing_Time
+			(
+				type = number
+				displayname = "處理時間（秒）"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Start_Time
+			(
+    			type = datetime
+				displayname = "開始時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			End_Time
+			(
+    			type = datetime
+				displayname = "完成時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Error_Message
+			(
+    			type = textarea
+				displayname = "錯誤訊息"
+				height = 100px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Retry_Count
+			(
+				type = number
+				displayname = "重試次數"
+				initial value = 0
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+	}
+	reports
+	{
+		default list Files_Master_Report
+		{
+			displayName = "Files Master Report"
+			show all rows from Files_Master    
+			(
+				File_ID as "檔案編號"
+				File_Name as "檔案名稱"
+				Sheet_Resource_ID as "Zoho Sheet ID"
+				Worksheet_Name as "工作表名稱"
+				Total_Rows as "總行數"
+				Processing_Status as "處理狀態"
+				Processed_Rows as "已處理行數"
+				Success_Count as "成功數量"
+				Error_Count as "失敗數量"
+				Progress_Percentage as "進度百分比"
+				Start_Time as "開始時間"
+				End_Time as "完成時間"
+				Notes as "備註"
+				ID
+				custom action "開始處理"
+				(
+	  			workflow = startProcessingButton
+				show action in edit record menu = true
+				column header = "開始處理"
+				condition = (Processing_Status == "待處理")
+				confirmation before execution
+				(
+					message for individual record = "開始處理嗎？"
+					confirm button text = "Yes"		
+					cancel button text = "No"
+				)
+				)
+			)
+		}
+		default list Processing_Tasks_Report
+		{
+			displayName = "Processing_Tasks Report"
+			show all rows from Processing_Tasks    
+			(
+				Task_ID as "任務編號"
+				Files_Master as "檔案主表"
+				Batch_Number as "批次編號"
+				Start_Row as "起始行"
+				End_Row as "結束行"
+				Row_Count as "行數"
+				Task_Status as "任務狀態"
+				Success_Count as "成功數量"
+				Error_Count as "失敗數量"
+				Processing_Time as "處理時間（秒）"
+				Start_Time as "開始時間"
+				End_Time as "完成時間"
+				Error_Message as "錯誤訊息"
+				Retry_Count as "重試次數"
+			)
+		}
+	}
+
+	variables
+	{
+		thisapp.variables.OpenAI_API_Key = "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";
+		thisapp.variables.OpenAI_API_URL = "https://api.openai.com/v1/chat/completions";
+		thisapp.variables.OpenAI_Model = "gpt-4o-mini";
+	}
+
+		 functions
+		 {
+			 Deluge
+			 {
+				 map Batch.processBatch(string sheetId, string worksheetName, int startRow, int endRow)
+                 {
+                 	// Batch.processBatch
+                 	// 目的：批次處理 Sheet 資料，調用 AI 清理並寫回結果
+                 	// 初始化結果變數（單一出口模式）
+                 	resultMap = Map();
+                 	// 初始化統計變數
+                 	successCount = 0;
+                 	failureCount = 0;
+                 	warningCount = 0;
+                 	totalTokens = 0;
+                 	errorMessages = List();
+                 	try 
+                 	{
+                 		// 步驟 1：讀取 Sheet 資料
+                 		configMap = Map();
+                 		configMap.put("max_records",endRow - startRow + 1);
+                 		sheetResponse = zoho.sheet.getRecords(sheetId,worksheetName,configMap,"zoho_sheet_connection");
+                 		if(sheetResponse == null || sheetResponse.get("records") == null)
+                 		{
+                 			resultMap.put("status","failed");
+                 			resultMap.put("message","無法讀取 Sheet 資料");
+                 			resultMap.put("success_count",0);
+                 			resultMap.put("failure_count",0);
+                 			resultMap.put("warning_count",0);
+                 		}
+                 		else
+                 		{
+                 			records = sheetResponse.get("records");
+                 			// 步驟 2：逐筆處理
+                 			for each  record in records
+                 			{
+                 				try 
+                 				{
+                 					rowIndex = record.get("row_index");
+                 					// 調用 AI 清理函數
+                 					cleanedData = thisapp.OpenAI.cleanContactData(record);
+                 					// 檢查清理結果狀態
+                 					cleanStatus = cleanedData.get("Cleaning_Status");
+                 					if(cleanStatus == "Success")
+                 					{
+                 						successCount = successCount + 1;
+                 					}
+                 					else if(cleanStatus == "Warning")
+                 					{
+                 						warningCount = warningCount + 1;
+                 					}
+                 					else
+                 					{
+                 						failureCount = failureCount + 1;
+                 					}
+                 					// 預估 Token 使用量（每筆約 3000 tokens）
+                 					totalTokens = totalTokens + 3000;
+                 					// 步驟 3：寫回 Sheet
+                 					updateMap = Map();
+                 					updateMap.put("Salutation",cleanedData.get("Salutation"));
+                 					updateMap.put("First_Name",cleanedData.get("First_Name"));
+                 					updateMap.put("Last_Name",cleanedData.get("Last_Name"));
+                 					updateMap.put("Nickname",cleanedData.get("Nickname"));
+                 					updateMap.put("Mobile",cleanedData.get("Mobile"));
+                 					updateMap.put("Phone",cleanedData.get("Phone"));
+                 					updateMap.put("Extension",cleanedData.get("Extension"));
+                 					updateMap.put("Email",cleanedData.get("Email"));
+                 					updateMap.put("Secondary_Email",cleanedData.get("Secondary_Email"));
+                 					updateMap.put("Designation",cleanedData.get("Designation"));
+                 					updateMap.put("Company",cleanedData.get("Company"));
+                 					updateMap.put("Country",cleanedData.get("Country"));
+                 					updateMap.put("State",cleanedData.get("State"));
+                 					updateMap.put("City",cleanedData.get("City"));
+                 					updateMap.put("Zip_Code",cleanedData.get("Zip_Code"));
+                 					updateMap.put("Website",cleanedData.get("Website"));
+                 					updateMap.put("Description",cleanedData.get("Description"));
+                 					updateMap.put("Processing_Status",cleanStatus);
+                 					updateMap.put("Cleaning_Notes",cleanedData.get("Cleaning_Notes"));
+                 					// 寫回 Sheet（使用 row_index 作為篩選條件）
+                 					criteria = "row_index==" + rowIndex;
+                 					optionalMap = Map();
+                 					zoho.sheet.updateRecords(sheetId,worksheetName,criteria,updateMap,optionalMap,"zoho_sheet_connection");
+                 				}
+                 				catch (e)
+                 				{
+                 					failureCount = failureCount + 1;
+                 					errorMessages.add("Row " + rowIndex + ": " + e);
+                 				}
+                 			}
+                 			// 步驟 4：計算成本
+                 			estimatedCost = totalTokens * 0.0000003;
+                 			// 步驟 5：組裝回傳結果
+                 			resultMap.put("status","success");
+                 			resultMap.put("success_count",successCount);
+                 			resultMap.put("failure_count",failureCount);
+                 			resultMap.put("warning_count",warningCount);
+                 			resultMap.put("total_tokens",totalTokens);
+                 			resultMap.put("estimated_cost",estimatedCost);
+                 			resultMap.put("processed_range",startRow + " - " + endRow);
+                 			if(errorMessages.size() > 0)
+                 			{
+                 				resultMap.put("errors",errorMessages.toString());
+                 			}
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		resultMap.put("status","failed");
+                 		resultMap.put("message","批次處理失敗：" + e);
+                 		resultMap.put("success_count",successCount);
+                 		resultMap.put("failure_count",failureCount);
+                 		resultMap.put("warning_count",warningCount);
+                 	}
+                 	return resultMap;
+                 }
+				 map Batch.startProcessing(string fileId)
+                 {
+                 	resultMap = Map();
+                 	try 
+                 	{
+                 		if(fileId == null || fileId == "")
+                 		{
+                 			resultMap.put("status","failed");
+                 			resultMap.put("message","檔案 ID 不能為空");
+                 		}
+                 		else
+                 		{
+                 			fileIdLong = fileId.toLong();
+                 			if(fileIdLong == null)
+                 			{
+                 				resultMap.put("status","failed");
+                 				resultMap.put("message","無效的檔案 ID 格式：" + fileId);
+                 			}
+                 			else
+                 			{
+                 				fileRec = Files_Master[ID == fileIdLong];
+                 				if(fileRec == null)
+                 				{
+                 					resultMap.put("status","failed");
+                 					resultMap.put("message","找不到檔案記錄 ID: " + fileId);
+                 				}
+                 				else
+                 				{
+                 					sheetId = ifnull(fileRec.Sheet_Resource_ID,"");
+                 					worksheetName = ifnull(fileRec.Worksheet_Name,"");
+                 					if(sheetId == "" || worksheetName == "")
+                 					{
+                 						resultMap.put("status","failed");
+                 						resultMap.put("message","檔案資訊不完整：缺少 Sheet ID 或工作表名稱");
+                 					}
+                 					else
+                 					{
+                 						// Create Processing_Tasks record
+                 						newTask = insert into Processing_Tasks
+                 						[
+                 							Files_Master=fileRec.ID
+                 							Batch_Number=1
+                 							Start_Row=2
+                 							End_Row=2
+                 							Task_Status="處理中"
+                 							Start_Time=zoho.currenttime
+                 							Added_User=zoho.loginuser
+                 						];
+                 						taskId = newTask.get("ID");
+                 						// Call processBatch
+                 						batchResult = thisapp.Batch.processBatch(sheetId,worksheetName,2,2);
+                 						batchStatus = ifnull(batchResult.get("status"),"failed");
+                 						if(batchStatus == "success")
+                 						{
+                 							// Update Processing_Tasks
+                 							for each  taskRec in Processing_Tasks[ID == taskId]
+                 							{
+                 								taskRec.Task_Status="已完成";
+                 								taskRec.Success_Count=batchResult.get("success_count");
+                 								taskRec.Error_Count=batchResult.get("failure_count");
+                 								taskRec.End_Time=zoho.currenttime;
+                 							}
+                 							// Update Files_Master
+                 							for each  fileRecUpdate in Files_Master[ID == fileIdLong]
+                 							{
+                 								fileRecUpdate.Processed_Rows=1;
+                 								fileRecUpdate.Success_Count=batchResult.get("success_count");
+                 								fileRecUpdate.Error_Count=batchResult.get("failure_count");
+                 								fileRecUpdate.Processing_Status="處理中";
+                 							}
+                 							// Assemble success result
+                 							resultMap.put("status","success");
+                 							resultMap.put("message","第一批處理完成（測試 1 筆）");
+                 							resultMap.put("task_id",taskId.toString());
+                 							resultMap.put("batch_number",1);
+                 							resultMap.put("processed_range","2 - 2");
+                 							resultMap.put("success_count",batchResult.get("success_count"));
+                 							resultMap.put("failure_count",batchResult.get("failure_count"));
+                 							resultMap.put("total_tokens",batchResult.get("total_tokens"));
+                 							resultMap.put("estimated_cost",batchResult.get("estimated_cost"));
+                 						}
+                 						else
+                 						{
+                 							// Handle failure
+                 							for each  taskRec in Processing_Tasks[ID == taskId]
+                 							{
+                 								taskRec.Task_Status="失敗";
+                 								taskRec.Error_Message=ifnull(batchResult.get("message"),"未知錯誤");
+                 								taskRec.End_Time=zoho.currenttime;
+                 							}
+                 							for each  fileRecUpdate in Files_Master[ID == fileIdLong]
+                 							{
+                 								fileRecUpdate.Processing_Status="失敗";
+                 							}
+                 							resultMap.put("status","failed");
+                 							resultMap.put("message","批次處理失敗：" + batchResult.get("message"));
+                 							resultMap.put("task_id",taskId.toString());
+                 						}
+                 					}
+                 				}
+                 			}
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		resultMap.put("status","failed");
+                 		resultMap.put("message","系統錯誤：" + e);
+                 	}
+                 	return resultMap;
+                 }
+				 map OpenAI.cleanContactData(map rawData)
+                 {
+                 	// OpenAI.cleanContactData
+                 	// 目的：使用 AI 智能清理聯絡人資料（完全符合 E.164 標準 + CRM Leads 欄位對應）
+                 	// 參數：rawData - 從 Sheet 讀取的原始資料（任意欄位結構）
+                 	// 回傳：標準化的清理後資料
+                 	cleanedData = Map();
+                 	cleanedData.put("success",false);
+                 	cleanedData.put("error","");
+                 	try 
+                 	{
+                 		// 建立完整的 AI Prompt（使用字串連接）
+                 		systemPrompt = "你是專業的聯絡人資料清理專家，精通國際電話號碼標準 E.164 和台灣聯絡人資料處理。\n\n" + "## 任務\n" + "將混亂的聯絡人資料標準化為符合 Zoho CRM Leads 格式的資料。\n\n" + "## 輸入\n" + "你會收到一個 JSON 物件，包含一個聯絡人的資料。\n" + "欄位名稱不固定，可能是中文或英文，可能包含：\n" + "- 姓名相關：Name, First Name, Last Name, 名字, 姓名, nickname, 暱稱等\n" + "- 電話相關：Phone, Mobile, Office Phone, 手機, 市話, 行動電話, 電話, extension, 分機, Area_Code, 區碼等\n" + "- Email 相關：Email, Email Address, 電子郵件, Mail, Non Primary E-mails 等（可能用分號 ; 分隔多個）\n" + "- 地址相關：Country, City, State, Street, 國家, 城市, 省市, 地址等\n" + "- 其他：Title, Designation, Company, Description, Website, 職稱, 公司, 描述, 網站等\n\n" + "## 處理規則\n\n" + "### 1. 姓名處理\n" + "- 如果有分開的 First Name 和 Last Name：直接使用\n" + "- 如果是完整姓名（中文）：第一個字是 Last Name，其他是 First Name\n" + "  例如：陳淑芬 → Last_Name: 陳, First_Name: 淑芬\n" + "- 如果是完整姓名（英文）：空格前是 First Name，空格後是 Last Name\n" + "  例如：John Smith → First_Name: John, Last_Name: Smith\n" + "- 如果姓名是 ? 或 ？ → First_Name: 空白, Last_Name: N/A\n" + "- 如果沒有名字但有 nickname 或 email 前綴：First_Name: 空白, Nickname: 提取的值\n" + "- 移除所有前後空格和多餘空格\n\n" + "### 2. 性別判斷（只有明確才填寫）\n" + "優先順序：\n" + "1. 從 First Name 判斷性別（中文/英文名字）\n" + "2. 如果 First Name 無法判斷，從 Nickname 判斷\n" + "3. 如果還無法判斷，從 Email 前綴判斷（依照常用英文名字）\n" + "4. 如果是無意義前綴（abc123, customerservice 等）→ 不填寫 Nickname，性別留空\n\n" + "**從 Email 前綴提取英文名字的規則：**\n" + "- 提取 @ 符號前的英文名字部分（忽略數字和特殊符號）\n" + "- 只提取常用的英文名字，例如：\n" + "  * 男性：John, Mike, David, Peter, Tom, James, Robert, William, Richard, Charles, Joseph, Thomas, Christopher, Daniel, Matthew, Anthony, Mark, Donald, Steven, Paul, Andrew, Joshua, Kenneth, Kevin, Brian, George, Edward, Ronald, Timothy, Jason, Jeffrey, Ryan, Jacob, Gary, Nicholas, Eric, Jonathan, Stephen, Larry, Justin, Scott, Brandon, Benjamin, Samuel, Gregory, Frank, Alexander, Raymond, Patrick, Jack, Dennis, Jerry, Tyler, Aaron, Jose, Adam, Henry, Nathan, Douglas, Zachary, Kyle, Walter, Ethan, Jeremy, Harold, Keith, Christian, Roger, Noah, Gerald, Carl, Terry, Sean, Austin, Arthur, Lawrence, Jesse, Dylan, Bryan, Joe, Jordan, Billy, Bruce, Albert, Willie, Gabriel, Logan, Alan, Juan, Wayne, Roy, Ralph, Randy, Eugene, Vincent, Russell, Elijah, Louis, Bobby, Philip, Johnny\n" + "  * 女性：Mary, Lisa, Amy, Jennifer, Linda, Patricia, Susan, Jessica, Sarah, Karen, Nancy, Betty, Margaret, Sandra, Ashley, Dorothy, Kimberly, Emily, Donna, Michelle, Carol, Amanda, Melissa, Deborah, Stephanie, Rebecca, Laura, Sharon, Cynthia, Kathleen, Amy, Shirley, Angela, Helen, Anna, Brenda, Pamela, Nicole, Samantha, Katherine, Emma, Ruth, Christine, Catherine, Debra, Rachel, Carolyn, Janet, Virginia, Maria, Heather, Diane, Julie, Joyce, Victoria, Kelly, Christina, Lauren, Joan, Evelyn, Judith, Megan, Cheryl, Andrea, Hannah, Jacqueline, Martha, Gloria, Teresa, Ann, Sara, Madison, Frances, Kathryn, Janice, Jean, Alice, Abigail, Sophia, Judy, Judy, Alexis, Grace\n" + "- **重要：如果從 Email 前綴識別出英文名字並判斷性別，必須同時將該英文名字填入 Nickname 欄位（首字母大寫）**\n" + "- 範例處理：\n" + "  * jeffery0408@gmail.com → 識別 \"jeffery\" 是男性英文名 → Nickname: \"Jeffery\", Salutation: \"Mr.\" （必須兩者都填）\n" + "  * mary.lee@hinet.net → 識別 \"mary\" 是女性英文名 → Nickname: \"Mary\", Salutation: \"Ms.\" （必須兩者都填）\n" + "  * john_wang@company.com → 識別 \"john\" 是男性英文名 → Nickname: \"John\", Salutation: \"Mr.\" （忽略數字和特殊符號）\n" + "  * abc123@gmail.com → \"abc123\" 不是英文名字 → Nickname: \"\", Salutation: \"\" （兩者都留空）\n" + "  * customerservice@company.com → 不是人名 → Nickname: \"\", Salutation: \"\" （兩者都留空）\n\n" + "- 只回傳 Mr. 或 Ms.\n" + "- 如果無法明確判斷，留空（不要猜測）\n" + "- 中文名字範例：淑芬、雅婷、小芳 → Ms. / 大明、俊傑、志明 → Mr.\n\n" + "### 3. 電話處理（E.164 國際標準）\n" + "**手機（Mobile）：**\n" + "- 識別手機號碼（台灣 09 開頭，或中國 13/15/18 開頭等）\n" + "- 格式：+[國碼][國內號碼]\n" + "- 移除所有非數字字元（空格、括號、連字號、點等）\n" + "- 移除國內號碼開頭的 0\n" + "- 加上國碼（根據 Country 欄位或號碼判斷）\n" + "- 必須以 + 開頭，總長度不超過 15 位數字\n" + "- 範例：0912-345-678 + TW → +886912345678\n\n" + "**市話（Phone）：**\n" + "- 識別市話（非手機格式，例如 02-2345-6789）\n" + "- 檢查是否有 Area_Code（區碼）欄位\n" + "- 如果沒有區碼，從地址判斷（必須嚴格遵守）：\n" + "  * 如果地址包含「台北市」或「台北」或「新北市」或「新北」→ 區碼必須是 02\n" + "  * 如果地址包含「高雄市」或「高雄」→ 區碼必須是 07（絕對不是 02！）\n" + "  * 如果地址包含「台中市」或「台中」→ 區碼必須是 04\n" + "  * 如果地址包含「台南市」或「台南」→ 區碼必須是 06\n" + "  * 如果地址是其他城市（桃園、新竹、基隆、宜蘭等）→ 無法判斷，留空\n" + "  * 如果完全沒有地址資訊 → 留空（絕對不要預設或猜測）\n" + "- 格式：+886 + [區碼] + [號碼]\n" + "- 範例：\n" + "  * (02) 2345-6789 + 台北市 → +886223456789\n" + "  * 27123456（無區碼）+ 高雄市 → +886727123456\n" + "  * 23456789（無區碼）+ 無地址 → 留空（不處理）\n" + "- 重要：如果無法從資料中明確判斷區碼，寧可留空，不要猜測\n" + "- 重要：高雄的區碼是 07，絕對不是 02！\n\n" + "**分機（Extension）：**\n" + "- 從 extension, ext, 分機 等欄位提取\n" + "- 只保留數字\n" + "- 獨立儲存，不加在 Phone 後面\n\n" + "**國碼對應：**\n" + "TW/台灣→+886, CN/中國→+86, US/美國→+1, GB/英國→+44, SG/新加坡→+65, JP/日本→+81, HK/香港→+852, KR/韓國→+82\n\n" + "### 4. Email 處理（分號分隔 + 優先順序排序）\n" + "**重要：原始資料中，同一個欄位可能用分號(;)分隔多個 Email**\n" + "例如：darren_hsu@everrich.com.tw;compact70@yahoo.com.tw;radioheadluvme@gmail.com\n\n" + "**處理步驟：**\n" + "1. 如果 Email 欄位包含分號(;)，拆分成多個\n" + "2. 統一轉小寫，移除前後空格\n" + "3. 驗證格式（必須有 @ 和 .）\n" + "4. 移除無效或非人名的 Email（例如 customerservice@company.com）\n" + "5. **按優先順序排序（這是絕對規則，必須嚴格遵守）：**\n" + "   **第一優先：gmail.com**\n" + "   **第二優先：outlook.com / hotmail.com / live.com / msn.com**\n" + "   **第三優先：yahoo.com / yahoo.com.tw**\n" + "   **第四優先：hinet.net**\n" + "   **最後：公司網域（例如 @company.com.tw）和其他**\n" + "6. Email（主要）：優先順序最高的\n" + "7. Secondary_Email（第二）：優先順序第二高的（如果有）\n\n" + "**重要規則：**\n" + "- 優先順序完全依據「網域」，不考慮 Email 地址的內容\n" + "- 即使 mary.lee@hinet.net 有完整人名，maryl@outlook.com 仍然優先（因為 outlook > hinet）\n" + "- 即使 manager@company.com.tw 看起來很正式，john@gmail.com 仍然優先（因為 gmail > 公司）\n" + "- 必須嚴格按照網域優先順序排序，不可以有例外\n\n" + "**範例：**\n" + "範例 1：\n" + "輸入：darren_hsu@everrich.com.tw;compact70@yahoo.com.tw;radioheadluvme@gmail.com\n" + "輸出：\n" + "  Email: radioheadluvme@gmail.com（gmail 第一優先）\n" + "  Secondary_Email: compact70@yahoo.com.tw（yahoo 第二優先）\n\n" + "範例 2：\n" + "輸入：manager@bigcompany.com.tw;mary.lee@hinet.net;maryl@outlook.com\n" + "輸出：\n" + "  Email: maryl@outlook.com（outlook 第一優先，不是 hinet！）\n" + "  Secondary_Email: mary.lee@hinet.net（hinet 第二優先）\n\n" + "### 5. 國別處理（轉繁體中文）\n" + "- 將國碼或英文國名轉換為繁體中文\n" + "- TW → 台灣（使用「台」不是「臺」）\n" + "- CN → 中國\n" + "- US → 美國\n" + "- GB → 英國\n" + "- SG → 新加坡\n" + "- JP → 日本\n" + "- HK → 香港\n" + "- KR → 韓國\n" + "- 其他國家自動查詢轉換\n" + "- 如果無國碼且無法從電話判斷，預設：台灣\n\n" + "### 6. 描述處理（激進改寫）\n" + "**重要：這些是 2017 年前的歷史資料**\n\n" + "處理規則：\n" + "1. 移除所有 HTML 標籤（<p>, </p>, <br>, <div> 等）\n" + "2. 移除所有明確署名（例如：/ Alston, - Mary, /Mary 等格式）\n" + "3. 移除所有時效性描述（下個月、明天、本週、最近、上週、昨天等）\n" + "4. 識別 6 位碼日期（YYMMDD 格式）→ 只保留年份\n" + "   例如：170816 → 2017年, 150320 → 2015年\n" + "5. 保留資料來源（例如：展覽、LinkedIn、電話聯繫等）\n" + "6. 保留對聯絡人的具體描述（興趣、需求、背景等）\n" + "7. AI 改寫為清晰易懂的簡短語句\n" + "8. 移除多餘空格，前後 trim\n\n" + "**範例：**\n" + "輸入：<p>170816 展覽認識，客戶下個月要開記者會，對產品很有興趣 / Alston</p>\n" + "輸出：2017年展覽認識，對產品有興趣\n\n" + "輸入：150320 電話聯繫 - Mary\n" + "輸出：2015年電話聯繫\n\n" + "### 7. 其他欄位\n" + "- Designation（職稱）：保留原文，trim 空格\n" + "- Company（公司）：保留原文，trim 空格\n" + "- Website（網站）：保留原文，trim 空格\n" + "- City, State, Zip_Code：保留原文，trim 空格\n" + "- Fax（傳真）：不處理，不回傳\n\n" + "## 輸出格式\n" + "必須回傳有效的 JSON（不要包含任何解釋或其他文字）：\n" + "{\n" + "  \"Salutation\": \"Mr.\" or \"Ms.\" or \"\",\n" + "  \"First_Name\": \"\",\n" + "  \"Last_Name\": \"\",\n" + "  \"Nickname\": \"\",\n" + "  \"Mobile\": \"+886912345678\",\n" + "  \"Phone\": \"+886223456789\",\n" + "  \"Extension\": \"123\",\n" + "  \"Email\": \"john@gmail.com\",\n" + "  \"Secondary_Email\": \"test@yahoo.com\",\n" + "  \"Company\": \"\",\n" + "  \"Designation\": \"\",\n" + "  \"Description\": \"\",\n" + "  \"Country\": \"台灣\",\n" + "  \"State\": \"\",\n" + "  \"City\": \"\",\n" + "  \"Zip_Code\": \"\",\n" + "  \"Website\": \"\"\n" + "}\n\n" + "## 重要提醒\n" + "1. 回傳的必須是純 JSON，不要包含任何其他文字或解釋\n" + "2. 電話號碼必須嚴格符合 E.164：+[國碼][號碼]，只能包含數字\n" + "3. Email 如果有分號(;)，必須拆分並按優先順序排序\n" + "4. 國別必須是繁體中文（台灣、中國等）\n" + "5. 性別只有明確才填寫，無法確定就留空\n" + "6. 問號(?)代表無資料：First_Name 留空，Last_Name 填 N/A\n" + "7. 描述要激進改寫，移除署名和時效性內容\n" + "8. 所有欄位值必須是字串類型\n" + "9. 所有文字前後必須 trim，移除多餘空格";
+                 		// 準備使用者訊息
+                 		userMessage = "請清理以下聯絡人資料：\n\n" + rawData.toString();
+                 		// 建立 API 請求
+                 		messages = List();
+                 		messages.add({"role":"system","content":systemPrompt});
+                 		messages.add({"role":"user","content":userMessage});
+                 		apiParams = Map();
+                 		apiParams.put("model",thisapp.variables.OpenAI_Model);
+                 		apiParams.put("messages",messages);
+                 		apiParams.put("temperature",0.1);
+                 		apiParams.put("max_tokens",1000);
+                 		headers = Map();
+                 		headers.put("Authorization","Bearer " + thisapp.variables.OpenAI_API_Key);
+                 		headers.put("Content-Type","application/json");
+                 		// 調用 OpenAI API
+                 		aiResponse = invokeurl
+                 		[
+                 			url :thisapp.variables.OpenAI_API_URL
+                 			type :POST
+                 			parameters:apiParams.toString()
+                 			headers:headers
+                 		];
+                 		// 解析 AI 回應
+                 		if(aiResponse.get("choices") != null && aiResponse.get("choices").size() > 0)
+                 		{
+                 			aiContent = aiResponse.get("choices").get(0).get("message").get("content").trim();
+                 			// 移除可能的 markdown 代碼塊標記
+                 			if(aiContent.startsWith("```json"))
+                 			{
+                 				aiContent = aiContent.subString(7);
+                 			}
+                 			if(aiContent.startsWith("```"))
+                 			{
+                 				aiContent = aiContent.subString(3);
+                 			}
+                 			if(aiContent.endsWith("```"))
+                 			{
+                 				aiContent = aiContent.subString(0,aiContent.length() - 3);
+                 			}
+                 			aiContent = aiContent.trim();
+                 			// 將 AI 回傳的 JSON 字串轉換成 Map
+                 			try 
+                 			{
+                 				aiResult = aiContent.toMap();
+                 				// 驗證並整合到回傳結果
+                 				cleanedData.put("success",true);
+                 				cleanedData.put("Salutation",ifnull(aiResult.get("Salutation"),""));
+                 				cleanedData.put("First_Name",ifnull(aiResult.get("First_Name"),""));
+                 				cleanedData.put("Last_Name",ifnull(aiResult.get("Last_Name"),""));
+                 				cleanedData.put("Nickname",ifnull(aiResult.get("Nickname"),""));
+                 				cleanedData.put("Mobile",ifnull(aiResult.get("Mobile"),""));
+                 				cleanedData.put("Phone",ifnull(aiResult.get("Phone"),""));
+                 				cleanedData.put("Extension",ifnull(aiResult.get("Extension"),""));
+                 				cleanedData.put("Email",ifnull(aiResult.get("Email"),""));
+                 				cleanedData.put("Secondary_Email",ifnull(aiResult.get("Secondary_Email"),""));
+                 				cleanedData.put("Company",ifnull(aiResult.get("Company"),""));
+                 				cleanedData.put("Designation",ifnull(aiResult.get("Designation"),""));
+                 				cleanedData.put("Description",ifnull(aiResult.get("Description"),""));
+                 				cleanedData.put("Country",ifnull(aiResult.get("Country"),""));
+                 				cleanedData.put("State",ifnull(aiResult.get("State"),""));
+                 				cleanedData.put("City",ifnull(aiResult.get("City"),""));
+                 				cleanedData.put("Zip_Code",ifnull(aiResult.get("Zip_Code"),""));
+                 				cleanedData.put("Website",ifnull(aiResult.get("Website"),""));
+                 				// E.164 格式驗證（手機）
+                 				mobile = cleanedData.get("Mobile");
+                 				if(mobile != "")
+                 				{
+                 					if(!mobile.startsWith("+"))
+                 					{
+                 						cleanedData.put("Mobile","");
+                 						cleanedData.put("error",cleanedData.get("error") + " 手機格式不符合 E.164;");
+                 					}
+                 				}
+                 				// E.164 格式驗證（市話）
+                 				phone = cleanedData.get("Phone");
+                 				if(phone != "")
+                 				{
+                 					if(!phone.startsWith("+"))
+                 					{
+                 						cleanedData.put("Phone","");
+                 						cleanedData.put("error",cleanedData.get("error") + " 市話格式不符合 E.164;");
+                 					}
+                 				}
+                 			}
+                 			catch (parseError)
+                 			{
+                 				cleanedData.put("success",false);
+                 				cleanedData.put("error","AI 回應格式錯誤：" + aiContent.subString(0,200));
+                 			}
+                 		}
+                 		else
+                 		{
+                 			cleanedData.put("success",false);
+                 			cleanedData.put("error","AI 沒有回應");
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		cleanedData.put("success",false);
+                 		cleanedData.put("error",e.toString());
+                 	}
+                 	return cleanedData;
+                 }
+				 string TEST.testBatchStart()
+                 {
+                 	// TEST.testBatchStart
+                 	// 目的：測試 Batch.startProcessing 函數
+                 	// 請將下面的 ID 改為你的 Files_Master 記錄 ID
+                 	fileId = "4707400000000536003";
+                 	result = thisapp.Batch.startProcessing(fileId);
+                 	return result.toString();
+                 }
+				 string TEST.testCleanData()
+                 {
+                 	// TEST.testCleanData
+                 	// 目的：測試 OpenAI.cleanContactData 函數（完整功能驗證）
+                 	resultMessage = "";
+                 	try 
+                 	{
+                 		// 建立測試資料（模擬真實的混亂資料）
+                 		testData = Map();
+                 		testData.put("Name","陳淑芬");
+                 		testData.put("手機","0912-345-678");
+                 		testData.put("市話","(02) 2712-3456");
+                 		testData.put("分機","123");
+                 		testData.put("countries_code_c","TW");
+                 		testData.put("Email Address","darren_hsu@everrich.com.tw;compact70@yahoo.com.tw;radioheadluvme@gmail.com");
+                 		testData.put("Company","測試公司");
+                 		testData.put("Title","經理");
+                 		testData.put("Description","<p>170816 展覽認識，客戶下個月要開記者會，對產品很有興趣 / Alston</p>");
+                 		testData.put("City","台北市");
+                 		testData.put("State","台北");
+                 		testData.put("Website","http://www.test.com.tw");
+                 		resultMessage = "=== 測試 AI 資料清理（完整功能）===\n\n";
+                 		resultMessage = resultMessage + "? 原始資料：\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		resultMessage = resultMessage + "姓名: " + testData.get("Name") + "\n";
+                 		resultMessage = resultMessage + "手機: " + testData.get("手機") + "\n";
+                 		resultMessage = resultMessage + "市話: " + testData.get("市話") + "\n";
+                 		resultMessage = resultMessage + "分機: " + testData.get("分機") + "\n";
+                 		resultMessage = resultMessage + "Email: " + testData.get("Email Address") + "\n";
+                 		resultMessage = resultMessage + "  （注意：分號分隔多個）\n";
+                 		resultMessage = resultMessage + "國別: " + testData.get("countries_code_c") + "\n";
+                 		resultMessage = resultMessage + "城市: " + testData.get("City") + "\n";
+                 		resultMessage = resultMessage + "描述: " + testData.get("Description") + "\n";
+                 		resultMessage = resultMessage + "  （注意：HTML + 6位碼日期 + 署名）\n";
+                 		resultMessage = resultMessage + "網站: " + testData.get("Website") + "\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n\n";
+                 		resultMessage = resultMessage + "? 開始調用 AI 清理...\n\n";
+                 		// 調用清理函數
+                 		result = thisapp.OpenAI.cleanContactData(testData);
+                 		// 顯示結果
+                 		if(result.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "✅ 清理成功！\n\n";
+                 			resultMessage = resultMessage + "? 清理結果：\n";
+                 			resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 			resultMessage = resultMessage + "稱謂: " + result.get("Salutation") + "\n";
+                 			resultMessage = resultMessage + "姓: " + result.get("Last_Name") + "\n";
+                 			resultMessage = resultMessage + "名: " + result.get("First_Name") + "\n";
+                 			resultMessage = resultMessage + "暱稱: " + result.get("Nickname") + "\n";
+                 			resultMessage = resultMessage + "手機: " + result.get("Mobile") + "\n";
+                 			resultMessage = resultMessage + "市話: " + result.get("Phone") + "\n";
+                 			resultMessage = resultMessage + "分機: " + result.get("Extension") + "\n";
+                 			resultMessage = resultMessage + "主要信箱: " + result.get("Email") + "\n";
+                 			resultMessage = resultMessage + "第二信箱: " + result.get("Secondary_Email") + "\n";
+                 			resultMessage = resultMessage + "職稱: " + result.get("Designation") + "\n";
+                 			resultMessage = resultMessage + "公司: " + result.get("Company") + "\n";
+                 			resultMessage = resultMessage + "國別: " + result.get("Country") + "\n";
+                 			resultMessage = resultMessage + "省市: " + result.get("State") + "\n";
+                 			resultMessage = resultMessage + "城市: " + result.get("City") + "\n";
+                 			resultMessage = resultMessage + "郵編: " + result.get("Zip_Code") + "\n";
+                 			resultMessage = resultMessage + "網站: " + result.get("Website") + "\n";
+                 			resultMessage = resultMessage + "描述: " + result.get("Description") + "\n";
+                 			resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n\n";
+                 			// 驗證關鍵功能
+                 			resultMessage = resultMessage + "? 功能驗證：\n";
+                 			resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 			// 1. E.164 格式驗證
+                 			mobile = result.get("Mobile");
+                 			phone = result.get("Phone");
+                 			if(mobile != "" && mobile.startsWith("+") && mobile.length() >= 12 && mobile.length() <= 16)
+                 			{
+                 				resultMessage = resultMessage + "✅ 手機符合 E.164 標準\n";
+                 			}
+                 			else if(mobile != "")
+                 			{
+                 				resultMessage = resultMessage + "❌ 手機不符合 E.164: " + mobile + "\n";
+                 			}
+                 			else
+                 			{
+                 				resultMessage = resultMessage + "⚠️  手機為空\n";
+                 			}
+                 			if(phone != "" && phone.startsWith("+") && phone.length() >= 12 && phone.length() <= 16)
+                 			{
+                 				resultMessage = resultMessage + "✅ 市話符合 E.164 標準\n";
+                 			}
+                 			else if(phone != "")
+                 			{
+                 				resultMessage = resultMessage + "❌ 市話不符合 E.164: " + phone + "\n";
+                 			}
+                 			else
+                 			{
+                 				resultMessage = resultMessage + "⚠️  市話為空\n";
+                 			}
+                 			// 2. Email 優先順序驗證
+                 			email1 = result.get("Email");
+                 			email2 = result.get("Secondary_Email");
+                 			if(email1.contains("gmail.com"))
+                 			{
+                 				resultMessage = resultMessage + "✅ Email 優先順序正確（gmail 優先）\n";
+                 			}
+                 			else if(email1 != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  Email 優先順序可能不正確: " + email1 + "\n";
+                 			}
+                 			if(email2.contains("yahoo.com"))
+                 			{
+                 				resultMessage = resultMessage + "✅ 第二信箱正確識別（yahoo）\n";
+                 			}
+                 			else if(email2 != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  第二信箱: " + email2 + "\n";
+                 			}
+                 			// 3. 國別繁體中文驗證
+                 			country = result.get("Country");
+                 			if(country == "台灣")
+                 			{
+                 				resultMessage = resultMessage + "✅ 國別轉換正確（台灣）\n";
+                 			}
+                 			else if(country != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  國別轉換: " + country + "\n";
+                 			}
+                 			// 4. 描述改寫驗證
+                 			desc = result.get("Description");
+                 			if(desc != "" && !desc.contains("<p>") && !desc.contains("Alston") && !desc.contains("下個月"))
+                 			{
+                 				resultMessage = resultMessage + "✅ 描述成功改寫（移除 HTML、署名、時效性）\n";
+                 			}
+                 			else if(desc != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  描述改寫可能不完整\n";
+                 			}
+                 			if(desc.contains("2017"))
+                 			{
+                 				resultMessage = resultMessage + "✅ 6位碼日期轉換成功（保留年份）\n";
+                 			}
+                 			else if(desc != "" && testData.get("Description").contains("170816"))
+                 			{
+                 				resultMessage = resultMessage + "⚠️  6位碼日期未正確轉換\n";
+                 			}
+                 			// 5. 姓名分割驗證
+                 			lastName = result.get("Last_Name");
+                 			firstName = result.get("First_Name");
+                 			if(lastName == "陳" && firstName == "淑芬")
+                 			{
+                 				resultMessage = resultMessage + "✅ 中文姓名正確分割\n";
+                 			}
+                 			else if(lastName != "" || firstName != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  姓名分割: " + lastName + " / " + firstName + "\n";
+                 			}
+                 			// 6. 錯誤訊息檢查
+                 			errorMsg = result.get("error");
+                 			if(errorMsg != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  警告訊息: " + errorMsg + "\n";
+                 			}
+                 			resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 清理失敗！\n";
+                 			resultMessage = resultMessage + "錯誤訊息: " + result.get("error") + "\n";
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		resultMessage = resultMessage + "❌ 測試函數執行錯誤\n";
+                 		resultMessage = resultMessage + "錯誤訊息: " + e.toString();
+                 	}
+                 	resultMessage = resultMessage + "\n=== 測試完成 ===\n\n";
+                 	resultMessage = resultMessage + "? 提示：\n";
+                 	resultMessage = resultMessage + "- 如果驗證通過，可以開始處理真實資料\n";
+                 	resultMessage = resultMessage + "- 建議先測試幾筆真實資料，確認 AI 判斷準確度\n";
+                 	resultMessage = resultMessage + "- 每 500 筆人工校對一次，調整 AI Prompt";
+                 	return resultMessage;
+                 }
+				 string TEST.testEdgeCases()
+                 {
+                 	// TEST.testEdgeCases
+                 	// 目的：進階邊緣案例測試 + 執行時間壓力測試（5個案例連續測試）
+                 	resultMessage = "";
+                 	startTime = zoho.currenttime;
+                 	try 
+                 	{
+                 		resultMessage = "=== 進階邊緣案例測試（壓力測試）===\n";
+                 		resultMessage = resultMessage + "⏱️  開始時間: " + startTime.toString("yyyy-MM-dd HH:mm:ss") + "\n\n";
+                 		// 測試案例 1：台北市話（確認沒被高雄修正影響）
+                 		resultMessage = resultMessage + "【測試 1】台北市話區碼判斷（確認 02 正確）\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		test1Start = zoho.currenttime;
+                 		testData1 = Map();
+                 		testData1.put("Name","陳經理");
+                 		testData1.put("市話","2712-3456");
+                 		testData1.put("分機","101");
+                 		testData1.put("City","台北市");
+                 		testData1.put("State","台北");
+                 		testData1.put("countries_code_c","TW");
+                 		resultMessage = resultMessage + "原始: 市話=2712-3456, 分機=101, City=台北市\n";
+                 		result1 = thisapp.OpenAI.cleanContactData(testData1);
+                 		test1End = zoho.currenttime;
+                 		test1Duration = ((test1End - test1Start)) / 1000;
+                 		if(result1.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "結果:\n";
+                 			resultMessage = resultMessage + "  Phone: \"" + result1.get("Phone") + "\"\n";
+                 			resultMessage = resultMessage + "  Extension: \"" + result1.get("Extension") + "\"\n";
+                 			resultMessage = resultMessage + "  執行時間: " + test1Duration + " 秒\n";
+                 			if(result1.get("Phone") == "+886227123456" && result1.get("Extension") == "101")
+                 			{
+                 				resultMessage = resultMessage + "✅ 台北區碼正確（02）+ 分機正確\n";
+                 			}
+                 			else
+                 			{
+                 				resultMessage = resultMessage + "⚠️  結果不符預期\n";
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 失敗: " + result1.get("error") + "\n";
+                 		}
+                 		resultMessage = resultMessage + "\n";
+                 		// 測試案例 2：無地址市話（應該留空）
+                 		resultMessage = resultMessage + "【測試 2】無地址的市話（應該留空，不預設）\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		test2Start = zoho.currenttime;
+                 		testData2 = Map();
+                 		testData2.put("Name","王小華");
+                 		testData2.put("市話","23456789");
+                 		testData2.put("手機","0912345678");
+                 		testData2.put("countries_code_c","TW");
+                 		resultMessage = resultMessage + "原始: 市話=23456789（無區碼）, 無地址資訊\n";
+                 		result2 = thisapp.OpenAI.cleanContactData(testData2);
+                 		test2End = zoho.currenttime;
+                 		test2Duration = ((test2End - test2Start)) / 1000;
+                 		if(result2.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "結果:\n";
+                 			resultMessage = resultMessage + "  Mobile: \"" + result2.get("Mobile") + "\"\n";
+                 			resultMessage = resultMessage + "  Phone: \"" + result2.get("Phone") + "\"\n";
+                 			resultMessage = resultMessage + "  執行時間: " + test2Duration + " 秒\n";
+                 			if(result2.get("Phone") == "" && result2.get("Mobile") == "+886912345678")
+                 			{
+                 				resultMessage = resultMessage + "✅ 無地址時正確留空市話（保守處理）\n";
+                 			}
+                 			else if(result2.get("Phone") != "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  AI 預設了區碼: " + result2.get("Phone") + "（不符預期）\n";
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 失敗: " + result2.get("error") + "\n";
+                 		}
+                 		resultMessage = resultMessage + "\n";
+                 		// 測試案例 3：複雜 Email 前綴（包含點和下劃線）
+                 		resultMessage = resultMessage + "【測試 3】複雜 Email 前綴提取（含點和底線）\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		test3Start = zoho.currenttime;
+                 		testData3 = Map();
+                 		testData3.put("Email","mary.wang_123@hotmail.com");
+                 		testData3.put("手機","0933567890");
+                 		testData3.put("countries_code_c","TW");
+                 		resultMessage = resultMessage + "原始: Email=mary.wang_123@hotmail.com（含點、底線、數字）\n";
+                 		result3 = thisapp.OpenAI.cleanContactData(testData3);
+                 		test3End = zoho.currenttime;
+                 		test3Duration = ((test3End - test3Start)) / 1000;
+                 		if(result3.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "結果:\n";
+                 			resultMessage = resultMessage + "  Nickname: \"" + result3.get("Nickname") + "\"\n";
+                 			resultMessage = resultMessage + "  Salutation: \"" + result3.get("Salutation") + "\"\n";
+                 			resultMessage = resultMessage + "  執行時間: " + test3Duration + " 秒\n";
+                 			if(result3.get("Nickname").toLowerCase().contains("mary") && result3.get("Salutation") == "Ms.")
+                 			{
+                 				resultMessage = resultMessage + "✅ 成功提取 Mary（忽略點、底線、數字）\n";
+                 			}
+                 			else if(result3.get("Nickname") == "" && result3.get("Salutation") == "")
+                 			{
+                 				resultMessage = resultMessage + "⚠️  未能提取（可能太複雜）\n";
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 失敗: " + result3.get("error") + "\n";
+                 		}
+                 		resultMessage = resultMessage + "\n";
+                 		// 測試案例 4：中國手機號碼（國際號碼識別）
+                 		resultMessage = resultMessage + "【測試 4】中國手機號碼識別（國際號碼）\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		test4Start = zoho.currenttime;
+                 		testData4 = Map();
+                 		testData4.put("Name","李明");
+                 		testData4.put("手機","18601681022");
+                 		testData4.put("Email","liming@qq.com");
+                 		testData4.put("City","北京");
+                 		resultMessage = resultMessage + "原始: 手機=18601681022（中國格式）, City=北京\n";
+                 		result4 = thisapp.OpenAI.cleanContactData(testData4);
+                 		test4End = zoho.currenttime;
+                 		test4Duration = ((test4End - test4Start)) / 1000;
+                 		if(result4.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "結果:\n";
+                 			resultMessage = resultMessage + "  Mobile: \"" + result4.get("Mobile") + "\"\n";
+                 			resultMessage = resultMessage + "  Country: \"" + result4.get("Country") + "\"\n";
+                 			resultMessage = resultMessage + "  執行時間: " + test4Duration + " 秒\n";
+                 			if(result4.get("Mobile").contains("+8618601681022") && result4.get("Country") == "中國")
+                 			{
+                 				resultMessage = resultMessage + "✅ 正確識別中國手機（+86）+ 國別繁體中文\n";
+                 			}
+                 			else if(result4.get("Mobile").startsWith("+86"))
+                 			{
+                 				resultMessage = resultMessage + "⚠️  識別為中國但格式可能不正確: " + result4.get("Mobile") + "\n";
+                 			}
+                 			else
+                 			{
+                 				resultMessage = resultMessage + "⚠️  未能正確識別中國手機\n";
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 失敗: " + result4.get("error") + "\n";
+                 		}
+                 		resultMessage = resultMessage + "\n";
+                 		// 測試案例 5：多層次描述改寫（多個6位碼日期）
+                 		resultMessage = resultMessage + "【測試 5】複雜描述改寫（多個日期 + 多個署名）\n";
+                 		resultMessage = resultMessage + "━━━━━━━━━━━━━━━━━━━━\n";
+                 		test5Start = zoho.currenttime;
+                 		testData5 = Map();
+                 		testData5.put("Name","張經理");
+                 		testData5.put("Description","<p>140512 電話初次聯繫 / John<br>150820 展覽見面，客戶下週要來訪，對產品很滿意 - Mary<br>161103 報價單已寄出 / David</p>");
+                 		testData5.put("countries_code_c","TW");
+                 		resultMessage = resultMessage + "原始: 多個6位碼日期 + 多個署名 + HTML + 時效性\n";
+                 		result5 = thisapp.OpenAI.cleanContactData(testData5);
+                 		test5End = zoho.currenttime;
+                 		test5Duration = ((test5End - test5Start)) / 1000;
+                 		if(result5.get("success") == true)
+                 		{
+                 			resultMessage = resultMessage + "結果:\n";
+                 			resultMessage = resultMessage + "  Description: \"" + result5.get("Description") + "\"\n";
+                 			resultMessage = resultMessage + "  執行時間: " + test5Duration + " 秒\n";
+                 			desc = result5.get("Description");
+                 			hasYears = desc.contains("2014") || desc.contains("2015") || desc.contains("2016");
+                 			noHTML = !desc.contains("<p>") && !desc.contains("<br>");
+                 			noSignatures = !desc.contains("John") && !desc.contains("Mary") && !desc.contains("David") && !desc.contains("/") && !desc.contains("-");
+                 			noTimeSensitive = !desc.contains("下週");
+                 			if(hasYears && noHTML && noSignatures && noTimeSensitive)
+                 			{
+                 				resultMessage = resultMessage + "✅ 複雜描述改寫成功（保留年份，移除 HTML/署名/時效性）\n";
+                 			}
+                 			else
+                 			{
+                 				resultMessage = resultMessage + "⚠️  部分改寫可能不完整\n";
+                 				if(!hasYears)
+                 				{
+                 					resultMessage = resultMessage + "  - 年份轉換可能有問題\n";
+                 				}
+                 				if(!noHTML)
+                 				{
+                 					resultMessage = resultMessage + "  - HTML 未完全移除\n";
+                 				}
+                 				if(!noSignatures)
+                 				{
+                 					resultMessage = resultMessage + "  - 署名未完全移除\n";
+                 				}
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = resultMessage + "❌ 失敗: " + result5.get("error") + "\n";
+                 		}
+                 		// 總結
+                 		endTime = zoho.currenttime;
+                 		totalDuration = ((endTime - startTime)) / 1000;
+                 		resultMessage = resultMessage + "\n=== 測試完成 ===\n";
+                 		resultMessage = resultMessage + "⏱️  結束時間: " + endTime.toString("yyyy-MM-dd HH:mm:ss") + "\n";
+                 		resultMessage = resultMessage + "⏱️  總執行時間: " + totalDuration + " 秒\n";
+                 		resultMessage = resultMessage + "? 平均每筆: " + (totalDuration / 5).round(1) + " 秒\n\n";
+                 		resultMessage = resultMessage + "? 壓力測試分析：\n";
+                 		resultMessage = resultMessage + "- 5 筆測試總時間: " + totalDuration + " 秒\n";
+                 		resultMessage = resultMessage + "- 500 筆預估時間: " + (totalDuration * 100).round(0) + " 秒 ≈ " + ((totalDuration * 100) / 60).round(1) + " 分鐘\n";
+                 		resultMessage = resultMessage + "- 30 萬筆預估時間: " + ((totalDuration * 60000) / 3600).round(1) + " 小時\n\n";
+                 		resultMessage = resultMessage + "✅ 如果所有測試通過，可以開始處理真實資料！\n";
+                 		resultMessage = resultMessage + "⚠️  建議：先處理 500 筆，人工校對後再批量處理";
+                 	}
+                 	catch (e)
+                 	{
+                 		resultMessage = resultMessage + "❌ 測試執行錯誤: " + e.toString();
+                 	}
+                 	return resultMessage;
+                 }
+				 string TEST.testOpenAI()
+                 {
+                 	// testOpenAI
+                 	// 目的：測試 OpenAI API 連接和基本的性別判斷功能
+                 	// 回傳：測試結果訊息
+                 	info "=== OpenAI API 測試開始 ===";
+                 	// 測試用的名字
+                 	testName = "淑芬";
+                 	// 建立 System Prompt
+                 	systemPrompt = "你是一個中文名字性別判斷專家。根據使用者提供的名字，判斷其最可能的性別。你的回答必須只能是「Mr.」或「Ms.」，不能包含任何其他標點符號、文字或解釋。";
+                 	// 建立訊息陣列
+                 	messages = List();
+                 	// 添加 System Message
+                 	systemMsg = Map();
+                 	systemMsg.put("role","system");
+                 	systemMsg.put("content",systemPrompt);
+                 	messages.add(systemMsg);
+                 	// 添加範例（Few-shot）
+                 	messages.add({"role":"user","content":"大明"});
+                 	messages.add({"role":"assistant","content":"Mr."});
+                 	messages.add({"role":"user","content":"淑芬"});
+                 	messages.add({"role":"assistant","content":"Ms."});
+                 	messages.add({"role":"user","content":"俊傑"});
+                 	messages.add({"role":"assistant","content":"Mr."});
+                 	// 添加實際要測試的名字
+                 	userMsg = Map();
+                 	userMsg.put("role","user");
+                 	userMsg.put("content",testName);
+                 	messages.add(userMsg);
+                 	// 建立 API 請求參數
+                 	apiParams = Map();
+                 	apiParams.put("model",thisapp.variables.OpenAI_Model);
+                 	apiParams.put("messages",messages);
+                 	apiParams.put("temperature",0.1);
+                 	apiParams.put("max_tokens",10);
+                 	// 設定請求標頭
+                 	headers = Map();
+                 	headers.put("Authorization","Bearer " + thisapp.variables.OpenAI_API_Key);
+                 	headers.put("Content-Type","application/json");
+                 	// 執行 API 調用
+                 	resultMessage = "";
+                 	try 
+                 	{
+                 		info "開始調用 OpenAI API...";
+                 		info "測試名字：" + testName;
+                 		response = invokeurl
+                 		[
+                 			url :thisapp.variables.OpenAI_API_URL
+                 			type :POST
+                 			parameters:apiParams.toString()
+                 			headers:headers
+                 		];
+                 		info "API 回應：" + response.toString();
+                 		// 解析回應
+                 		if(response.get("choices") != null && response.get("choices").size() > 0)
+                 		{
+                 			aiReply = response.get("choices").get(0).get("message").get("content").trim();
+                 			info "AI 判斷結果：" + aiReply;
+                 			resultMessage = "✅ 測試成功！\n";
+                 			resultMessage = resultMessage + "測試名字：" + testName + "\n";
+                 			resultMessage = resultMessage + "AI 判斷：" + aiReply + "\n";
+                 			resultMessage = resultMessage + "API 狀態：正常運作";
+                 		}
+                 		else
+                 		{
+                 			resultMessage = "❌ API 回應格式錯誤\n";
+                 			resultMessage = resultMessage + "回應內容：" + response.toString();
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		info "❌ API 調用失敗：" + e.toString();
+                 		resultMessage = "❌ 測試失敗！\n";
+                 		resultMessage = resultMessage + "錯誤訊息：" + e.toString();
+                 	}
+                 	info "=== 測試完成 ===";
+                 	return resultMessage;
+                 }
+				 string TEST.testReadSheet()
+                 {
+                 	// testReadSheet
+                 	// 目的：測試讀取 Zoho Sheet 資料（最簡化版）
+                 	// 回傳：測試結果訊息
+                 	resultMessage = "";
+                 	try 
+                 	{
+                 		sheetResourceId = "63665b5f4ce28cde340f9999910832b4ce6c5";
+                 		worksheetName = "190620_Leads";
+                 		// 準備參數
+                 		configMap = Map();
+                 		configMap.put("max_records",2);
+                 		// 讀取資料
+                 		records = zoho.sheet.getRecords(sheetResourceId,worksheetName,configMap,"zoho_sheet_connection");
+                 		// 檢查是否有資料
+                 		if(records != null)
+                 		{
+                 			resultMessage = "✅ 成功讀取到資料！\n\n";
+                 			// 嘗試取得第一筆資料的所有欄位名稱
+                 			try 
+                 			{
+                 				firstRecord = records.toList().get(0);
+                 				resultMessage = resultMessage + "第一筆資料的欄位：\n";
+                 				resultMessage = resultMessage + firstRecord.keys().toString();
+                 			}
+                 			catch (ex)
+                 			{
+                 				resultMessage = resultMessage + "資料格式：" + records.toString().subString(0,500);
+                 			}
+                 		}
+                 		else
+                 		{
+                 			resultMessage = "⚠️ records 為 null";
+                 		}
+                 	}
+                 	catch (e)
+                 	{
+                 		resultMessage = "❌ 錯誤：" + e.toString();
+                 	}
+                 	return resultMessage;
+                 }
+			 }
+		 }
+		workflow
+		{
+
+
+
+
+
+
+		functions
+		{
+			startProcessingButton as "startProcessingButton"
+			{
+				type =  functions
+				form = Files_Master
+				execution type = for each record	
+				on start
+				{
+					actions 
+					{
+					on click
+					(
+						// 獲取當前記錄的 ID
+										fileId = input.ID.toString();
+										// 調用 Batch.startProcessing 函數
+										result = thisapp.Batch.startProcessing(fileId);
+										// 處理完成，結果已記錄在資料庫中
+										// 用戶可以通過報表查看處理結果
+					)
+					}
+				}
+			}
+		}
+	}
+	share_settings
+	{
+			"Read"
+			{
+				name = "Read"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have read permission for all components\n"
+			}
+			"Write"
+			{
+				name = "Write"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have write permission for all components\n"
+			}
+			"Developer"
+			{
+				name = "Developer"
+				type = Developer
+				permissions = {Chat:false, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "Developer Profile\n"
+			}
+			"Administrator"
+			{
+				name = "Administrator"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have all the permissions.\n"
+			}
+			"Customer"
+			{
+				name = "Customer"
+				type = Customer_Portal
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This is the default profile having only add and view permission.\n"
+			}
+			roles
+			{
+				"CEO"
+				{
+					description = "User belonging to this role can access data of all other users."
+				}
+			}
+	}
+
+
+	connections
+	{
+		zoho_sheet_connection
+		(
+			displayname = "Zoho Sheet Connection"
+			connector = zohosheet
+			permissions = {"all_data_operations","create_record","create_spreadsheet","create_worksheet","get_all_records","get_all_spreadsheets","get_all_worksheets","update_record"}
+		)
+	}
+	web
+	{
+		forms
+		{
+			form Files_Master
+			{
+				label placement = labelinplace
+			}
+			form Processing_Tasks
+			{
+				label placement = labelinplace
+			}
+		}
+		reports
+		{
+			report Files_Master_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								File_ID as "檔案編號"
+								File_Name as "檔案名稱"
+								Sheet_Resource_ID as "Zoho Sheet ID"
+								Worksheet_Name as "工作表名稱"
+								Total_Rows as "總行數"
+								Processing_Status as "處理狀態"
+								Processed_Rows as "已處理行數"
+								"開始處理"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Delete   	   
+							Duplicate   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								File_ID as "檔案編號"
+								File_Name as "檔案名稱"
+								Sheet_Resource_ID as "Zoho Sheet ID"
+								Worksheet_Name as "工作表名稱"
+								Total_Rows as "總行數"
+								Processing_Status as "處理狀態"
+								Processed_Rows as "已處理行數"
+								Success_Count as "成功數量"
+								Error_Count as "失敗數量"
+								Progress_Percentage as "進度百分比"
+								Start_Time as "開始時間"
+								End_Time as "完成時間"
+								Notes as "備註"
+								ID
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    	 				)
+    				)
+				)
+			}
+			report Processing_Tasks_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								Task_ID as "任務編號"
+								Files_Master as "檔案主表"
+								Batch_Number as "批次編號"
+								Start_Row as "起始行"
+								End_Row as "結束行"
+								Row_Count as "行數"
+								Task_Status as "任務狀態"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Delete   	   
+							Duplicate   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								Task_ID as "任務編號"
+								Files_Master as "檔案主表"
+								Batch_Number as "批次編號"
+								Start_Row as "起始行"
+								End_Row as "結束行"
+								Row_Count as "行數"
+								Task_Status as "任務狀態"
+								Success_Count as "成功數量"
+								Error_Count as "失敗數量"
+								Processing_Time as "處理時間（秒）"
+								Start_Time as "開始時間"
+								End_Time as "完成時間"
+								Error_Message as "錯誤訊息"
+								Retry_Count as "重試次數"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    	 				)
+    				)
+				)
+			}
+		}
+		menu
+		{
+			space Space
+			{
+				displayname = "Space"
+				icon = "objects-spaceship"
+
+				section Files_Master
+				{
+					displayname = "Files Master"
+					icon = "tech-2-l-search"
+					form  Files_Master
+					{
+						icon = "tech-2-l-search"
+					}
+					report Files_Master_Report
+					{
+						icon = "tech-desktop"
+					}
+				}
+				section App_Preferences
+				{
+					displayname = "App Preferences"
+					icon = "design-app"
+					systemcomponent
+					{
+						type = localization
+						displayname = "Language Selection"
+						icon = "education-language"
+					}
+					systemcomponent
+					{
+						type = connection
+						displayname = "Integrations"
+						icon = "tech-2-connection"
+					}
+				}
+				section Approvals
+				{
+					displayname = "Approvals"
+					icon = "ui-2-hourglass"
+					systemcomponent
+					{
+						type = approval
+						approval status = pending
+						displayname = "Pending Tasks"
+						icon = "ui-2-hourglass"
+					}
+					systemcomponent
+					{
+						type = approval
+						approval status = completed
+						displayname = "Completed Tasks"
+						icon = "design-todo"
+					}
+				}
+				section SharedAnalytics_Section
+				{
+					type = shared_user_report_section
+					displayname = "Reports"
+					icon = "business-chart-bar-33"
+				}
+				section Processing_Tasks
+				{
+					displayname = "Processing_Tasks"
+					icon = "tech-desktop"
+					form  Processing_Tasks
+					{
+						icon = "tech-desktop"
+					}
+					report Processing_Tasks_Report
+					{
+						icon = "tech-desktop"
+					}
+				}
+			}
+			preference
+			{
+				icon
+				{
+					style = outline
+				}
+			}
+		}
+		customize
+		{
+			new theme = 11
+			font = "lato"
+			color options
+			{
+				color = "1"
+			}
+			logo
+			{
+				preference = "company_logo"
+				placement = "left"
+			}
+		}
+	}
+	phone
+	{
+		forms
+		{
+			form Files_Master
+			{
+				label placement = auto
+			}
+			form Processing_Tasks
+			{
+				label placement = auto
+			}
+		}
+		customize
+		{
+			layout = slidingpane
+			font = "default"
+			style = "1"
+			color options
+			{
+				color = darkgrey
+			}
+			logo
+			{
+				preference = "company_logo"
+			}
+		}
+	}
+	tablet
+	{
+		forms
+		{
+			form Files_Master
+			{
+				label placement = auto
+			}
+			form Processing_Tasks
+			{
+				label placement = auto
+			}
+		}
+		customize
+		{
+			layout = slidingpane
+			font = "default"
+			style = "1"
+			color options
+			{
+				color = darkgrey
+			}
+			logo
+			{
+				preference = "company_logo"
+			}
+		}
+	}
+	translation
+{
+{"Language_Settings":{"LANGAGUE_WITH_LOGIN":"browser"}}
+}
+}

@@ -1,0 +1,44 @@
+# 易經靈學占卜專案概覽
+
+## 專案目標
+開發一個完整的靈學占卜系統，整合 Zoho One 應用程式、Simplybook、Easystore 和綠界(ECPay)支付系統。
+
+## 核心技術棧
+- **主要語言**: Deluge (Zoho Creator 專用語言)
+- **平台**: Zoho Creator
+- **支付整合**: 綠界 ECPay
+- **預約系統**: Simplybook
+- **電商平台**: Easystore
+
+## 專案架構
+專案分為以下主要模組：
+
+### 核心占卜系統
+- **IChing/**: 易經占卜功能
+- **Bazi/**: 八字命理計算
+- **Tarot/**: 塔羅牌占卜
+- **Talisman/**: 符咒推薦系統
+
+### 曆法轉換系統
+- **LunarAI/**: 農曆轉換和八字計算
+- **SolarTerms/**: 節氣計算
+- **Star/**: 二十八星宿
+- **Zodiac/**: 生肖和太歲
+
+### 外部整合
+- **ECPay/**: 綠界支付整合
+- **Webhook/**: Simplybook 等外部系統整合
+- **AIInterpreter/**: AI 解讀功能
+
+### 工作流程
+- **Workflow/**: Zoho Creator 工作流程腳本
+
+## 開發規範
+- 每個 .deluge 檔案只包含一個函數
+- 使用繁體中文註解
+- 遵循 Zoho Creator 的 Deluge 語法限制
+- 函數參數必須宣告資料類型
+description:
+globs:
+alwaysApply: false
+---

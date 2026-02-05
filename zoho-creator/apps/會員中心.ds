@@ -1,0 +1,4747 @@
+/*
+ * Author       : uneedwind
+ * Generated on : 03-Feb-2026 20:47:40
+ * Version      : 1.0
+ */
+ application "會員中心"
+ {
+ 	date format = "yyyy/MM/dd"
+ 	time zone = "Asia/Taipei"
+ 	time format = "24-hr"
+ 	forms
+	{
+		form Client_Support_Tickets
+		{
+			displayname = "客服工單"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			member
+			(
+				type = picklist	
+				displayname = "會員"
+				values  = Client_Members.ID
+    			displayformat = [member_code]
+				allow new entries
+				[
+					displayname = "Add New"
+				]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			subject_1
+			(
+    			type = text
+				displayname = "主旨"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			description
+			(
+    			type = textarea
+				displayname = "描述"
+				height = 100px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			status
+			(
+				type = picklist
+				displayname = "狀態"
+				values = {"開啟","已解決","處理中","已關閉"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			priority
+			(
+				type = picklist
+				displayname = "優先順序"
+				values = {"高","中","低"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			case
+			(
+				type = picklist	
+				displayname = "案件"
+				datasource = cases
+    			displayformat = [case_origin]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+			blueprint components
+			{
+				stages = {"Ticket Created","Ticket Assigned","Ticket Cancelled","Ticket In Progress","Ticket Reopened","Ticket Resolved","Ticket Escalated","Ticket On Hold","Ticket Closed"}
+			}
+		}
+		form Client_Support_Sessions
+		{
+			displayname = "支援會話"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			member
+			(
+				type = picklist	
+				displayname = "會員"
+				values  = Client_Members.ID
+    			displayformat = [member_code]
+				allow new entries
+				[
+					displayname = "Add New"
+				]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			start_time
+			(
+    			type = datetime
+				displayname = "開始時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			end_time
+			(
+    			type = datetime
+				displayname = "結束時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			channel
+			(
+				type = radiobuttons
+				displayname = "支援渠道"
+				values = {"SalesIQ","Desk"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			status
+			(
+				type = picklist
+				displayname = "狀態"
+				values = {"已結束","進行中","已轉交"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			case
+			(
+				type = picklist	
+				displayname = "案件"
+				datasource = cases
+    			displayformat = [case_origin]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Client_Members
+		{
+			displayname = "會員資料"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			member_code
+			(
+    			type = autonumber
+				displayname = "會員編號"
+				start index = 1
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			google_id
+			(
+    			type = text
+				displayname = "Google帳號ID"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			email
+			(
+    			type = email
+				displayname = "電子郵件"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			name
+			(
+    			type = name
+				displayname = "姓名"
+     			prefix
+     			(
+	     			 type = prefix
+	     			 displayname ="Prefix"
+	     			 visibility = false
+	     			 value = {"Mr.","Mrs.","Ms."}
+     			) 
+     			first_name
+     			(
+	     			 type = first_name
+	     			 displayname ="First Name"
+     			) 
+     			last_name
+     			(
+	     			 type = last_name
+	     			 displayname ="Last Name"
+	     			 visibility = false
+     			) 
+     			suffix
+     			(
+	     			 type = suffix
+	     			 displayname ="Suffix"
+	     			 visibility = false
+     			) 
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			phone
+			(
+    			type = phonenumber
+				displayname = "電話"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			register_date
+			(
+    			type = datetime
+				displayname = "註冊日期"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			status
+			(
+				type = picklist
+				displayname = "狀態"
+				values = {"啟用","停用","待驗證"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			lead
+			(
+				type = picklist	
+				displayname = "潛在客戶"
+				datasource = zohocrm_leads
+    			displayformat = [company]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			contact
+			(
+				type = picklist	
+				displayname = "聯絡人"
+				datasource = zohocrm_contacts
+    			displayformat = [last_name]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+			blueprint components
+			{
+				stages = {"會員註冊","驗證中","驗證成功","驗證失敗","啟用中","啟用成功","啟用失敗"}
+			}
+		}
+		form Client_Activity_Logs
+		{
+			displayname = "行為紀錄"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			member
+			(
+				type = picklist	
+				displayname = "會員"
+				values  = Client_Members.ID
+    			displayformat = [member_code]
+				allow new entries
+				[
+					displayname = "Add New"
+				]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			action_type
+			(
+				type = picklist
+				displayname = "行為類型"
+				values = {"瀏覽","登出","登入","提交表單","點擊"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			action_detail
+			(
+    			type = textarea
+				displayname = "行為細節"
+				height = 100px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			action_time
+			(
+    			type = datetime
+				displayname = "行為時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			solution
+			(
+				type = picklist	
+				displayname = "知識庫解答"
+				datasource = solutions
+    			displayformat = [answer]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Client_Campaign_Records
+		{
+			displayname = "行銷記錄"
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			member
+			(
+				type = picklist	
+				displayname = "會員"
+				values  = Client_Members.ID
+    			displayformat = [member_code]
+				allow new entries
+				[
+					displayname = "Add New"
+				]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			campaign
+			(
+				type = picklist	
+				displayname = "行銷活動"
+				datasource = campaigns
+    			displayformat = [campaign_name]
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			participation_status
+			(
+				type = picklist
+				displayname = "參與狀態"
+				values = {"已參加","已拒絕","未參加"}
+				others option = true
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			participation_date
+			(
+    			type = date
+				displayname = "參與日期"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form CRM_Contacts
+		{
+			displayname = "CRM聯絡人"
+			datasource = zohocrm_contacts
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have last_name
+			(
+				datasource field = last_name
+				displayname = "姓氏"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Support_Solutions
+		{
+			displayname = "解決方案"
+			datasource = solutions
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have answer
+			(
+				datasource field = answer
+				displayname = "答案"
+				height = 13px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have question
+			(
+				datasource field = question
+				displayname = "問題"
+				height = 13px
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have solution_title
+			(
+				datasource field = solution_title
+				displayname = "解決方案標題"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Support_Cases
+		{
+			displayname = "個案案例"
+			datasource = cases
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have case_origin
+			(
+				datasource field = case_origin
+				displayname = "案例來源"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have status
+			(
+				datasource field = status
+				displayname = "狀態"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have subject_field
+			(
+				datasource field = subject_field
+				displayname = "主題"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form CRM_Leads
+		{
+			displayname = "CRM潛在客戶"
+			datasource = zohocrm_leads
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have company
+			(
+				datasource field = company
+				displayname = "公司"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have last_name
+			(
+				datasource field = last_name
+				displayname = "姓氏"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Marketing_Campaigns
+		{
+			displayname = "行銷活動"
+			datasource = campaigns
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have campaign_name
+			(
+				datasource field = campaign_name
+				displayname = "活動名稱"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Client_Leads
+		{
+			displayname = "客戶開發"
+			datasource = zohocrm1
+			success message = "Data Added Successfully!"
+			Section
+			(
+				type = section
+	 			row = 1
+	 			column = 0   
+				width = medium
+			)
+			must have datasource_field3
+			(
+				datasource field = datasource_field3
+				displayname = "姓"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			datasource_field2
+			(
+				datasource field = datasource_field2
+				displayname = "名"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			datasource_field20
+			(
+				datasource field = datasource_field20
+				displayname = "精確出生時間"
+				timedisplayoptions = "hh:mm:ss"
+				alloweddays = 0,1,2,3,4,5,6
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+	
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+	}
+	reports
+	{
+		list members_Report
+		{
+			displayName = "會員 Report"
+			show all rows from Client_Members    
+			(
+				member_code as "會員編號"
+				google_id as "Google帳號ID"
+				email as "電子郵件"
+				name  as "姓名"
+	 			(
+	      			displayformat = [first_name+""+prefix+""+last_name+""+suffix]
+	 			)
+				phone as "電話"
+				register_date as "註冊日期"
+				status as "狀態"
+				lead as "潛在客戶"
+				contact as "聯絡人"
+			)
+			conditional formatting
+			(
+				"New Formatting1"
+				{
+				condition = (status == "停用")
+				fields = [status]
+				format = "color:#ffffff;background-color:#765f89;"
+				}
+				"New Formatting2"
+				{
+				condition = (status == "啟用")
+				fields = [status]
+				format = "color:#000000;background-color:#1bbc9b;"
+				}
+			)
+		}
+		kanban members_by_status
+		{
+			displayName = "Board"
+			show all rows from Client_Members    
+			(
+				member_code as "會員編號"
+				google_id as "Google帳號ID"
+				email as "電子郵件"
+				name  as "姓名"
+	 			(
+	      			displayformat = [first_name+""+prefix+""+last_name+""+suffix]
+	 			)
+				phone as "電話"
+				register_date as "註冊日期"
+				status as "狀態"
+				lead as "潛在客戶"
+				contact as "聯絡人"
+			)
+			options
+			(
+	 			display field = status
+	 		)
+		}
+		list member_support_sessions_Report
+		{
+			displayName = "會員支援會話 Report"
+			show all rows from Client_Support_Sessions    
+			(
+				member as "會員"
+				start_time as "開始時間"
+				end_time as "結束時間"
+				channel as "支援渠道"
+				status as "狀態"
+				case as "案件"
+			)
+			conditional formatting
+			(
+				"New Formatting1"
+				{
+				condition = (status == "已結束")
+				fields = [status]
+				format = "color:#ffffff;background-color:#765f89;"
+				}
+				"New Formatting2"
+				{
+				condition = (status == "已轉交")
+				fields = [status]
+				format = "color:#000000;background-color:#1bbc9b;"
+				}
+			)
+		}
+		kanban member_support_sessions_by_status
+		{
+			displayName = "Board"
+			show all rows from Client_Support_Sessions    
+			(
+				member as "會員"
+				start_time as "開始時間"
+				end_time as "結束時間"
+				channel as "支援渠道"
+				status as "狀態"
+				case as "案件"
+			)
+			options
+			(
+	 			display field = status
+	 		)
+		}
+		list member_tickets_Report
+		{
+			displayName = "會員客服單 Report"
+			show all rows from Client_Support_Tickets    
+			(
+				member as "會員"
+				subject_1 as "主旨"
+				description as "描述"
+				status as "狀態"
+				priority as "優先順序"
+				case as "案件"
+			)
+			conditional formatting
+			(
+				"New Formatting1"
+				{
+				condition = (status == "已關閉")
+				fields = [status]
+				format = "color:#ffffff;background-color:#765f89;"
+				}
+				"New Formatting2"
+				{
+				condition = (status == "處理中")
+				fields = [status]
+				format = "color:#000000;background-color:#1bbc9b;"
+				}
+				"New Formatting3"
+				{
+				condition = (status == "開啟")
+				fields = [status]
+				format = "color:#ffffff;background-color:#e84c3d;"
+				}
+			)
+		}
+		kanban member_tickets_by_status
+		{
+			displayName = "Board"
+			show all rows from Client_Support_Tickets    
+			(
+				member as "會員"
+				subject_1 as "主旨"
+				description as "描述"
+				status as "狀態"
+				priority as "優先順序"
+				case as "案件"
+			)
+			options
+			(
+	 			display field = status
+	 		)
+		}
+		list member_campaigns_Report
+		{
+			displayName = "會員行銷活動 Report"
+			show all rows from Client_Campaign_Records    
+			(
+				member as "會員"
+				campaign as "行銷活動"
+				participation_status as "參與狀態"
+				participation_date as "參與日期"
+			)
+			conditional formatting
+			(
+				"New Formatting1"
+				{
+				condition = (participation_status == "已參加")
+				fields = [participation_status]
+				format = "color:#ffffff;background-color:#765f89;"
+				}
+				"New Formatting2"
+				{
+				condition = (participation_status == "已拒絕")
+				fields = [participation_status]
+				format = "color:#000000;background-color:#1bbc9b;"
+				}
+				"New Formatting3"
+				{
+				condition = (participation_status == "未參加")
+				fields = [participation_status]
+				format = "color:#ffffff;background-color:#e84c3d;"
+				}
+			)
+		}
+		kanban member_campaigns_by_participation_status
+		{
+			displayName = "Board"
+			show all rows from Client_Campaign_Records    
+			(
+				member as "會員"
+				campaign as "行銷活動"
+				participation_status as "參與狀態"
+				participation_date as "參與日期"
+			)
+			options
+			(
+	 			display field = participation_status
+	 		)
+		}
+		list member_behavior_logs_Report
+		{
+			displayName = "會員行為紀錄 Report"
+			show all rows from Client_Activity_Logs    
+			(
+				member as "會員"
+				action_type as "行為類型"
+				action_detail as "行為細節"
+				action_time as "行為時間"
+				solution as "知識庫解答"
+			)
+			conditional formatting
+			(
+				"New Formatting1"
+				{
+				condition = (action_type == "提交表單")
+				fields = [action_type]
+				format = "color:#ffffff;background-color:#765f89;"
+				}
+				"New Formatting2"
+				{
+				condition = (action_type == "瀏覽")
+				fields = [action_type]
+				format = "color:#000000;background-color:#1bbc9b;"
+				}
+				"New Formatting3"
+				{
+				condition = (action_type == "登出")
+				fields = [action_type]
+				format = "color:#ffffff;background-color:#e84c3d;"
+				}
+			)
+		}
+		kanban member_behavior_logs_by_action_type
+		{
+			displayName = "Board"
+			show all rows from Client_Activity_Logs    
+			(
+				member as "會員"
+				action_type as "行為類型"
+				action_detail as "行為細節"
+				action_time as "行為時間"
+				solution as "知識庫解答"
+			)
+			options
+			(
+	 			display field = action_type
+	 		)
+		}
+		list zohocrm_contacts_Report
+		{
+			displayName = "聯繫人 Report"
+			show all rows from CRM_Contacts    
+			(
+				account_name as "帳戶名稱"
+				date_of_birth as "出生日期"
+				department as "部門"
+				description as "描述"
+				email as "電子郵件"
+				fax as "傳真"
+				first_name as "名字"
+				home_phone as "家庭電話"
+				last_name as "姓氏"
+				lead_source as "潛在客戶來源"
+				mailing_city as "郵寄城市"
+				mailing_country as "郵寄國家"
+				mailing_state as "郵寄州"
+				mailing_street as "郵寄街道"
+				mailing_zip as "郵寄郵遞區號"
+				mobile as "手機"
+				other_city as "其他城市"
+				other_country as "其他國家"
+				other_phone as "其他電話"
+				other_state as "其他州"
+				other_street as "其他街道"
+				other_zip as "其他郵遞區號"
+				phone as "電話"
+				reports_to as "匯報給"
+				secondary_email as "備用電子郵件"
+				skype_id as "Skype ID"
+				title as "職稱"
+				twitter as "推特"
+				vendor_name as "供應商名稱"
+			)
+		}
+		list solutions_Report
+		{
+			displayName = "解決方案 Report"
+			show all rows from Support_Solutions    
+			(
+				add_comment as "新增評論"
+				answer as "答案"
+				product_name as "產品名稱"
+				question as "問題"
+				solution_title as "解決方案標題"
+				status as "狀態"
+			)
+		}
+		list cases_Report
+		{
+			displayName = "案例 Report"
+			show all rows from Support_Cases    
+			(
+				account_name as "帳戶名稱"
+				add_comments as "新增評論"
+				case_origin as "案例來源"
+				description as "描述"
+				email as "電子郵件"
+				internal_comments as "內部評論"
+				phone as "電話"
+				potential_name as "潛在名稱"
+				priority as "優先級"
+				product_name as "產品名稱"
+				related_to as "相關"
+				reported_by as "報告人"
+				solution as "解決方案"
+				status as "狀態"
+				subject_field as "主題"
+				type_field as "類型"
+			)
+		}
+		list zohocrm_leads_Report
+		{
+			displayName = "潛在客戶 Report"
+			show all rows from CRM_Leads    
+			(
+				annual_revenue as "年收入"
+				city as "城市"
+				company as "公司"
+				country as "國家"
+				description as "描述"
+				email as "電子郵件"
+				fax as "傳真"
+				first_name as "名字"
+				industry as "行業"
+				last_name as "姓氏"
+				lead_source as "潛在客戶來源"
+				lead_status as "潛在客戶狀態"
+				mobile as "手機"
+				no_of_employees as "員工數量"
+				phone as "電話"
+				rating as "評級"
+				secondary_email as "備用電子郵件"
+				skype_id as "Skype ID"
+				state as "州"
+				street as "街道"
+				title as "職稱"
+				twitter as "推特"
+				zip_code as "郵遞區號"
+			)
+		}
+		list campaigns_Report
+		{
+			displayName = "活動 Report"
+			show all rows from Marketing_Campaigns    
+			(
+				actual_cost as "實際成本"
+				budgeted_cost as "預算成本"
+				campaign_name as "活動名稱"
+				description as "描述"
+				end_date as "結束日期"
+				expected_response as "預期響應"
+				expected_revenue as "預期收入"
+				numbers_sent as "發送的號碼"
+				start_date as "開始日期"
+				status as "狀態"
+				type_field as "類型"
+			)
+		}
+		list Report
+		{
+			displayName = "潛在客戶 Report"
+			show all rows from Client_Leads    
+			(
+				created_time as "Created Time"
+				modified_time as "Modified Time"
+				salesiq as "SalesIQ編號"
+				skype_id as "Skype ID"
+				social_lead_id as "Social Lead ID"
+				twitter as "Twitter"
+				datasource_field18 as "不發行銷郵件"
+				datasource_field17 as "修改者"
+				datasource_field19 as "備用郵箱"
+				datasource_field7 as "傳真"
+				datasource_field1 as "公司"
+				datasource_field16 as "創建者"
+				datasource_field2 as "名"
+				datasource_field13 as "員工數"
+				datasource_field25 as "國家/地區"
+				datasource_field22 as "城市"
+				datasource_field3 as "姓"
+				datasource_field28 as "平均花費時間（分鐘）"
+				datasource_field14 as "年收入"
+				datasource_field8 as "手機"
+				datasource_field26 as "描述"
+				datasource_field27 as "最後存取時間"
+				datasource_field30 as "来源页面"
+				datasource_field10 as "潛在客戶來源"
+				datasource_field as "潛在客戶所有者"
+				datasource_field11 as "潛在客戶狀態"
+				datasource_field23 as "省/市"
+				datasource_field32 as "第一次存取時間"
+				url as "第一次訪問的URL"
+				datasource_field15 as "等級"
+				datasource_field20 as "精確出生時間"
+				datasource_field9 as "網站"
+				datasource_field29 as "聊天數"
+				datasource_field4 as "職位"
+				datasource_field12 as "行業"
+				datasource_field21 as "街道"
+				datasource_field33 as "訪問天數"
+				datasource_field31 as "訪客積分"
+				datasource_field5 as "郵箱"
+				datasource_field24 as "郵編"
+				datasource_field6 as "電話"
+			)
+		}
+	}
+	pages
+	{
+		page DashBoard
+		{
+			displayname = "Dashboard"
+			Content="<zml    \t\t\n\t\t\n\t\t\n\t\t\n\t\t\n>\n\t<layout>\n\t<row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<row>\n\t<column\n   \t\t width='75%'\n   \t>\n\t<row>\n\t<column\n   \t\t width='26%'\n   \t>\n\t<panel elementName='Panel 1'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpadding = '20px'\n\tbgColor = '#5A3D9B'\n\n\t\twidth = '100%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\tpadding = '0px'\n\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginRight = '0px' \n\n\tcolor = '#FFFFFF'\n\tbgColor = '#9B69FB'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'business-laptop-71'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '12px'\n\tcolor = '#FFFFFF'\n\tsize = '24px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t  value = 'thisapp.Client_Support_Sessions.ID.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '5px'\n\tcolor = '#FFFFFF'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Count of \u6703\u54E1'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column><column\n   \t\t width='26%'\n   \t>\n\t<panel elementName='Panel 2'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpadding = '20px'\n\tbgColor = '#734AD0'\n\n\t\twidth = '100%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\tpadding = '0px'\n\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#9B69FB'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'business-laptop-71'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '12px'\n\tcolor = '#FFFFFF'\n\tsize = '24px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t  value = 'thisapp.Client_Campaign_Records.ID.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '5px'\n\tcolor = '#E7E7E7'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Count of \u6703\u54E1\u652F\u63F4\u6703\u8A71'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column><column\n   \t\t width='24%'\n   \t>\n\t<panel elementName='Panel 3'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpadding = '20px'\n\tbgColor = '#9366F9'\n\n\t\twidth = '100%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\tpadding = '0px'\n\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#AF8CFF'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'business-laptop-71'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '12px'\n\tcolor = '#FFFFFF'\n\tsize = '24px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t  value = 'thisapp.Client_Support_Tickets.ID.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '5px'\n\tcolor = '#FFFFFF'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Count of \u6703\u54E1\u5BA2\u670D\u55AE'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column><column\n   \t\t width='24%'\n   \t>\n\t<panel elementName='Panel 4'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpadding = '20px'\n\tbgColor = '#734AD0'\n\n\t\twidth = '100%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\tpaddingTop = '0px'\n\tpaddingLeft = '10px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '0px'\n\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginRight = '0px' \n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#9B69FB'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'business-laptop-71'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '12px'\n\tcolor = '#FFFFFF'\n\tsize = '24px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t  value = 'thisapp.Client_Members.ID.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginTop = '5px'\n\tcolor = '#FFFFFF'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Count of \u6703\u54E1\u884C\u92B7\u6D3B\u52D5'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row><row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<panel elementName='Grouped_Panel 1'\n \n\t\n\ttitle = '\u72C0\u614B'\n\t\n\t\ttitleSize = '15px'\n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpaddingTop = '10px'\n\tpaddingLeft = '0px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '0px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '100%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tpadding = '17px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '24%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#1ABE75'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'ui-2-grid-50'\n\tsize = '20px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tcolor = '#3F3F3F'\n\tsize = '22px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t\tcriteria = 'status == &quot;\u5DF2\u7D50\u675F&quot;'\n\t  value = 'thisapp.Client_Support_Sessions.status.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tmarginRight = '0px' \n\tmarginTop = '3px'\n\tcolor = '#909090'\n\tsize = '14px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = '\u5DF2\u7D50\u675F'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '17px'\n\tpaddingLeft = '0px'\n\tpaddingRight = '17px'\n\tpaddingBottom = '17px'\n\n\t\twidth = '24%'\n\t\thAlign = 'center'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#E2335C'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'ui-2-grid-50'\n\tsize = '20px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tcolor = '#3F3F3F'\n\tsize = '22px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t\tcriteria = 'status == &quot;\u9032\u884C\u4E2D&quot;'\n\t  value = 'thisapp.Client_Support_Sessions.status.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tmarginRight = '0px' \n\tmarginTop = '3px'\n\tcolor = '#909090'\n\tsize = '14px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = '\u9032\u884C\u4E2D'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '17px'\n\tpaddingLeft = '0px'\n\tpaddingRight = '17px'\n\tpaddingBottom = '17px'\n\n\t\twidth = '25%'\n\t\thAlign = 'center'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#1678F9'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'ui-2-grid-50'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tcolor = '#3F3F3F'\n\tsize = '22px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t\tcriteria = 'status == &quot;\u5DF2\u8F49\u4EA4&quot;'\n\t  value = 'thisapp.Client_Support_Sessions.status.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tmarginRight = '0px' \n\tmarginTop = '3px'\n\tcolor = '#909090'\n\tsize = '14px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = '\u5DF2\u8F49\u4EA4'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '17px'\n\tpaddingLeft = '0px'\n\tpaddingRight = '17px'\n\tpaddingBottom = '17px'\n\n\t\twidth = '27%'\n\t\thAlign = 'center'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginLeft = '0px'\n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#FFFFFF'\n\tbgColor = '#F6BC2B'\n\twidth = '52px'\n\theight = '52px'\n\ttype = 'icon'\n\tvalue = 'business-laptop-71'\n\tsize = '22px'\n\tcornerRadius = '10px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n\t\thAlign = 'left'\n>\n\t<pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tcolor = '#3F3F3F'\n\tsize = '20px'\n\tbold = 'true' \n\ttype = 'Form Data'\n\n\n\n\tdisplayType = 'actual'\n\tthousandsSeperator = 'LOCALE'\n\tdecimalSeperator = 'DOT'\n\tnumberScale = 'none'\n\n\n\n\n\t  value = 'thisapp.Client_Support_Sessions.status.count'\n>\n</text>\n\n</pc>\n</pr><pr \n\t>\n\t<pc \n\t\n>\n\t<text \n\n\tmarginLeft = '20px'\n\tmarginRight = '0px' \n\tmarginTop = '3px'\n\tcolor = '#909090'\n\tsize = '14px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Total'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row>\n</column><column\n   \t\t width='25%'\n   \t>\n\t<row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<panel elementName='Panel_Button 1'\n \n\t\n\ttitle = 'Quick Links'\n\t\n\t\ttitleSize = '15px'\n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tbgColor = '#8A3DFB'\n\n\t\twidth = '2%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '10px'\n\tpaddingLeft = '10px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '10px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '98%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginRight = '10px' \n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#2C0D4A'\n\tbgColor = '#F4F0FF'\n\twidth = '36px'\n\theight = '36px'\n\ttype = 'icon'\n\tvalue = 'ui-2-square-add-08'\n\tsize = '16px'\n\tcornerRadius = '18px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n>\n\t<text \n    action = 'OpenForm'\n\t\tcomponentLinkName = 'Client_Support_Sessions'\n\t\ttarget = 'new-window'\n\n\tcolor = '#6733AB'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Add New \u6703\u54E1\u652F\u63F4\u6703\u8A71'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row><row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<panel elementName='Panel_Button 2'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tbgColor = '#8A3DFB'\n\n\t\twidth = '2%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '10px'\n\tpaddingLeft = '10px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '10px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '98%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginRight = '10px' \n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#2C0D4A'\n\tbgColor = '#F4F0FF'\n\twidth = '36px'\n\theight = '36px'\n\ttype = 'icon'\n\tvalue = 'ui-2-square-add-08'\n\tsize = '16px'\n\tcornerRadius = '18px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n>\n\t<text \n    action = 'OpenForm'\n\t\tcomponentLinkName = 'Client_Campaign_Records'\n\t\ttarget = 'new-window'\n\n\tcolor = '#6733AB'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Add New \u6703\u54E1\u884C\u92B7\u6D3B\u52D5'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row><row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<panel elementName='Panel_Button 3'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tbgColor = '#8A3DFB'\n\n\t\twidth = '2%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '10px'\n\tpaddingLeft = '10px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '10px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '98%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginRight = '10px' \n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#2C0D4A'\n\tbgColor = '#F4F0FF'\n\twidth = '36px'\n\theight = '36px'\n\ttype = 'icon'\n\tvalue = 'ui-2-square-add-08'\n\tsize = '16px'\n\tcornerRadius = '18px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n>\n\t<text \n    action = 'OpenForm'\n\t\tcomponentLinkName = 'Client_Support_Tickets'\n\t\ttarget = 'new-window'\n\n\tcolor = '#6733AB'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Add New \u6703\u54E1\u5BA2\u670D\u55AE'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row><row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<panel elementName='Panel_Button 4'\n \n >\n\t<pr \n\t\t\twidth='fill'\n\t\theight='fill'\n>\n\t<pc \n\t\tbgColor = '#8A3DFB'\n\n\t\twidth = '2%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t\n</pc>\n</pr>\n</pc><pc \n\t\tpaddingTop = '10px'\n\tpaddingLeft = '10px'\n\tpaddingRight = '0px'\n\tpaddingBottom = '10px'\n\tbgColor = '#FFFFFF'\n\n\t\twidth = '98%'\n\t\thAlign = 'left'\n\t\tvAlign = 'middle'\n>\n\t<pr \n\t\t\twidth='auto'\n\t\theight='auto'\n>\n\t<pc \n\t\n>\n\t<image  \n\t\tmarginRight = '10px' \n\tmarginBottom = '0px'\n\tmarginTop = '0px'\n\n\tcolor = '#2C0D4A'\n\tbgColor = '#F4F0FF'\n\twidth = '36px'\n\theight = '36px'\n\ttype = 'icon'\n\tvalue = 'ui-2-square-add-08'\n\tsize = '16px'\n\tcornerRadius = '18px'\n\ticonType = 'outline'\n/>\n</pc><pc \n\t\n>\n\t<text \n    action = 'OpenForm'\n\t\tcomponentLinkName = 'Client_Members'\n\t\ttarget = 'new-window'\n\n\tcolor = '#6733AB'\n\tsize = '15px'\n\ttype = 'Text'\n\n\n\n\n\n\n\n\t  value = 'Add New \u6703\u54E1'\n>\n</text>\n\n</pc>\n</pr>\n</pc>\n</pr>\n</panel>\n</column>\n</row>\n</column>\n</row><row>\n\t<column\n   \t\t width='50%'\n   \t>\n\t<chart \n\telementName='Chart 1'\n\n\t\n\ttitle = 'Distribution by \u652F\u63F4\u6E20\u9053'\n\t\n\t\ttitleSize = '15px'\n\ttype = 'Pie'\n\txtitle = '\u652F\u63F4\u6E20\u9053'\n\tytitle = '\u652F\u63F4\u6E20\u9053'\n\tbgColor = '#FFFFFF'\n\ttheme = 'theme'\n\tlegendPos = 'center.top'\n\theightType = 'auto'\n\theightValue = '300px'\n\tappLinkName = 'thisapp'\n\tformLinkName = 'Client_Support_Sessions'\n\txfield = 'channel'\n\tyfields = 'count:channel'\n\t\tDelugeCriteria = 'channel is not null &amp;&amp; channel != &quot;&quot;'\n/>\n\n</column><column\n   \t\t width='50%'\n   \t>\n\t<chart \n\telementName='Chart 2'\n\n\t\n\ttitle = 'Distribution by \u72C0\u614B'\n\t\n\t\ttitleSize = '15px'\n\ttype = 'Pie'\n\txtitle = '\u72C0\u614B'\n\tytitle = '\u72C0\u614B'\n\tbgColor = '#FFFFFF'\n\ttheme = '#198391'\n\tlegendPos = 'center.top'\n\theightType = 'auto'\n\theightValue = '300px'\n\tappLinkName = 'thisapp'\n\tformLinkName = 'Client_Members'\n\txfield = 'status'\n\tyfields = 'count:status'\n\t\tDelugeCriteria = 'status is not null &amp;&amp; status != &quot;&quot;'\n/>\n\n</column>\n</row>\n</column>\n</row><row>\n\t<column\n   \t\t width='100%'\n   \t>\n\t<report \n\telementName='Report'\n\n\t\tappLinkName = 'thisapp'\n\t\tlinkName = 'member_support_sessions_Report'\n\t\n\t\tiszreport = 'false'\n\t\t\t\t\tzc_AddRec = 'false'\n\t\t\t\t\tzc_EditRec = 'false'\n\t\t\t\t\tzc_Print = 'false'\n\t\t\t\t\tzc_Export = 'false'\n\t\t\t\t\tzc_DelRec = 'false'\n\t\t\t\t\tzc_DuplRec = 'false'\n\t\t\t\t\tzc_Search = 'false'\n\t\t\t\t\tzc_EditBulkRec = 'false'\n\t\t\t\t\tzc_BulkDelete = 'false'\n\t\t\t\t\tzc_BulkDuplicate = 'false'\n\theightType = 'custom'\n\theightValue = '500'\n\n/>\n</column>\n</row>\n</layout>\n</zml>"
+		}
+	}
+
+
+		workflow
+		{
+
+
+
+
+		blueprint
+		{
+    			member_support_ticket_process as "會員客服單處理流程"
+    			{
+        			type = Blueprint
+        			form = Client_Support_Tickets
+        			start
+        			{
+            			start stage = "Ticket Created"
+        			}
+        			stages
+        			{
+           			"Ticket Created"
+           			{
+           			}
+           			"Ticket Assigned"
+           			{
+           			}
+           			"Ticket Cancelled"
+           			{
+           			}
+           			"Ticket In Progress"
+           			{
+           			}
+           			"Ticket Reopened"
+           			{
+           			}
+           			"Ticket Resolved"
+           			{
+           			}
+           			"Ticket Escalated"
+           			{
+           			}
+           			"Ticket On Hold"
+           			{
+           			}
+           			"Ticket Closed"
+           			{
+           			}
+        			}
+        			transitions
+        			{
+    				Assign_Ticket_to_Agent as "Assign Ticket to Agent"
+    				{
+         				type = normal
+         				from stage = "Ticket Created"
+         				to stage = "Ticket Assigned"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Cancel_Ticket as "Cancel Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Created"
+         				to stage = "Ticket Cancelled"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Start_Working_on_Ticket as "Start Working on Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Assigned"
+         				to stage = "Ticket In Progress"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Reopen_Ticket_for_Further_Action as "Reopen Ticket for Further Action"
+    				{
+         				type = normal
+         				from stage = "Ticket Assigned"
+         				to stage = "Ticket Reopened"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Resolve_Ticket as "Resolve Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket In Progress"
+         				to stage = "Ticket Resolved"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Escalate_Ticket_to_Higher_Support as "Escalate Ticket to Higher Support"
+    				{
+         				type = normal
+         				from stage = "Ticket In Progress"
+         				to stage = "Ticket Escalated"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Put_Ticket_On_Hold as "Put Ticket On Hold"
+    				{
+         				type = normal
+         				from stage = "Ticket In Progress"
+         				to stage = "Ticket On Hold"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Resume_Ticket_Processing as "Resume Ticket Processing"
+    				{
+         				type = normal
+         				from stage = "Ticket On Hold"
+         				to stage = "Ticket In Progress"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Resume_Work_on_Escalated_Ticket as "Resume Work on Escalated Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Escalated"
+         				to stage = "Ticket In Progress"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Resolve_Escalated_Ticket as "Resolve Escalated Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Escalated"
+         				to stage = "Ticket Resolved"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Close_Ticket as "Close Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Resolved"
+         				to stage = "Ticket Closed"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Reopen_Ticket_if_Customer_is_Not_Satisfied as "Reopen Ticket if Customer is Not Satisfied"
+    				{
+         				type = normal
+         				from stage = "Ticket Resolved"
+         				to stage = "Ticket Reopened"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Continue_Working_on_Reopened_Ticket as "Continue Working on Reopened Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Reopened"
+         				to stage = "Ticket In Progress"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+    				Resolve_Reopened_Ticket as "Resolve Reopened Ticket"
+    				{
+         				type = normal
+         				from stage = "Ticket Reopened"
+         				to stage = "Ticket Resolved"
+         				before
+         				{
+         				}
+         				after
+         				{
+         				}
+  				}
+        			}
+    			}
+		}
+
+
+	}
+	share_settings
+	{
+			"會員資料管理員"
+			{
+				name = "會員資料管理員"
+				type = Users_Permissions
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "負責維護和更新會員的基本資料 \n"
+				ModulePermissions
+				{
+					Client_Members
+					{
+						enabled= Create,Viewall,Modifyall,Import,Export,Tab 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							members_by_status={"View","Edit","Delete"}
+							members_Report={"View","Edit","Delete"}
+						}
+					}
+					Client_Activity_Logs
+					{
+						enabled= Viewall,Modifyall 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_behavior_logs_by_action_type={"View","Edit","Delete"}
+							member_behavior_logs_Report={"View","Edit","Delete"}
+						}
+					}
+				}
+			}
+			"Read"
+			{
+				name = "Read"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have read permission for all components\n"
+			}
+			"Write"
+			{
+				name = "Write"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have write permission for all components\n"
+			}
+			"Administrator"
+			{
+				name = "Administrator"
+				type = Users_Permissions
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This profile will have all the permissions.\n"
+			}
+			"Developer"
+			{
+				name = "Developer"
+				type = Developer
+				permissions = {Chat:false, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "Developer Profile\n"
+			}
+			"行銷活動管理員"
+			{
+				name = "行銷活動管理員"
+				type = Users_Permissions
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "負責設計和管理會員行銷活動 \n"
+				ModulePermissions
+				{
+					Client_Activity_Logs
+					{
+						enabled= Viewall 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_behavior_logs_by_action_type={"View"}
+							member_behavior_logs_Report={"View"}
+						}
+					}
+					Client_Campaign_Records
+					{
+						enabled= Create,Viewall,Modifyall,Import,Export,Tab 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_campaigns_Report={"View","Edit","Delete"}
+							member_campaigns_by_participation_status={"View","Edit","Delete"}
+						}
+					}
+				}
+			}
+			"客服系統管理員"
+			{
+				name = "客服系統管理員"
+				type = Users_Permissions
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "負責整體客服系統的管理和維護 \n"
+				ModulePermissions
+				{
+					Client_Support_Tickets
+					{
+						enabled= Create,Viewall,Modifyall,Import,Export,Tab 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_tickets_by_status={"View","Edit","Delete"}
+							member_tickets_Report={"View","Edit","Delete"}
+						}
+					}
+					Client_Support_Sessions
+					{
+						enabled= Create,Viewall,Modifyall,Import,Export,Tab 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_support_sessions_by_status={"View","Edit","Delete"}
+							member_support_sessions_Report={"View","Edit","Delete"}
+						}
+					}
+					Support_Cases
+					{
+						ReportPermissions
+						{
+							cases_Report={"View","Edit","Delete"}
+						}
+					}
+				}
+			}
+			"會員支援專員"
+			{
+				name = "會員支援專員"
+				type = Users_Permissions
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "負責處理會員的支援請求和會話管理 \n"
+				ModulePermissions
+				{
+					Client_Support_Tickets
+					{
+						enabled= Viewall 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_tickets_by_status={"View","Edit"}
+							member_tickets_Report={"View","Edit"}
+						}
+					}
+					Client_Support_Sessions
+					{
+						enabled= Create,Viewall,Modifyall,Import,Export,Tab 
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_support_sessions_by_status={"View","Edit","Delete"}
+							member_support_sessions_Report={"View","Edit","Delete"}
+						}
+					}
+				}
+			}
+			"潛在客戶"
+			{
+				name = "潛在客戶"
+				type = Customer_Portal
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "對應用感興趣的外部用戶，能夠註冊並提交查詢 \n"
+				ModulePermissions
+				{
+					CRM_Leads
+					{
+						ReportPermissions
+						{
+							zohocrm_leads_Report={"View"}
+						}
+					}
+					CRM_Contacts
+					{
+						ReportPermissions
+						{
+							zohocrm_contacts_Report={"View"}
+						}
+					}
+				}
+			}
+			"會員"
+			{
+				name = "會員"
+				type = Customer_Portal
+				permissions = {Chat:false, Predefined:false, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "作為應用的終端用戶，負責提交支援請求和參加行銷活動 \n"
+				ModulePermissions
+				{
+					Client_Support_Tickets
+					{
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_tickets_by_status={"View","Edit"}
+							member_tickets_Report={"View","Edit"}
+						}
+					}
+					Client_Campaign_Records
+					{
+						allFieldsVisible= true 
+						ReportPermissions
+						{
+							member_campaigns_Report={"View"}
+							member_campaigns_by_participation_status={"View"}
+						}
+					}
+				}
+			}
+			"Customer"
+			{
+				name = "Customer"
+				type = Customer_Portal
+				permissions = {Chat:true, Predefined:true, ApiAccess:true, PIIAccess:true, ePHIAccess:true}
+				description = "This is the default profile having only add and view permission.\n"
+			}
+			roles
+			{
+				"CEO"
+				{
+					description = "User belonging to this role can access data of all other users."
+				}
+			}
+	}
+
+	customize
+	{
+		icon
+		{
+			image = "image_1758985276575.png"
+		}
+	}
+
+	connections
+	{
+		zohocrm_connection1
+		(
+			displayname = "ZohoCRM Connection"
+			user access = true
+			connector = zohocrm2
+			permissions = {"all_attachment_operations","all_global_picklist_operations","all_module_operations","create_record","create_user","delete_attachment","delete_record","get_all_attachments","get_all_layouts","get_all_modules","get_all_records","get_all_users","get_record","get_user","search_records","sync_records","update_record","update_user","upload_attachment"}
+		)
+	}
+	datasources
+	{
+		zohocrm_contacts
+		{
+			displayname = "ZohoCRM Contacts"
+			module = Contacts
+			system connection = zohocrm
+			account_name
+			(
+				type = text
+				displayname = "Account Name"
+				source field name = "Account_Name"
+				search operators = {"startsWith"}
+			)
+			contactid
+			(
+				type = text
+				displayname = "CONTACTID"
+				source field name = "CONTACTID"
+				primary = true
+				report only = true
+			)
+			date_of_birth
+			(
+				type = date
+				displayname = "Date of Birth"
+				source field name = "Date_of_Birth"
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd"
+			)
+			department
+			(
+				type = text
+				displayname = "Department"
+				source field name = "Department"
+				search operators = {"startsWith"}
+			)
+			description
+			(
+				type = textarea
+				displayname = "Description"
+				source field name = "Description"
+			)
+			email
+			(
+				type = email
+				displayname = "Email"
+				source field name = "Email"
+				search operators = {"startsWith"}
+			)
+			email_opt_out
+			(
+				type = checkbox
+				displayname = "Email Opt Out"
+				source field name = "Email_Opt_Out"
+			)
+			fax
+			(
+				type = text
+				displayname = "Fax"
+				source field name = "Fax"
+				search operators = {"startsWith"}
+			)
+			first_name
+			(
+				type = text
+				displayname = "First Name"
+				source field name = "First_Name"
+				search operators = {"startsWith"}
+			)
+			home_phone
+			(
+				type = text
+				displayname = "Home Phone"
+				source field name = "Home_Phone"
+				search operators = {"startsWith"}
+			)
+			must have last_name
+			(
+				type = text
+				displayname = "Last Name"
+				source field name = "Last_Name"
+				search operators = {"startsWith"}
+			)
+			lead_source
+			(
+				type = picklist
+				displayname = "Lead Source"
+				source field name = "Lead_Source"
+				search operators = {"startsWith"}
+				values = {"Advertisement","Chat","Cold Call","Employee Referral","External Referral","Partner","Public Relations","Search Engine","Trade Show","Web Form"}
+			)
+			mailing_city
+			(
+				type = text
+				displayname = "Mailing City"
+				source field name = "Mailing_City"
+				search operators = {"startsWith"}
+			)
+			mailing_country
+			(
+				type = text
+				displayname = "Mailing Country"
+				source field name = "Mailing_Country"
+				search operators = {"startsWith"}
+			)
+			mailing_state
+			(
+				type = text
+				displayname = "Mailing State"
+				source field name = "Mailing_State"
+				search operators = {"startsWith"}
+			)
+			mailing_street
+			(
+				type = text
+				displayname = "Mailing Street"
+				source field name = "Mailing_Street"
+				search operators = {"startsWith"}
+			)
+			mailing_zip
+			(
+				type = text
+				displayname = "Mailing Zip"
+				source field name = "Mailing_Zip"
+				search operators = {"startsWith"}
+			)
+			mobile
+			(
+				type = text
+				displayname = "Mobile"
+				source field name = "Mobile"
+				search operators = {"startsWith"}
+			)
+			other_city
+			(
+				type = text
+				displayname = "Other City"
+				source field name = "Other_City"
+				search operators = {"startsWith"}
+			)
+			other_country
+			(
+				type = text
+				displayname = "Other Country"
+				source field name = "Other_Country"
+				search operators = {"startsWith"}
+			)
+			other_phone
+			(
+				type = text
+				displayname = "Other Phone"
+				source field name = "Other_Phone"
+				search operators = {"startsWith"}
+			)
+			other_state
+			(
+				type = text
+				displayname = "Other State"
+				source field name = "Other_State"
+				search operators = {"startsWith"}
+			)
+			other_street
+			(
+				type = text
+				displayname = "Other Street"
+				source field name = "Other_Street"
+				search operators = {"startsWith"}
+			)
+			other_zip
+			(
+				type = text
+				displayname = "Other Zip"
+				source field name = "Other_Zip"
+				search operators = {"startsWith"}
+			)
+			phone
+			(
+				type = text
+				displayname = "Phone"
+				source field name = "Phone"
+				search operators = {"startsWith"}
+			)
+			reports_to
+			(
+				type = text
+				displayname = "Reports To"
+				source field name = "Reporting_To"
+				search operators = {"startsWith"}
+			)
+			secondary_email
+			(
+				type = email
+				displayname = "Secondary Email"
+				source field name = "Secondary_Email"
+				search operators = {"startsWith"}
+			)
+			skype_id
+			(
+				type = text
+				displayname = "Skype ID"
+				source field name = "Skype_ID"
+				search operators = {"startsWith"}
+			)
+			title
+			(
+				type = text
+				displayname = "Title"
+				source field name = "Title"
+				search operators = {"startsWith"}
+			)
+			twitter
+			(
+				type = text
+				displayname = "Twitter"
+				source field name = "Twitter"
+				search operators = {"startsWith"}
+			)
+			vendor_name
+			(
+				type = text
+				displayname = "Vendor Name"
+				source field name = "Vendor_Name"
+				search operators = {"startsWith"}
+			)
+		}
+		zohocrm_leads
+		{
+			displayname = "ZohoCRM Leads"
+			module = Leads
+			system connection = zohocrm
+			annual_revenue
+			(
+				type = decimal
+				displayname = "Annual Revenue"
+				source field name = "Annual_Revenue"
+				search operators = {"equals"}
+			)
+			city
+			(
+				type = text
+				displayname = "City"
+				source field name = "City"
+				search operators = {"startsWith"}
+			)
+			must have company
+			(
+				type = text
+				displayname = "Company"
+				source field name = "Company"
+				search operators = {"startsWith"}
+			)
+			country
+			(
+				type = text
+				displayname = "Country"
+				source field name = "Country"
+				search operators = {"startsWith"}
+			)
+			description
+			(
+				type = textarea
+				displayname = "Description"
+				source field name = "Description"
+			)
+			email
+			(
+				type = email
+				displayname = "Email"
+				source field name = "Email"
+				search operators = {"startsWith"}
+			)
+			email_opt_out
+			(
+				type = checkbox
+				displayname = "Email Opt Out"
+				source field name = "Email_Opt_Out"
+			)
+			fax
+			(
+				type = text
+				displayname = "Fax"
+				source field name = "Fax"
+				search operators = {"startsWith"}
+			)
+			first_name
+			(
+				type = text
+				displayname = "First Name"
+				source field name = "First_Name"
+				search operators = {"startsWith"}
+			)
+			industry
+			(
+				type = picklist
+				displayname = "Industry"
+				source field name = "Industry"
+				search operators = {"startsWith"}
+				values = {"Communications","Consulting","Education","Financial Services","Government/Military","Health Care","IT Services","Manufacturing","Pharma","Real Estate","Technology"}
+			)
+			must have last_name
+			(
+				type = text
+				displayname = "Last Name"
+				source field name = "Last_Name"
+				search operators = {"startsWith"}
+			)
+			leadid
+			(
+				type = text
+				displayname = "LEADID"
+				source field name = "LEADID"
+				primary = true
+				report only = true
+			)
+			lead_source
+			(
+				type = picklist
+				displayname = "Lead Source"
+				source field name = "Lead_Source"
+				search operators = {"startsWith"}
+				values = {"Advertisement","Chat","Cold Call","Employee Referral","External Referral","Partner","Public Relations","Search Engine","Trade Show","Web Form"}
+			)
+			lead_status
+			(
+				type = picklist
+				displayname = "Lead Status"
+				source field name = "Lead_Status"
+				search operators = {"startsWith"}
+				values = {"Attempted to Contact","Contact in Future","Contacted","Junk Lead","Lost Lead","Not Contacted","Pre-Qualified"}
+			)
+			mobile
+			(
+				type = text
+				displayname = "Mobile"
+				source field name = "Mobile"
+				search operators = {"startsWith"}
+			)
+			no_of_employees
+			(
+				type = number
+				displayname = "No of Employees"
+				source field name = "No_of_Employees"
+				search operators = {"equals"}
+			)
+			phone
+			(
+				type = text
+				displayname = "Phone"
+				source field name = "Phone"
+				search operators = {"startsWith"}
+			)
+			rating
+			(
+				type = picklist
+				displayname = "Rating"
+				source field name = "Rating"
+				search operators = {"startsWith"}
+				values = {"Acquired","Active","Market Failed","Project Cancelled","Shut Down"}
+			)
+			secondary_email
+			(
+				type = email
+				displayname = "Secondary Email"
+				source field name = "Secondary_Email"
+				search operators = {"startsWith"}
+			)
+			skype_id
+			(
+				type = text
+				displayname = "Skype ID"
+				source field name = "Skype_ID"
+				search operators = {"startsWith"}
+			)
+			state
+			(
+				type = text
+				displayname = "State"
+				source field name = "State"
+				search operators = {"startsWith"}
+			)
+			street
+			(
+				type = text
+				displayname = "Street"
+				source field name = "Street"
+				search operators = {"startsWith"}
+			)
+			title
+			(
+				type = text
+				displayname = "Title"
+				source field name = "Designation"
+				search operators = {"startsWith"}
+			)
+			twitter
+			(
+				type = text
+				displayname = "Twitter"
+				source field name = "Twitter"
+				search operators = {"startsWith"}
+			)
+			website
+			(
+				type = url
+				displayname = "Website"
+				source field name = "Website"
+			)
+			zip_code
+			(
+				type = text
+				displayname = "Zip Code"
+				source field name = "Zip_Code"
+				search operators = {"startsWith"}
+			)
+		}
+		campaigns
+		{
+			displayname = "Campaigns"
+			module = Campaigns
+			system connection = zohocrm
+			actual_cost
+			(
+				type = decimal
+				displayname = "Actual Cost"
+				source field name = "Actual_Cost"
+				search operators = {"equals"}
+			)
+			budgeted_cost
+			(
+				type = decimal
+				displayname = "Budgeted Cost"
+				source field name = "Budgeted_Cost"
+				search operators = {"equals"}
+			)
+			campaignid
+			(
+				type = text
+				displayname = "CAMPAIGNID"
+				source field name = "CAMPAIGNID"
+				primary = true
+				report only = true
+			)
+			must have campaign_name
+			(
+				type = text
+				displayname = "Campaign Name"
+				source field name = "Campaign_Name"
+				search operators = {"startsWith"}
+			)
+			description
+			(
+				type = textarea
+				displayname = "Description"
+				source field name = "Description"
+			)
+			end_date
+			(
+				type = date
+				displayname = "End Date"
+				source field name = "End_Date"
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd"
+			)
+			expected_response
+			(
+				type = number
+				displayname = "Expected Response"
+				source field name = "Expected_Response"
+				search operators = {"equals"}
+			)
+			expected_revenue
+			(
+				type = decimal
+				displayname = "Expected Revenue"
+				source field name = "Expected_Revenue"
+				search operators = {"equals"}
+			)
+			numbers_sent
+			(
+				type = number
+				displayname = "Numbers sent"
+				source field name = "Num_sent"
+				search operators = {"equals"}
+			)
+			start_date
+			(
+				type = date
+				displayname = "Start Date"
+				source field name = "Start_Date"
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd"
+			)
+			status
+			(
+				type = picklist
+				displayname = "Status"
+				source field name = "Status"
+				search operators = {"startsWith"}
+				values = {"Active","Complete","Inactive","Planning"}
+			)
+			type_field
+			(
+				type = picklist
+				displayname = "Type"
+				source field name = "Type"
+				search operators = {"startsWith"}
+				values = {"Advertisement","Conference","Direct mail","Email","Others","Partners","Public Relations","Referral Program","Telemarketing","Trade Show","Webinar"}
+			)
+		}
+		solutions
+		{
+			displayname = "Solutions"
+			module = Solutions
+			system connection = zohocrm
+			add_comment
+			(
+				type = textarea
+				displayname = "Add Comment"
+				source field name = "Add_Comment"
+			)
+			must have answer
+			(
+				type = textarea
+				displayname = "Answer"
+				source field name = "Answer"
+			)
+			product_name
+			(
+				type = text
+				displayname = "Product Name"
+				source field name = "Product_Name"
+				search operators = {"startsWith"}
+			)
+			must have question
+			(
+				type = textarea
+				displayname = "Question"
+				source field name = "Question"
+			)
+			solutionid
+			(
+				type = text
+				displayname = "SOLUTIONID"
+				source field name = "SOLUTIONID"
+				primary = true
+				report only = true
+			)
+			must have solution_title
+			(
+				type = text
+				displayname = "Solution Title"
+				source field name = "Solution_Title"
+				search operators = {"startsWith"}
+			)
+			status
+			(
+				type = picklist
+				displayname = "Status"
+				source field name = "Status"
+				search operators = {"startsWith"}
+				values = {"Draft","Duplicate","Reviewed"}
+			)
+		}
+		cases
+		{
+			displayname = "Cases"
+			module = Cases
+			system connection = zohocrm
+			account_name
+			(
+				type = text
+				displayname = "Account Name"
+				source field name = "Account_Name"
+				search operators = {"startsWith"}
+			)
+			add_comments
+			(
+				type = textarea
+				displayname = "Add Comments"
+				source field name = "Add_Comments"
+			)
+			caseid
+			(
+				type = text
+				displayname = "CASEID"
+				source field name = "CASEID"
+				primary = true
+				report only = true
+			)
+			must have case_origin
+			(
+				type = picklist
+				displayname = "Case Origin"
+				source field name = "Case_Origin"
+				search operators = {"startsWith"}
+				values = {"Email","Phone","Web"}
+			)
+			description
+			(
+				type = textarea
+				displayname = "Description"
+				source field name = "Description"
+			)
+			email
+			(
+				type = email
+				displayname = "Email"
+				source field name = "Email"
+				search operators = {"startsWith"}
+			)
+			internal_comments
+			(
+				type = textarea
+				displayname = "Internal Comments"
+				source field name = "Internal_Comments"
+			)
+			phone
+			(
+				type = text
+				displayname = "Phone"
+				source field name = "Phone"
+				search operators = {"startsWith"}
+			)
+			potential_name
+			(
+				type = text
+				displayname = "Potential Name"
+				source field name = "Deal_Name"
+				search operators = {"startsWith"}
+			)
+			priority
+			(
+				type = picklist
+				displayname = "Priority"
+				source field name = "Priority"
+				search operators = {"startsWith"}
+				values = {"High","Low","Medium"}
+			)
+			product_name
+			(
+				type = text
+				displayname = "Product Name"
+				source field name = "Product_Name"
+				search operators = {"startsWith"}
+			)
+			related_to
+			(
+				type = text
+				displayname = "Related To"
+				source field name = "Related_To"
+				search operators = {"startsWith"}
+			)
+			reported_by
+			(
+				type = text
+				displayname = "Reported By"
+				source field name = "Reported_By"
+				search operators = {"startsWith"}
+			)
+			solution
+			(
+				type = textarea
+				displayname = "Solution"
+				source field name = "Solution"
+			)
+			must have status
+			(
+				type = picklist
+				displayname = "Status"
+				source field name = "Status"
+				search operators = {"startsWith"}
+				values = {"Closed","Escalated","New","On Hold"}
+			)
+			must have subject_field
+			(
+				type = text
+				displayname = "Subject"
+				source field name = "Subject"
+				search operators = {"startsWith"}
+			)
+			type_field
+			(
+				type = picklist
+				displayname = "Type"
+				source field name = "Type"
+				search operators = {"startsWith"}
+				values = {"Feature Request","Problem","Question"}
+			)
+		}
+		zohocrm1
+		{
+			displayname = "ZohoCRM 潛在客戶"
+			module = Leads
+			connection = zohocrm_connection1
+			created_time
+			(
+				type = datetime
+				displayname = "Created Time"
+				source field name = "Created_Time"
+				report only = true
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd'T'HH:mm:ssXXX"
+			)
+			datasource_field
+			(
+				type = picklist
+				displayname = "潛在客戶所有者"
+				source field name = "Owner"
+				search operators = {"equals"}
+			)
+			datasource_field1
+			(
+				type = text
+				displayname = "公司"
+				source field name = "Company"
+				search operators = {"startsWith"}
+			)
+			datasource_field10
+			(
+				type = picklist
+				displayname = "潛在客戶來源"
+				source field name = "Lead_Source"
+				search operators = {"equals"}
+				values = {"-None-","Facebook","Google+","Online Store","Web下載","Web調研","交易會","公開媒介","合作夥伴","合作夥伴研討會","員工介紹","外部介紹","廣告","推特","推銷電話","研討會-內部","線上商場","聊天","銷售郵件"}
+			)
+			datasource_field11
+			(
+				type = picklist
+				displayname = "潛在客戶狀態"
+				source field name = "Lead_Status"
+				search operators = {"equals"}
+				values = {"-None-","不合格","丟失潛在客戶","嘗試聯絡","將來聯絡","已聯絡","未聯絡","虛假潛在客戶","資格預審"}
+			)
+			datasource_field12
+			(
+				type = picklist
+				displayname = "行業"
+				source field name = "Industry"
+				search operators = {"equals"}
+				values = {"-None-","ASP (應用服務提供者)","ERP","ERP (企業資源規劃)","Management ISV","MSP(管理服務提供者)","中小企業","光網路","大企業","存儲服務提供者","存放裝置","政府/軍隊","服務提供者","無線企業","管理軟體提供商","系統集成","網路設備 (企業)","資料/電信/OEM","非管理ISV"}
+			)
+			datasource_field13
+			(
+				type = number
+				displayname = "員工數"
+				source field name = "No_of_Employees"
+				search operators = {"equals"}
+			)
+			datasource_field14
+			(
+				type = decimal
+				displayname = "年收入"
+				source field name = "Annual_Revenue"
+				search operators = {"equals"}
+			)
+			datasource_field15
+			(
+				type = picklist
+				displayname = "等級"
+				source field name = "Rating"
+				search operators = {"equals"}
+				values = {"-None-","專案取消","已獲得","市場失敗","活躍","關閉"}
+			)
+			datasource_field16
+			(
+				type = text
+				displayname = "創建者"
+				source field name = "Created_By"
+				report only = true
+			)
+			datasource_field17
+			(
+				type = text
+				displayname = "修改者"
+				source field name = "Modified_By"
+				report only = true
+			)
+			datasource_field18
+			(
+				type = checkbox
+				displayname = "不發行銷郵件"
+				source field name = "Email_Opt_Out"
+				search operators = {"equals"}
+			)
+			datasource_field19
+			(
+				type = email
+				displayname = "備用郵箱"
+				source field name = "Secondary_Email"
+				search operators = {"startsWith"}
+			)
+			datasource_field2
+			(
+				type = text
+				displayname = "名"
+				source field name = "First_Name"
+				search operators = {"startsWith"}
+			)
+			datasource_field20
+			(
+				type = datetime
+				displayname = "精確出生時間"
+				source field name = "Precise_Birth_Time"
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd'T'HH:mm:ssXXX"
+			)
+			datasource_field21
+			(
+				type = text
+				displayname = "街道"
+				source field name = "Street"
+				search operators = {"startsWith"}
+			)
+			datasource_field22
+			(
+				type = text
+				displayname = "城市"
+				source field name = "City"
+				search operators = {"startsWith"}
+			)
+			datasource_field23
+			(
+				type = text
+				displayname = "省/市"
+				source field name = "State"
+				search operators = {"startsWith"}
+			)
+			datasource_field24
+			(
+				type = text
+				displayname = "郵編"
+				source field name = "Zip_Code"
+				search operators = {"startsWith"}
+			)
+			datasource_field25
+			(
+				type = text
+				displayname = "國家/地區"
+				source field name = "Country"
+				search operators = {"startsWith"}
+			)
+			datasource_field26
+			(
+				type = textarea
+				displayname = "描述"
+				source field name = "Description"
+				search operators = {"startsWith"}
+			)
+			datasource_field27
+			(
+				type = text
+				displayname = "最後存取時間"
+				source field name = "Last_Visited_Time"
+				report only = true
+				search operators = {"equals"}
+			)
+			datasource_field28
+			(
+				type = text
+				displayname = "平均花費時間（分鐘）"
+				source field name = "Average_Time_Spent_Minutes"
+				report only = true
+				search operators = {"equals"}
+			)
+			datasource_field29
+			(
+				type = text
+				displayname = "聊天數"
+				source field name = "Number_Of_Chats"
+				report only = true
+				search operators = {"equals"}
+			)
+			must have datasource_field3
+			(
+				type = text
+				displayname = "姓"
+				source field name = "Last_Name"
+				search operators = {"startsWith"}
+			)
+			datasource_field30
+			(
+				type = text
+				displayname = "来源页面"
+				source field name = "Referrer"
+				report only = true
+				search operators = {"startsWith"}
+			)
+			datasource_field31
+			(
+				type = text
+				displayname = "訪客積分"
+				source field name = "Visitor_Score"
+				report only = true
+				search operators = {"equals"}
+			)
+			datasource_field32
+			(
+				type = text
+				displayname = "第一次存取時間"
+				source field name = "First_Visited_Time"
+				report only = true
+				search operators = {"equals"}
+			)
+			datasource_field33
+			(
+				type = text
+				displayname = "訪問天數"
+				source field name = "Days_Visited"
+				report only = true
+				search operators = {"equals"}
+			)
+			datasource_field4
+			(
+				type = text
+				displayname = "職位"
+				source field name = "Designation"
+				search operators = {"startsWith"}
+			)
+			datasource_field5
+			(
+				type = email
+				displayname = "郵箱"
+				source field name = "Email"
+				search operators = {"startsWith"}
+			)
+			datasource_field6
+			(
+				type = text
+				displayname = "電話"
+				source field name = "Phone"
+				search operators = {"startsWith"}
+			)
+			datasource_field7
+			(
+				type = text
+				displayname = "傳真"
+				source field name = "Fax"
+				search operators = {"startsWith"}
+			)
+			datasource_field8
+			(
+				type = text
+				displayname = "手機"
+				source field name = "Mobile"
+				search operators = {"startsWith"}
+			)
+			datasource_field9
+			(
+				type = url
+				displayname = "網站"
+				source field name = "Website"
+				search operators = {"startsWith"}
+			)
+			lead_id
+			(
+				type = text
+				displayname = "Lead Id"
+				source field name = "id"
+				primary = true
+				report only = true
+			)
+			modified_time
+			(
+				type = datetime
+				displayname = "Modified Time"
+				source field name = "Modified_Time"
+				report only = true
+				search operators = {"equals"}
+				display format = "yyyy-MM-dd'T'HH:mm:ssXXX"
+			)
+			salesiq
+			(
+				type = text
+				displayname = "SalesIQ編號"
+				source field name = "Visitor_ID"
+				search operators = {"startsWith"}
+			)
+			skype_id
+			(
+				type = text
+				displayname = "Skype ID"
+				source field name = "Skype_ID"
+				search operators = {"startsWith"}
+			)
+			social_lead_id
+			(
+				type = text
+				displayname = "Social Lead ID"
+				source field name = "leadchain0__Social_Lead_ID"
+				search operators = {"startsWith"}
+			)
+			twitter
+			(
+				type = text
+				displayname = "Twitter"
+				source field name = "Twitter"
+				search operators = {"startsWith"}
+			)
+			url
+			(
+				type = text
+				displayname = "第一次訪問的URL"
+				source field name = "First_Visited_URL"
+				report only = true
+				search operators = {"startsWith"}
+			)
+		}
+	}
+	web
+	{
+		forms
+		{
+			form Client_Support_Tickets
+			{
+				label placement = left
+			}
+			form Client_Support_Sessions
+			{
+				label placement = left
+			}
+			form Client_Members
+			{
+				label placement = left
+			}
+			form Client_Activity_Logs
+			{
+				label placement = left
+			}
+			form Client_Campaign_Records
+			{
+				label placement = left
+			}
+			form CRM_Contacts
+			{
+				label placement = left
+			}
+			form Support_Solutions
+			{
+				label placement = left
+			}
+			form Support_Cases
+			{
+				label placement = left
+			}
+			form CRM_Leads
+			{
+				label placement = left
+			}
+			form Marketing_Campaigns
+			{
+				label placement = left
+			}
+			form Client_Leads
+			{
+				label placement = left
+			}
+		}
+		reports
+		{
+			report members_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report members_by_status
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = 1
+							fields
+							(
+								name as "姓名"
+								google_id as "Google帳號ID"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_support_sessions_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								member as "會員"
+								start_time as "開始時間"
+								end_time as "結束時間"
+								channel as "支援渠道"
+								status as "狀態"
+								case as "案件"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								member as "會員"
+								start_time as "開始時間"
+								end_time as "結束時間"
+								channel as "支援渠道"
+								status as "狀態"
+								case as "案件"
+							)
+						)
+						datablock2
+						(
+							layout type = -2
+		     				title = "會員"
+		     				related field = member
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_support_sessions_by_status
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = 1
+							fields
+							(
+								member as "會員"
+								start_time as "開始時間"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								member as "會員"
+								start_time as "開始時間"
+								end_time as "結束時間"
+								channel as "支援渠道"
+								status as "狀態"
+								case as "案件"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_tickets_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								member as "會員"
+								subject_1 as "主旨"
+								description as "描述"
+								status as "狀態"
+								priority as "優先順序"
+								case as "案件"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								member as "會員"
+								subject_1 as "主旨"
+								description as "描述"
+								status as "狀態"
+								priority as "優先順序"
+								case as "案件"
+							)
+						)
+						datablock2
+						(
+							layout type = -2
+		     				title = "會員"
+		     				related field = member
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_tickets_by_status
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = 1
+							fields
+							(
+								subject_1 as "主旨"
+								member as "會員"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								member as "會員"
+								subject_1 as "主旨"
+								description as "描述"
+								status as "狀態"
+								priority as "優先順序"
+								case as "案件"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_campaigns_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								member as "會員"
+								campaign as "行銷活動"
+								participation_status as "參與狀態"
+								participation_date as "參與日期"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								member as "會員"
+								campaign as "行銷活動"
+								participation_status as "參與狀態"
+								participation_date as "參與日期"
+							)
+						)
+						datablock2
+						(
+							layout type = -2
+		     				title = "會員"
+		     				related field = member
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_campaigns_by_participation_status
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = 1
+							fields
+							(
+								member as "會員"
+								campaign as "行銷活動"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								member as "會員"
+								campaign as "行銷活動"
+								participation_status as "參與狀態"
+								participation_date as "參與日期"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_behavior_logs_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								member as "會員"
+								action_type as "行為類型"
+								action_detail as "行為細節"
+								action_time as "行為時間"
+								solution as "知識庫解答"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								member as "會員"
+								action_type as "行為類型"
+								action_detail as "行為細節"
+								action_time as "行為時間"
+								solution as "知識庫解答"
+							)
+						)
+						datablock2
+						(
+							layout type = -2
+		     				title = "會員"
+		     				related field = member
+							fields
+							(
+								member_code as "會員編號"
+								google_id as "Google帳號ID"
+								email as "電子郵件"
+								name as "姓名"
+								phone as "電話"
+								register_date as "註冊日期"
+								status as "狀態"
+								lead as "潛在客戶"
+								contact as "聯絡人"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report member_behavior_logs_by_action_type
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = 1
+							fields
+							(
+								member as "會員"
+								action_detail as "行為細節"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    		 				Add 
+    		 				Import 
+    		 				Export 
+    	 				)
+						record
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							Duplicate   	   
+							Delete   	   
+							Print   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								member as "會員"
+								action_type as "行為類型"
+								action_detail as "行為細節"
+								action_time as "行為時間"
+								solution as "知識庫解答"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    		 				Duplicate 
+    		 				Delete 
+    		 				Print 
+    	 				)
+    				)
+				)
+			}
+			report zohocrm_contacts_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								account_name as "帳戶名稱"
+								date_of_birth as "出生日期"
+								department as "部門"
+								description as "描述"
+								email as "電子郵件"
+								fax as "傳真"
+								first_name as "名字"
+								home_phone as "家庭電話"
+								last_name as "姓氏"
+								lead_source as "潛在客戶來源"
+								mailing_city as "郵寄城市"
+								mailing_country as "郵寄國家"
+								mailing_state as "郵寄州"
+								mailing_street as "郵寄街道"
+								mailing_zip as "郵寄郵遞區號"
+								mobile as "手機"
+								other_city as "其他城市"
+								other_country as "其他國家"
+								other_phone as "其他電話"
+								other_state as "其他州"
+								other_street as "其他街道"
+								other_zip as "其他郵遞區號"
+								phone as "電話"
+								reports_to as "匯報給"
+								secondary_email as "備用電子郵件"
+								skype_id as "Skype ID"
+								title as "職稱"
+								twitter as "推特"
+								vendor_name as "供應商名稱"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								account_name as "帳戶名稱"
+								date_of_birth as "出生日期"
+								department as "部門"
+								description as "描述"
+								email as "電子郵件"
+								fax as "傳真"
+								first_name as "名字"
+								home_phone as "家庭電話"
+								last_name as "姓氏"
+								lead_source as "潛在客戶來源"
+								mailing_city as "郵寄城市"
+								mailing_country as "郵寄國家"
+								mailing_state as "郵寄州"
+								mailing_street as "郵寄街道"
+								mailing_zip as "郵寄郵遞區號"
+								mobile as "手機"
+								other_city as "其他城市"
+								other_country as "其他國家"
+								other_phone as "其他電話"
+								other_state as "其他州"
+								other_street as "其他街道"
+								other_zip as "其他郵遞區號"
+								phone as "電話"
+								reports_to as "匯報給"
+								secondary_email as "備用電子郵件"
+								skype_id as "Skype ID"
+								title as "職稱"
+								twitter as "推特"
+								vendor_name as "供應商名稱"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+			report solutions_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								add_comment as "新增評論"
+								answer as "答案"
+								product_name as "產品名稱"
+								question as "問題"
+								solution_title as "解決方案標題"
+								status as "狀態"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								add_comment as "新增評論"
+								answer as "答案"
+								product_name as "產品名稱"
+								question as "問題"
+								solution_title as "解決方案標題"
+								status as "狀態"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+			report cases_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								account_name as "帳戶名稱"
+								add_comments as "新增評論"
+								case_origin as "案例來源"
+								description as "描述"
+								email as "電子郵件"
+								internal_comments as "內部評論"
+								phone as "電話"
+								potential_name as "潛在名稱"
+								priority as "優先級"
+								product_name as "產品名稱"
+								related_to as "相關"
+								reported_by as "報告人"
+								solution as "解決方案"
+								status as "狀態"
+								subject_field as "主題"
+								type_field as "類型"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								account_name as "帳戶名稱"
+								add_comments as "新增評論"
+								case_origin as "案例來源"
+								description as "描述"
+								email as "電子郵件"
+								internal_comments as "內部評論"
+								phone as "電話"
+								potential_name as "潛在名稱"
+								priority as "優先級"
+								product_name as "產品名稱"
+								related_to as "相關"
+								reported_by as "報告人"
+								solution as "解決方案"
+								status as "狀態"
+								subject_field as "主題"
+								type_field as "類型"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+			report zohocrm_leads_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								annual_revenue as "年收入"
+								city as "城市"
+								company as "公司"
+								country as "國家"
+								description as "描述"
+								email as "電子郵件"
+								fax as "傳真"
+								first_name as "名字"
+								industry as "行業"
+								last_name as "姓氏"
+								lead_source as "潛在客戶來源"
+								lead_status as "潛在客戶狀態"
+								mobile as "手機"
+								no_of_employees as "員工數量"
+								phone as "電話"
+								rating as "評級"
+								secondary_email as "備用電子郵件"
+								skype_id as "Skype ID"
+								state as "州"
+								street as "街道"
+								title as "職稱"
+								twitter as "推特"
+								zip_code as "郵遞區號"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								annual_revenue as "年收入"
+								city as "城市"
+								company as "公司"
+								country as "國家"
+								description as "描述"
+								email as "電子郵件"
+								fax as "傳真"
+								first_name as "名字"
+								industry as "行業"
+								last_name as "姓氏"
+								lead_source as "潛在客戶來源"
+								lead_status as "潛在客戶狀態"
+								mobile as "手機"
+								no_of_employees as "員工數量"
+								phone as "電話"
+								rating as "評級"
+								secondary_email as "備用電子郵件"
+								skype_id as "Skype ID"
+								state as "州"
+								street as "街道"
+								title as "職稱"
+								twitter as "推特"
+								zip_code as "郵遞區號"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+			report campaigns_Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								actual_cost as "實際成本"
+								budgeted_cost as "預算成本"
+								campaign_name as "活動名稱"
+								description as "描述"
+								end_date as "結束日期"
+								expected_response as "預期響應"
+								expected_revenue as "預期收入"
+								numbers_sent as "發送的號碼"
+								start_date as "開始日期"
+								status as "狀態"
+								type_field as "類型"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+		     				title = "Overview"
+							fields
+							(
+								actual_cost as "實際成本"
+								budgeted_cost as "預算成本"
+								campaign_name as "活動名稱"
+								description as "描述"
+								end_date as "結束日期"
+								expected_response as "預期響應"
+								expected_revenue as "預期收入"
+								numbers_sent as "發送的號碼"
+								start_date as "開始日期"
+								status as "狀態"
+								type_field as "類型"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+			report Report
+			{
+				quickview
+				(
+					layout
+					(
+		 				type = -1
+						datablock1
+						(
+							layout type = -1
+							fields
+							(
+								datasource_field3 as "姓"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    	 				)
+						record
+						(
+							Edit   	   
+    					)
+    				)
+    				action
+    				(
+						on click
+						(
+							View Record   	   
+    					)
+						on right click
+						(
+							Edit   	   
+							View Record   	   
+    					)
+     				)
+				)
+
+				detailview
+				(
+					layout
+					(
+		 				type = 1
+						datablock1
+						(
+							layout type = -2
+							fields
+							(
+								datasource_field3 as "姓"
+							)
+						)
+					)
+					menu
+    				(
+    	 				header
+    	 				(
+    		 				Edit 
+    	 				)
+    				)
+				)
+			}
+		}
+		menu
+		{
+			space Space
+			{
+				displayname = "Space"
+				icon = "objects-spaceship"
+
+				section Section_1
+				{
+					displayname = "Dashboard"
+					icon = "ui-1-dashboard-half"
+					page DashBoard
+					{
+						icon = "ui-1-dashboard-half"
+					}
+				}
+				section Section_2
+				{
+					displayname = "會員"
+					icon = "tech-desktop"
+					form  Client_Members
+					{
+						icon = "ui-1-bold-add"
+					}
+					report members_Report
+					{
+						icon = "business-laptop-71"
+					}
+					report members_by_status
+					{
+						icon = "business-pin"
+					}
+				}
+				section Section_3
+				{
+					displayname = "會員支援會話"
+					icon = "tech-desktop"
+					form  Client_Support_Sessions
+					{
+						icon = "ui-1-bold-add"
+					}
+					report member_support_sessions_Report
+					{
+						icon = "business-laptop-71"
+					}
+					report member_support_sessions_by_status
+					{
+						icon = "business-pin"
+					}
+				}
+				section Section_4
+				{
+					displayname = "會員客服單"
+					icon = "tech-desktop"
+					form  Client_Support_Tickets
+					{
+						icon = "ui-1-bold-add"
+					}
+					report member_tickets_Report
+					{
+						icon = "business-laptop-71"
+					}
+					report member_tickets_by_status
+					{
+						icon = "business-pin"
+					}
+				}
+				section Section_5
+				{
+					displayname = "會員行銷活動"
+					icon = "tech-desktop"
+					form  Client_Campaign_Records
+					{
+						icon = "ui-1-bold-add"
+					}
+					report member_campaigns_Report
+					{
+						icon = "business-laptop-71"
+					}
+					report member_campaigns_by_participation_status
+					{
+						icon = "business-pin"
+					}
+				}
+				section Section_6
+				{
+					displayname = "會員行為紀錄"
+					icon = "tech-desktop"
+					form  Client_Activity_Logs
+					{
+						icon = "ui-1-bold-add"
+					}
+					report member_behavior_logs_Report
+					{
+						icon = "business-laptop-71"
+					}
+					report member_behavior_logs_by_action_type
+					{
+						icon = "business-pin"
+					}
+				}
+				section Section_7
+				{
+					displayname = "联系人"
+					icon = "tech-desktop"
+					form  CRM_Contacts
+					{
+						icon = "ui-1-bold-add"
+					}
+					report zohocrm_contacts_Report
+					{
+						icon = "design-bullet-list-67"
+					}
+				}
+				section Section_8
+				{
+					displayname = "解决方案"
+					icon = "tech-desktop"
+					form  Support_Solutions
+					{
+						icon = "ui-1-bold-add"
+					}
+					report solutions_Report
+					{
+						icon = "design-bullet-list-67"
+					}
+				}
+				section Section_9
+				{
+					displayname = "案例"
+					icon = "tech-desktop"
+					form  Support_Cases
+					{
+						icon = "ui-1-bold-add"
+					}
+					report cases_Report
+					{
+						icon = "design-bullet-list-67"
+					}
+				}
+				section Section_10
+				{
+					displayname = "潜在客户"
+					icon = "tech-desktop"
+					form  CRM_Leads
+					{
+						icon = "ui-1-bold-add"
+					}
+					report zohocrm_leads_Report
+					{
+						icon = "design-bullet-list-67"
+					}
+				}
+				section Section_11
+				{
+					displayname = "活动"
+					icon = "tech-desktop"
+					form  Marketing_Campaigns
+					{
+						icon = "ui-1-bold-add"
+					}
+					report campaigns_Report
+					{
+						icon = "design-bullet-list-67"
+					}
+				}
+				section Section
+				{
+					displayname = "潛在客戶"
+					icon = "tech-desktop"
+					form  Client_Leads
+					{
+						icon = "tech-desktop"
+					}
+					report Report
+					{
+						icon = "tech-desktop"
+					}
+				}
+				section ZC_App_Preferences
+				{
+					displayname = "App Preferences"
+					icon = "design-app"
+					systemcomponent
+					{
+						type = localization
+						displayname = "Language Selection"
+						icon = "education-language"
+					}
+					systemcomponent
+					{
+						type = connection
+						displayname = "Integrations"
+						icon = "tech-2-connection"
+					}
+				}
+				section ZC_Approvals
+				{
+					displayname = "Approvals"
+					icon = "ui-2-hourglass"
+					systemcomponent
+					{
+						type = approval
+						approval status = pending
+						displayname = "Pending Tasks"
+						icon = "ui-2-hourglass"
+					}
+					systemcomponent
+					{
+						type = approval
+						approval status = completed
+						displayname = "Completed Tasks"
+						icon = "design-todo"
+					}
+				}
+				section SharedAnalytics_Section
+				{
+					type = shared_user_report_section
+					displayname = "Reports"
+					icon = "business-chart-bar-33"
+				}
+			}
+			preference
+			{
+				icon
+				{
+					style = solid
+					show = {space,section,component}
+				}
+			}
+		}
+		customize
+		{
+			new theme = 11
+			font = "poppins"
+			color options
+			{
+				color = "5"
+			}
+			logo
+			{
+				preference = "none"
+				placement = "left"
+			}
+		}
+	}
+	phone
+	{
+		forms
+		{
+			form Client_Support_Tickets
+			{
+				label placement = auto
+			}
+			form Client_Support_Sessions
+			{
+				label placement = auto
+			}
+			form Client_Members
+			{
+				label placement = auto
+			}
+			form Client_Activity_Logs
+			{
+				label placement = auto
+			}
+			form Client_Campaign_Records
+			{
+				label placement = auto
+			}
+			form CRM_Contacts
+			{
+				label placement = auto
+			}
+			form Support_Solutions
+			{
+				label placement = auto
+			}
+			form Support_Cases
+			{
+				label placement = auto
+			}
+			form CRM_Leads
+			{
+				label placement = auto
+			}
+			form Marketing_Campaigns
+			{
+				label placement = auto
+			}
+			form Client_Leads
+			{
+				label placement = auto
+			}
+		}
+		customize
+		{
+			layout = slidingpane
+			font = "default"
+			style = "3"
+			color options
+			{
+				color = turquoise
+			}
+			logo
+			{
+				preference = "company_logo"
+			}
+		}
+	}
+	tablet
+	{
+		forms
+		{
+			form Client_Support_Tickets
+			{
+				label placement = auto
+			}
+			form Client_Support_Sessions
+			{
+				label placement = auto
+			}
+			form Client_Members
+			{
+				label placement = auto
+			}
+			form Client_Activity_Logs
+			{
+				label placement = auto
+			}
+			form Client_Campaign_Records
+			{
+				label placement = auto
+			}
+			form CRM_Contacts
+			{
+				label placement = auto
+			}
+			form Support_Solutions
+			{
+				label placement = auto
+			}
+			form Support_Cases
+			{
+				label placement = auto
+			}
+			form CRM_Leads
+			{
+				label placement = auto
+			}
+			form Marketing_Campaigns
+			{
+				label placement = auto
+			}
+			form Client_Leads
+			{
+				label placement = auto
+			}
+		}
+		customize
+		{
+			layout = slidingpane
+			font = "default"
+			style = "3"
+			color options
+			{
+				color = turquoise
+			}
+			logo
+			{
+				preference = "company_logo"
+			}
+		}
+	}
+	translation
+{
+{"Language_Settings":{"LANGAGUE_WITH_LOGIN":"browser"}}
+}
+}

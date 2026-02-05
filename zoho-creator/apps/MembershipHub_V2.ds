@@ -1,0 +1,292 @@
+/*
+ * Author       : uneedwind
+ * Generated on : 27-Sep-2025
+ * Version      : 2.0 - Ultra Clean Version
+ */
+application "MembershipHub"
+{
+	date format = "dd-MMM-yyyy"
+	time zone = "Asia/Taipei"
+	time format = "24-hr"
+	forms
+	{
+		form Member_Leads
+		{
+			displayname = "Member Leads"
+			success message = "Data Added Successfully!"
+			Name
+			(
+    			type = name
+     			first_name
+     			(
+	     			 type = first_name
+	     			 displayname = "First Name"
+     			) 
+     			last_name
+     			(
+	     			 type = last_name
+	     			 displayname = "Last Name"
+     			) 
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			must have Email
+			(
+    			type = email
+				displayname = "Email"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Phone
+			(
+    			type = phonenumber
+				displayname = "Phone"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Company
+			(
+    			type = text
+				displayname = "Company"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Lead_Status
+			(
+				type = dropdown
+				displayname = "Lead Status"
+				values = {"New","Contacted","Qualified","Lost"}
+				initial value = "New"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Lead_Source
+			(
+				type = dropdown
+				displayname = "Lead Source"
+				values = {"Website","Social Media","Referral","Advertising"}
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+		form Client_Profile
+		{
+			displayname = "Client Profile"
+			success message = "Profile Updated Successfully!"
+			Lead_Reference
+			(
+				type = picklist	
+				displayname = "Lead Reference"
+				values  = Member_Leads.ID
+    			displayformat = [Name.first_name + " " + Name.last_name]
+				sortorder = ascending
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Full_Name
+			(
+    			type = name
+				displayname = "Full Name"
+     			first_name
+     			(
+	     			 type = first_name
+	     			 displayname = "First Name"
+     			) 
+     			last_name
+     			(
+	     			 type = last_name
+	     			 displayname = "Last Name"
+     			) 
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Contact_Email
+			(
+    			type = email
+				displayname = "Contact Email"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Birth_Date
+			(
+    			type = date
+				displayname = "Birth Date"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+			Membership_Level
+			(
+				type = dropdown
+				displayname = "Membership Level"
+				values = {"Basic","Premium","VIP"}
+				initial value = "Basic"
+	 			row = 1
+	 			column = 1   
+				width = medium
+			)
+
+			actions
+			{
+				on add
+				{
+					submit
+					(
+   						type = submit
+   						displayname = "Submit"
+					)
+					reset
+					(
+   						type = reset
+   						displayname = "Reset"
+					)
+				}
+				on edit
+				{
+					update
+					(
+   						type = submit
+   						displayname = "Update"
+					)
+					cancel
+					(
+   						type = cancel
+   						displayname = "Cancel"
+					)
+				}
+			}
+		}
+	}
+	reports
+	{
+		list Member_Leads_Report
+		{
+			displayName = "Member Leads"
+			show all rows from Member_Leads    
+			(
+				Name 
+	 			(
+	      			displayformat = [first_name + " " + last_name]
+	 			)
+				Email
+				Phone
+				Company
+				Lead_Status
+				Lead_Source
+				Added_Time
+			)
+		}
+		list Client_Profile_Report
+		{
+			displayName = "Client Profiles"
+			show all rows from Client_Profile    
+			(
+				Full_Name 
+	 			(
+	      			displayformat = [first_name + " " + last_name]
+	 			)
+				Contact_Email
+				Birth_Date
+				Membership_Level
+				Added_Time
+			)
+		}
+	}
+	functions
+	{
+		Deluge
+		{
+			void convertLeadToProfile(int leadId)
+			{
+				leadRecord = Member_Leads[ID == leadId];
+				if(leadRecord != null) 
+				{
+					insert into Client_Profile
+					[
+						Lead_Reference = leadId
+						Full_Name.first_name = leadRecord.Name.first_name
+						Full_Name.last_name = leadRecord.Name.last_name
+						Contact_Email = leadRecord.Email
+						Added_User = zoho.loginuser
+					]
+					leadRecord.Lead_Status = "Qualified";
+				}
+			}
+		}
+	}
+	workflow
+	{
+	form
+	{
+		Lead_Conversion as "Lead Conversion"
+		{
+			type = form
+			form = Member_Leads
+			record event = on edit
+
+			on success
+			{
+				actions 
+				{
+					custom deluge script
+					(
+						if(input.Lead_Status == "Qualified")
+						{
+							existingProfile = Client_Profile[Lead_Reference == input.ID];
+							if(existingProfile == null)
+							{
+								thisapp.convertLeadToProfile(input.ID);
+							}
+						}
+					)
+				}
+			}
+		}
+	}
+	}
+}
+
+
+
+
+
+

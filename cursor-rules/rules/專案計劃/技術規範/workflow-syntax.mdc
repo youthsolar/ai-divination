@@ -1,0 +1,144 @@
+# Zoho Creator Workflow 語法規範
+
+## Workflow 函數與 Creator Functions 的差異
+
+### Creator Functions 語法
+```deluge
+void function_name(string param1, number param2)
+{
+    // 函數內容
+    // 使用參數直接存取
+    info param1;
+}
+```
+
+### Workflow 函數語法
+```deluge
+// 不需要函數宣告語法
+// 第一行不需要宣告參數
+// 直接從註解開始寫邏輯
+
+// 使用 input.get("ID") 等內建變數獲取資料
+record_id = input.get("ID");
+field_value = input.get("Field_Name");
+
+// 不需要用大括號包裝整個腳本
+if (condition)
+{
+    // 處理邏輯
+}
+```
+
+## 重要語法差異
+
+### 1. 參數存取方式
+```deluge
+// Creator Functions
+void MyFunction(string name, number age)
+{
+    info name;  // 直接使用參數
+}
+
+// Workflow Functions
+// 使用 input.get() 獲取資料
+name = input.get("Name");
+age = input.get("Age");
+info name;
+```
+
+### 2. 更新記錄語法
+```deluge
+// Creator Functions
+update TableName[ID == record_id] (data_map);
+
+// Workflow Functions
+TableName[ID == record_id] = data_map;
+```
+
+### 3. 檔案結構
+- Creator Functions: 需要完整的函數包裝
+- Workflow Functions: 直接寫邏輯，不需要函數宣告
+
+## 常見 Workflow 觸發點
+- **OnAdd**: 新增記錄時觸發
+- **OnEdit**: 編輯記錄時觸發
+- **OnDelete**: 刪除記錄時觸發
+- **OnSuccess**: 表單提交成功時觸發
+
+## 內建變數
+- `input`: 包含觸發事件的記錄資料
+- `input.get("Field_Name")`: 獲取特定欄位值
+- `input.get("ID")`: 獲取記錄 ID
+
+## 環境特定變數 (Workflow-Only)
+
+### 重要限制
+- **`trigger`** 和 **`old`** 等內建變數僅在 Zoho Creator 的 Workflow 編輯器環境中有效
+- 在獨立的 `.deluge` 檔案中使用這些變數會導致 `Variable is not defined` 錯誤
+
+### 正確的開發流程
+```deluge
+// 在「純淨」的 .deluge 檔案中：
+if(input.Date_Of_Birth != null)
+{
+    // 核心邏輯...
+}
+
+// 複製到 Zoho Creator 的 "On Edit" Workflow 後，手動加入條件：
+if(input.Date_Of_Birth != null && input.Date_Of_Birth != old.Date_Of_Birth)
+{
+    // 核心邏輯...
+}
+```
+
+### 環境特定變數說明
+- **`trigger`**: 用於判斷觸發事件是 `"CREATE"` 還是 `"UPDATE"`
+- **`old`**: 用於在 `On Edit` 事件中獲取欄位的舊值
+
+## 同步流程重要提醒
+
+### 開發環境 vs. Creator 環境
+- **本地開發環境**: 用於程式碼撰寫、版本控制和結構化管理
+- **Zoho Creator 環境**: 程式碼最終執行的地方
+- **重要**: 本地開發的 `.deluge` 檔案不會自動同步到 Zoho Creator
+
+### 手動同步步驟
+1. **AI 完成開發**: 在本地環境完成函數開發
+2. **AI 發出提醒**: 明確告知函數已完成，提醒手動同步
+3. **使用者手動同步**:
+   - 複製完整的函數內容
+   - 登入 Zoho Creator，找到對應函數
+   - 將程式碼貼上到 Creator 編輯器並儲存
+4. **測試與回饋**: 在 Creator 環境中執行測試並回饋結果
+
+## 最佳實務建議
+
+### 保持檔案純淨性
+- 獨立函數檔案不應包含 Workflow 特定變數
+- 在部署到實際 Workflow 時再根據需要加入條件判斷
+- 這樣可以避免語法錯誤並保持程式碼的可重用性
+
+### 錯誤處理
+```deluge
+// Workflow 中的錯誤處理
+try
+{
+    // 主要邏輯
+    result = "success";
+}
+catch (e)
+{
+    result = "error: " + e;
+}
+```
+
+## 注意事項
+- Workflow 函數不需要 return 語句
+- 不能使用函數宣告語法
+- 直接操作資料庫記錄
+- 支援條件判斷和迴圈
+- 保持程式碼的純淨性，避免環境特定變數
+description:
+globs:
+alwaysApply: false
+---

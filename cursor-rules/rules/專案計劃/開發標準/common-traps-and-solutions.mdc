@@ -1,0 +1,279 @@
+# 常見陷阱和解決方案
+
+## 🚨 高頻陷阱
+
+### 1. 遺漏回傳語句 (Missing return statement)
+**問題**: 函數宣告了回傳型別，但某些執行路徑沒有 return 語句
+**解決方案**: 採用「單一出口」模式
+```deluge
+map MyFunction(string input)
+{
+    map result = {};  // 在函數開頭宣告結果變數
+    
+    if (condition)
+    {
+        result.put("status", "success");
+    }
+    else
+    {
+        result.put("status", "error");
+    }
+    
+    return result;  // 統一在函數末端回傳
+}
+```
+
+### 2. 日期時間解析錯誤
+**問題**: `.toDate()` 只解析日期部分，時間設為 00:00:00
+**解決方案**: 使用 `.toDateTime()` 保留完整時間
+```deluge
+// 錯誤用法
+date_only = "1974-11-15 21:05:34".toDate();  // 變成 1974-11-15 00:00:00
+
+// 正確用法
+date_time = "1974-11-15 21:05:34".toDateTime();  // 保留 21:05:34
+```
+
+### 3. 日期加減函數錯誤
+**問題**: 使用不存在的 `addDays()` 函數
+**解決方案**: 使用正確的 `addDay()` 函數
+```deluge
+// 錯誤用法
+future_date = zoho.currenttime.addDays(7);  // 函數不存在
+
+// 正確用法
+future_date = zoho.currenttime.addDay(7);
+```
+
+### 4. 查詢結果記錄賦值錯誤
+**問題**: 查詢結果記錄不能直接賦值給 Map 變數
+**解決方案**: 使用 null 或直接使用記錄變數
+```deluge
+// 錯誤用法
+record_map = TableName[ID == 1];  // 不能賦值給 Map
+
+// 正確用法
+most_similar_record = null;  // 或直接使用 past_question 記錄
+```
+
+### 5. for each 迴圈中的記錄賦值限制
+**問題**: 在迴圈中不能直接賦值查詢結果記錄
+**解決方案**: 直接提取需要的欄位值
+```deluge
+// 錯誤用法
+for each past_question in past_questions
+{
+    most_similar_record = past_question;  // 不能賦值記錄
+}
+
+// 正確用法
+for each past_question in past_questions
+{
+    most_similar_date = past_question.Divination_Timestamp;  // 提取欄位值
+}
+```
+
+### 6. 查詢結果記錄不能加入 List
+**問題**: 查詢結果記錄不能使用 `.add()` 方法加入 List
+**解決方案**: 直接遍歷原始查詢結果
+```deluge
+// 錯誤用法
+filtered_records = {};
+for each record in all_records
+{
+    if (condition)
+    {
+        filtered_records.add(record);  // 不能加入 List
+    }
+}
+
+// 正確用法
+for each record in all_records
+{
+    if (condition)
+    {
+        // 直接處理記錄，不建立中間 List
+        process_record(record);
+    }
+}
+```
+
+### 7. round 函數參數要求
+**問題**: `round()` 函數缺少必要參數
+**解決方案**: 指定小數位數
+```deluge
+// 錯誤用法
+rounded_number = number.round();  // 缺少參數
+
+// 正確用法
+rounded_number = number.round(0);  // 整數
+rounded_number = number.round(2);  // 兩位小數
+```
+
+### 8. 查詢結果計數函數
+**問題**: 使用錯誤的 `size()` 函數
+**解決方案**: 使用正確的 `count()` 函數
+```deluge
+// 錯誤用法
+record_count = records.size();  // 函數不存在
+
+// 正確用法
+record_count = records.count();
+```
+
+### 9. 客戶ID類型轉換
+**問題**: 查詢 Lookup 欄位時類型不匹配
+**解決方案**: 將客戶ID 轉換為 `Long` 型別
+```deluge
+// 錯誤用法
+client_records = TableName[Client_Link == client_id];  // 類型不匹配
+
+// 正確用法
+client_records = TableName[Client_Link == client_id.toLong()];
+```
+
+### 10. 三元運算符限制
+**問題**: Deluge 對三元運算符支援有限
+**解決方案**: 使用明確的 if-else 語句
+```deluge
+// 錯誤用法
+result = (condition ? "yes" : "no");  // 可能導致語法錯誤
+
+// 正確用法
+if (condition)
+{
+    result = "yes";
+}
+else
+{
+    result = "no";
+}
+```
+
+## 🔧 日期時間差計算
+
+### 正確的時間差計算方法
+```deluge
+// 天數差
+time_diff_ms = time1.toLong() - time2.toLong();
+days_diff = time_diff_ms / (24 * 60 * 60 * 1000);
+
+// 小時差
+time_diff_ms = time1.toLong() - time2.toLong();
+hours_diff = time_diff_ms / (60 * 60 * 1000);
+
+// 分鐘差
+time_diff_ms = time1.toLong() - time2.toLong();
+minutes_diff = (time_diff_ms % (60 * 60 * 1000)) / (60 * 1000);
+```
+
+## 🌐 API 呼叫陷阱
+
+### 連接器參數格式
+```deluge
+// 錯誤用法
+search_response = zoho.crm.searchRecords("Contacts", criteria, 1, 1, "zohocrm");
+
+// 正確用法
+search_response = zoho.crm.searchRecords("Contacts", criteria, 1, 1, {"connection":"zohocrm"});
+```
+
+### ID 類型轉換
+```deluge
+// 錯誤用法
+contact_id = response.get("id");
+update_response = zoho.crm.updateRecord("Contacts", contact_id, data_map, {"connection":"zohocrm"});
+
+// 正確用法
+contact_id_string = response.get("id");
+contact_id_long = contact_id_string.toLong();
+update_response = zoho.crm.updateRecord("Contacts", contact_id_long, data_map, {"connection":"zohocrm"});
+```
+
+### postUrl 回應解析
+```deluge
+// 錯誤用法
+content = api_response.get("body").get("choices").get(0).get("message").get("content");
+
+// 正確用法
+content = api_response.get("choices").get(0).get("message").get("content").trim();
+```
+
+## 🎲 亂數生成陷阱
+
+### 正確的亂數生成方法
+```deluge
+// 產生 1 到 100 之間的亂數
+random_seed = zoho.currenttime.toLong();
+random_number_1 = 1 + (random_seed % 100).toLong();
+
+// 產生多個不同亂數時更新種子
+random_seed = zoho.currenttime.toLong() + random_number_1;
+random_number_2 = 20 + (random_seed % 26).toLong();
+```
+
+## 🔍 查詢語法陷阱
+
+### 複雜條件處理
+```deluge
+// 錯誤用法：查詢條件左側使用函數
+records = TableName[DateTime_Field.getYear() == 2024];
+
+// 正確用法：在迴圈中處理複雜條件
+all_records = TableName[ID != 0];
+for each record in all_records
+{
+    if (record.DateTime_Field.getYear() == 2024)
+    {
+        // 處理邏輯
+    }
+}
+```
+
+## 📝 字串處理陷阱
+
+### 字串分割
+```deluge
+// 錯誤用法：使用不存在的 split 函數
+words = text.split(" ");
+
+// 正確用法：使用 toList 函數
+words = text.toList(" ");  // 用空格分割
+characters = text.toList("");  // 轉換為字符列表
+```
+
+### 正則表達式限制
+```deluge
+// 錯誤用法：使用不支援的 getallmatches 函數
+matches = text.getallmatches(pattern);
+
+// 正確用法：使用基本字串函數
+// 需要自行實作複雜的解析邏輯
+position = text.indexOf("substring");
+substring = text.substring(start, end);
+replaced = text.replaceAll("old", "new");
+```
+
+## 🏷️ 命名空間陷阱
+
+### 函數命名
+```deluge
+// 錯誤用法：巢狀命名空間
+void IChing.Test.runIChingQuery();  // 不支援
+
+// 正確用法：單層命名空間
+void IChing.TestrunIChingQuery();
+```
+
+### 函數名稱中的特殊字元
+```deluge
+// 不推薦：使用底線
+map Bazi_calculateYearPillar(date solar_datetime);
+
+// 推薦：使用駝峰命名法
+map Bazi.calculateYearPillar(date solar_datetime);
+```
+description:
+globs:
+alwaysApply: false
+---
