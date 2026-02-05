@@ -1,0 +1,119 @@
+{
+  "name": "LINE Webhook — Zoho Creator → Reply (MVP)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "line-webhook",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "LINE Webhook (IN)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse LINE events (text only)\nconst body = $json;\nconst events = (body && body.events) ? body.events : [];\n\nconst out = [];\nfor (const ev of events) {\n  if (!ev || ev.type !== 'message') continue;\n  if (!ev.message || ev.message.type !== 'text') continue;\n  out.push({\n    json: {\n      replyToken: ev.replyToken,\n      lineUserId: ev.source?.userId || '',\n      text: (ev.message?.text || '').trim(),\n      timestamp: ev.timestamp || Date.now()\n    }\n  });\n}\nreturn out;"
+      },
+      "name": "Parse LINE Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ZOHO_CREATOR_PREDICT_URL}}",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoCreatorOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lineUserId\": $json.lineUserId,\n  \"text\": $json.text,\n  \"timestamp\": $json.timestamp\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Zoho Creator Predict (API wrapper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Normalize response for LINE reply\n// Expect Creator response: { ok, blocked, message }\nconst resp = $json;\nlet message = resp?.message || '目前系統忙碌中，請稍後再試。';\n// Keep it short for token + UX\nif (typeof message === 'string') message = message.trim();\nreturn [{ json: { message } }];"
+      },
+      "name": "Pick Reply Text",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1040, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.LINE_CHANNEL_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": $node[\"Parse LINE Events\"].json.replyToken,\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": $json.message\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Reply to LINE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1280, 300]
+    }
+  ],
+  "connections": {
+    "LINE Webhook (IN)": {
+      "main": [
+        [
+          { "node": "Parse LINE Events", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse LINE Events": {
+      "main": [
+        [
+          { "node": "Zoho Creator Predict (API wrapper)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Zoho Creator Predict (API wrapper)": {
+      "main": [
+        [
+          { "node": "Pick Reply Text", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Pick Reply Text": {
+      "main": [
+        [
+          { "node": "Reply to LINE", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "LINE Webhook — Router (MVP)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "line-webhook",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "LINE Webhook (IN)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Expect LINE Messaging API payload\n// Keep only message events (text)\nconst body = $json;\nconst events = (body && body.events) ? body.events : [];\n\nconst out = [];\nfor (const ev of events) {\n  if (!ev || ev.type !== 'message') continue;\n  if (!ev.message || ev.message.type !== 'text') continue;\n  out.push({\n    json: {\n      replyToken: ev.replyToken,\n      lineUserId: ev.source?.userId || '',\n      text: (ev.message?.text || '').trim(),\n      timestamp: ev.timestamp || Date.now()\n    }\n  });\n}\n\nreturn out;"
+      },
+      "name": "Parse LINE Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.text}}",
+              "operation": "notEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Text Not Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [770, 300]
+    }
+  ],
+  "connections": {
+    "LINE Webhook (IN)": {
+      "main": [
+        [
+          {
+            "node": "Parse LINE Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LINE Events": {
+      "main": [
+        [
+          {
+            "node": "Text Not Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true
+  }
+}
