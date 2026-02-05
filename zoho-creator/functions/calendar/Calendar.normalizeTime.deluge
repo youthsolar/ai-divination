@@ -1,15 +1,13 @@
-// Calendar.normalizeTime.deluge
-// Purpose: Provide a single, consistent time-normalization layer for all calendar/solar-term/lunar/bazi computations.
-// Policy: Use Asia/Taipei timezone and apply Zi-hour (子時) day rollover: 23:00–23:59 is treated as next day.
-// NOTE: Zoho Creator Deluge date/datetime APIs vary by environment; keep helpers defensive.
-
-// =====================================================================
-// Function: Calendar.normalizeToTaipei
-// Input:  dt (datetime)
-// Output: map { success:bool, value:datetime, error:string }
-// =====================================================================
 map Calendar.normalizeToTaipei(datetime dt)
 {
+	// =============================================================================
+	// Function: Calendar.normalizeToTaipei
+	// Purpose : Single, consistent time-normalization layer for calendar/solar-term/
+	//           lunar/bazi computations.
+	// Policy  : Asia/Taipei.
+	// Input   : dt (datetime)
+	// Output  : map { success:bool, value:datetime, error:string }
+	// =============================================================================
 	res = Map();
 	res.put("success",false);
 	res.put("error","");
@@ -20,8 +18,8 @@ map Calendar.normalizeToTaipei(datetime dt)
 			res.put("error","dt is null");
 			return res;
 		}
-		// Deluge datetime is already timezone-aware in Creator UI context; we still keep a hook.
-		// If you later store timestamps in UTC, convert here.
+		// Deluge datetime is typically timezone-aware in Creator UI context.
+		// If later you store timestamps in UTC, convert here.
 		res.put("success",true);
 		res.put("value",dt);
 	}
@@ -32,15 +30,16 @@ map Calendar.normalizeToTaipei(datetime dt)
 	return res;
 }
 
-// =====================================================================
-// Function: Calendar.applyZiHourDayRollover
-// Rule (A): 子時換日 ON
-// - If local hour == 23, treat as next day for day-based pillars and solar-term boundary checks.
-// Input:  dt (datetime)
-// Output: map { success:bool, value:datetime, rolled:bool, error:string }
-// =====================================================================
 map Calendar.applyZiHourDayRollover(datetime dt)
 {
+	// =============================================================================
+	// Function: Calendar.applyZiHourDayRollover
+	// Rule (A): 子時換日 ON
+	// - If local hour == 23, treat as next day for day-based pillars and
+	//   solar-term/lunar-new-year boundary checks.
+	// Input   : dt (datetime)
+	// Output  : map { success:bool, value:datetime, rolled:bool, error:string }
+	// =============================================================================
 	res = Map();
 	res.put("success",false);
 	res.put("error","");
@@ -70,14 +69,15 @@ map Calendar.applyZiHourDayRollover(datetime dt)
 	return res;
 }
 
-// =====================================================================
-// Function: Calendar.getEffectiveDayKey
-// Output is a canonical day key used for comparing solar terms / lunar new year boundaries.
-// Input: dt (datetime)
-// Output: map { success:bool, key:string(yyyy-MM-dd), rolled:bool, error:string }
-// =====================================================================
 map Calendar.getEffectiveDayKey(datetime dt)
 {
+	// =============================================================================
+	// Function: Calendar.getEffectiveDayKey
+	// Output  : canonical day key (yyyy-MM-dd) used for comparing solar terms /
+	//           lunar new year boundaries (with 子時換日 applied).
+	// Input   : dt (datetime)
+	// Output  : map { success:bool, key:string, rolled:bool, error:string }
+	// =============================================================================
 	res = Map();
 	res.put("success",false);
 	res.put("error","");
@@ -97,7 +97,6 @@ map Calendar.getEffectiveDayKey(datetime dt)
 			return res;
 		}
 		res.put("rolled",zr.get("rolled"));
-		// Ensure date formatting is stable
 		res.put("key",zr.get("value").toString("yyyy-MM-dd"));
 		res.put("success",true);
 	}
