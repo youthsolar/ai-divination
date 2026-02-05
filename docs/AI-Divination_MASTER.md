@@ -38,6 +38,10 @@
 - 6 hours: block same question type.
 - 24 hours: max 2 distinct types.
 
+## Calendar policy (important)
+- **Zi-hour day rollover (子時換日) = ON**: 23:00–23:59 is treated as the next day for day-based pillars and boundary checks.
+- Known TODO (legacy note): solar-term vs lunar-new-year boundary around pre/post CNY needs consistent handling with Zi-hour rollover.
+
 ## Open questions to finalize
 - How to generate hexagram / tarot draw deterministically (random seed, time-based, user interaction)?
 - Talisman selection: mapping table vs AI ranking vs hybrid.
