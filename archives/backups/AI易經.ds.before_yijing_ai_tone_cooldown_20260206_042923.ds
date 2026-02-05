@@ -4632,7 +4632,7 @@
                  			{
                  				result.put("allowed",false);
                  				result.put("rule_violated","相同問題限制");
-                 				result.put("message","我知道你很在意這件事，但在情緒還很熱的時候重複問同一題，解讀很容易被焦慮放大。\n\n為了讓占卜保持清晰與可信，這題需要先冷卻：請在 " + days_remaining.round(0) + " 天後再回來問（同一題/高度相似題）。\n\n這段時間先把問題縮成一句最核心的話，我會在冷卻後再陪你看一次。");
+                 				result.put("message","您在3天內已經問過相同或高度相似的問題，請等待 " + days_remaining.round(0) + " 天後再問");
                  				result.put("time_remaining",days_remaining.round(0) + " 天");
                  				return result;
                  			}
@@ -4674,7 +4674,7 @@
                  			{
                  				result.put("allowed",false);
                  				result.put("rule_violated","同類型頻率限制");
-                 				result.put("message","我知道你想快點得到答案，但同類型的問題在短時間內連問，容易讓你越問越亂。\n\n為了讓占卜保持清晰與可信，這類問題需要先冷卻：請在 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後再回來。\n\n先把注意力放回你能控制的一件小事（例如：今天先把問題寫成一句話）。");
+                 				result.put("message","您在6小時內已經問過相同類型的問題，請等待 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後再問");
                  				result.put("time_remaining",hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘");
                  				return result;
                  			}
@@ -4739,7 +4739,7 @@
                  			{
                  				result.put("allowed",false);
                  				result.put("rule_violated","不同類型數量限制");
-                 				result.put("message","我知道你現在很想把所有面向都問清楚，但在一天之內快速切換太多類型，心會更亂，解讀也會失焦。\n\n為了讓占卜保持清晰與可信，今天先停在你最核心的那一題：請在 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後，再回來開新的問題類型。\n\n先照顧好你的心，冷靜下來，我們再繼續。");
+                 				result.put("message","您在24小時內已經問過2種不同類型的問題，請等待 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後再問新的問題類型");
                  				result.put("time_remaining",hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘");
                  				return result;
                  			}
@@ -5770,58 +5770,6 @@
                  			else
                  			{
                  				info "成功獲取卦象資料 - 卦名：" + hexData.get("appearance") + "，爻碼：" + yaoCode;
-
-				// 步驟 2.5: 冷卻機制檢查（觸發則安撫但不占卜；並直接 return，節省 token）
-				cooldown_check = Map();
-				selected_question_type = "";
-				if(clientId != null && clientId != "")
-				{
-					cooldown_check = thisapp.AIInterpreter.checkCooldownStatus(clientId,question,solarDateTime);
-					if(cooldown_check != null && cooldown_check.get("question_type") != null)
-					{
-						selected_question_type = cooldown_check.get("question_type");
-					}
-					if(cooldown_check != null && cooldown_check.get("allowed") == false)
-					{
-						finalResult = if(cooldown_check.get("message") != null,cooldown_check.get("message"),"我知道你很在意這件事，但我們需要先冷靜一下再占卜。稍後再回來，我會陪你看。");
-						// 記錄冷卻拒絕（不呼叫 OpenAI，節省 token）
-						new_log = insert into Divination_Logs
-						[
-							Client_Link=clientId.toLong()
-							Original_Question=question
-							Divination_Timestamp=solarDateTime
-							Divination_Method="易經"
-							Status="冷卻拒絕"
-							Question_Type_AI=selected_question_type
-							Added_User=zoho.loginuser
-						];
-						return finalResult;
-					}
-				}
-				// 步驟 2.6: 收集個性線索（讓 AI 自動決定語氣；不讓使用者選）
-				persona_text = "";
-				if(clientId != null && clientId != "")
-				{
-					client_records = Clients_Report[ID == clientId.toLong()];
-					if(client_records.count() > 0)
-					{
-						client_info = null;
-						for each  c in client_records
-						{
-							client_info = c;
-							break;
-						}
-						if(client_info != null)
-						{
-							persona_text = persona_text + "- 八字：" + if(client_info.Full_Bazi != null,client_info.Full_Bazi,"") + "\n";
-							persona_text = persona_text + "- 星座：" + if(client_info.Zodiac_Signs != null,client_info.Zodiac_Signs.toString(),"") + "\n";
-							persona_text = persona_text + "- 生肖：" + if(client_info.Chinese_Zodiac != null,client_info.Chinese_Zodiac.toString(),"") + "\n";
-							persona_text = persona_text + "- 星宿：" + if(client_info.Twenty_Eight_Lunar_Mansions != null,client_info.Twenty_Eight_Lunar_Mansions.toString(),"") + "\n";
-							persona_text = persona_text + "- 太歲：" + if(client_info.Taisui_Conflict_Status != null,client_info.Taisui_Conflict_Status,"") + "\n";
-						}
-					}
-				}
-
                  				// 步驟 3: 查詢個案的 Thread ID
                  				thread_id_to_use = "";
                  				if(clientId != null && clientId != "")
@@ -5849,33 +5797,7 @@
                  				}
                  				// 步驟 4: 組裝準備發送給 AI Assistant 的 Prompt
                  				// 這個 Prompt 結構清晰，包含了所有必要的上下文，以引導 AI 做出高質量的回覆。
-                 				prompt = "【重要規範】
-";
-				prompt = prompt + "1) 請使用繁體中文（禁用簡體）。
-";
-				prompt = prompt + "2) 不要反問使用者要哪種語氣；語氣由你根據命理個性線索自動決定，並保持一致。
-";
-				prompt = prompt + "3) 你的語氣只能從以下四種中擇一（不要告訴使用者你選了哪一種）：
-";
-				prompt = prompt + "   - comforting_guardian：溫柔安撫、給界線、讓人冷靜
-";
-				prompt = prompt + "   - clear_direct：清晰直白、條列、少形容詞
-";
-				prompt = prompt + "   - poetic_mystic：有靈性意象但不浮誇、句子短
-";
-				prompt = prompt + "   - playful_light：輕鬆但不嘲諷、不油、不傷人
-
-";
-				if(persona_text != null && persona_text.trim() != "")
-				{
-					prompt = prompt + "【個性線索（用來決定語氣，不要在回覆中直接列出原始線索）】
-" + persona_text + "
-";
-				}
-
-				prompt = prompt + "【任務】請幫我解讀下面的易經占卜結果，並針對問題給出詳盡建議。
-
-";
+                 				prompt = "請幫我解讀下面的易經占卜結果，並針對問題給出詳盡建議。\n\n";
                  				prompt = prompt + "【占卜問題】\n" + question + "\n\n";
                  				prompt = prompt + "【爻碼】\n" + yaoCode + "\n\n";
                  				prompt = prompt + "【卦象總覽】\n";
@@ -5896,8 +5818,7 @@
                  				prompt = prompt + "【符令圖示】\n";
                  				prompt = prompt + hexData.get("symbol_1") + " " + hexData.get("symbol_2") + " " + hexData.get("symbol_3") + "\n";
                  				prompt = prompt + hexData.get("symbol_4") + " " + hexData.get("symbol_5") + "\n\n";
-                 				prompt = prompt + "請根據以上所有資訊，綜合易經理論與爻辭細節，給出至少三段、每段 3～5 句的深度分析與建議。\n";
-				prompt = prompt + "請直接給結論與可行建議，少一點空泛形容；不要要求使用者選語氣，也不要在回覆中提到 toneKey。";
+                 				prompt = prompt + "請根據以上所有資訊，綜合易經理論與爻辭細節，給出至少三段、每段 3～5 句的深度分析與建議。請使用繁體中文回答，語調要溫和、智慧且具有靈性深度。";
                  				info "AI Prompt 構建完成，長度：" + prompt.length().toString();
                  				// 步驟 5: 呼叫 OpenAI Assistant
                  				ai_response = thisapp.OpenAI.callAssistant(prompt,thread_id_to_use);
