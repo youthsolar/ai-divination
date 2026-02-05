@@ -7476,7 +7476,26 @@
                  	solar_term_month_map.put("小寒","丑");
                  	solar_term_month_map.put("大寒","丑");
                  	// 步驟 4: 查詢在輸入時間點之前、最近的節氣。
-                 	target_year = solar_datetime.getYear();
+                 	// 子時換日政策：23:00–23:59 視為隔日（A）
+                 	effective_dt = solar_datetime;
+                 	try
+                 	{
+                 		norm = thisapp.Calendar.normalizeToTaipei(solar_datetime);
+                 		if(norm.get("success"))
+                 		{
+                 			zr = thisapp.Calendar.applyZiHourDayRollover(norm.get("value"));
+                 			if(zr.get("success"))
+                 			{
+                 				effective_dt = zr.get("value");
+                 			}
+                 		}
+                 	}
+                 	catch(_e)
+                 	{
+                 		// 若 Calendar helpers 尚未部署，保持向後相容
+                 		effective_dt = solar_datetime;
+                 	}
+                 	target_year = effective_dt.getYear();
                  	// 撈取所有節氣資料，這是為了規避 Deluge 的查詢限制。
                  	all_terms_in_year = SolarTerms[ID != 0];
                  	latest_term = null;
@@ -7487,7 +7506,7 @@
                  		// 遵循 Deluge 語法限制，將判斷拆分為巢狀 if。
                  		if(record.Solar_Term_DateTime != null)
                  		{
-                 			if(record.Solar_Term_DateTime.getYear() == target_year && record.Solar_Term_DateTime <= solar_datetime)
+                 			if(record.Solar_Term_DateTime.getYear() == target_year && record.Solar_Term_DateTime <= effective_dt)
                  			{
                  				if(latest_term_datetime == null || record.Solar_Term_DateTime > latest_term_datetime)
                  				{
@@ -7506,7 +7525,7 @@
                  		{
                  			if(record.Solar_Term_DateTime != null)
                  			{
-                 				if(record.Solar_Term_DateTime.getYear() == target_year - 1 && record.Solar_Term_DateTime <= solar_datetime)
+                 				if(record.Solar_Term_DateTime.getYear() == target_year - 1 && record.Solar_Term_DateTime <= effective_dt)
                  				{
                  					if(latest_term_datetime == null || record.Solar_Term_DateTime > latest_term_datetime)
                  					{
@@ -7607,8 +7626,26 @@
                  		return result;
                  	}
                  	// 步驟 3: 判斷八字年份。
+                 	// 子時換日政策：23:00–23:59 視為隔日（A），避免立春前後邊界錯誤
+                 	effective_dt_for_year = solar_datetime;
+                 	try
+                 	{
+                 		norm_y = thisapp.Calendar.normalizeToTaipei(solar_datetime);
+                 		if(norm_y.get("success"))
+                 		{
+                 			zr_y = thisapp.Calendar.applyZiHourDayRollover(norm_y.get("value"));
+                 			if(zr_y.get("success"))
+                 			{
+                 				effective_dt_for_year = zr_y.get("value");
+                 			}
+                 		}
+                 	}
+                 	catch(_e_y)
+                 	{
+                 		effective_dt_for_year = solar_datetime;
+                 	}
                  	bazi_year = solar_year;
-                 	if(solar_datetime < lichun_datetime)
+                 	if(effective_dt_for_year < lichun_datetime)
                  	{
                  		bazi_year = solar_year - 1;
                  	}
@@ -7667,13 +7704,31 @@
                  	lunar_constants = thisapp.LunarData.getConstants();
                  	// 步驟 2: 獲取當前伺服器時間作為占卜時間點。
                  	now_datetime = zoho.currenttime;
+                 	// 子時換日政策（A）：23:00–23:59 視為隔日，確保節氣/日柱邊界一致
+                 	effective_now = now_datetime;
+                 	try
+                 	{
+                 		norm_now = thisapp.Calendar.normalizeToTaipei(now_datetime);
+                 		if(norm_now.get("success"))
+                 		{
+                 			zr_now = thisapp.Calendar.applyZiHourDayRollover(norm_now.get("value"));
+                 			if(zr_now.get("success"))
+                 			{
+                 				effective_now = zr_now.get("value");
+                 			}
+                 		}
+                 	}
+                 	catch(_e_now)
+                 	{
+                 		effective_now = now_datetime;
+                 	}
                  	// 步驟 3: 呼叫核心引擎，計算占卜日的農曆資訊。
-                 	divination_lunar_map = thisapp.LunarAI.calculateLunarDetails(now_datetime,lunar_constants);
+                 	divination_lunar_map = thisapp.LunarAI.calculateLunarDetails(effective_now,lunar_constants);
                  	// 步驟 4: 呼叫精確計算函數取得完整四柱八字資訊。
-                 	year_pillar = thisapp.Bazi.calculatePreciseYearPillar(now_datetime);
-                 	month_pillar = thisapp.Bazi.calculatePreciseMonthPillar(now_datetime);
-                 	day_pillar = thisapp.Bazi.calculatePreciseDayPillar(now_datetime);
-                 	hour_pillar = thisapp.Bazi.calculatePreciseHourPillar(now_datetime);
+                 	year_pillar = thisapp.Bazi.calculatePreciseYearPillar(effective_now);
+                 	month_pillar = thisapp.Bazi.calculatePreciseMonthPillar(effective_now);
+                 	day_pillar = thisapp.Bazi.calculatePreciseDayPillar(effective_now);
+                 	hour_pillar = thisapp.Bazi.calculatePreciseHourPillar(effective_now);
                  	// 步驟 5: 組合最終結果。
                  	final_result = Map();
                  	// 先放入所有農曆資訊 (如 lunar_year, lunar_month, is_leap_month 等)。
@@ -19721,7 +19776,25 @@
                  	if(lunar_data_record.count() > 0)
                  	{
                  		lunar_new_year_date = lunar_data_record.Lunar_New_Year;
-                 		if(solar_date < lunar_new_year_date)
+                 		// 子時換日政策（A）：若 solar_date 含時間且落在 23:00–23:59，視為隔日
+                 		effective_solar_date = solar_date;
+                 		try
+                 		{
+                 			norm_z = thisapp.Calendar.normalizeToTaipei(solar_date);
+                 			if(norm_z.get("success"))
+                 			{
+                 				zr_z = thisapp.Calendar.applyZiHourDayRollover(norm_z.get("value"));
+                 				if(zr_z.get("success"))
+                 				{
+                 					effective_solar_date = zr_z.get("value");
+                 				}
+                 			}
+                 		}
+                 		catch(_e_z)
+                 		{
+                 			effective_solar_date = solar_date;
+                 		}
+                 		if(effective_solar_date < lunar_new_year_date)
                  		{
                  			zodiac_year = solar_year - 1;
                  		}
