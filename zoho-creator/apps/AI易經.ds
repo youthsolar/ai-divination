@@ -7500,8 +7500,9 @@
                  	// 規則不變：仍然是「effective_dt 之前最近的節氣」。
                  	latest_term = null;
                  	latest_term_datetime = null;
-                 	// 節氣每年 24 筆，理論上最近節氣必然落在 370 天內。
-                 	window_start = effective_dt.addDay(-370);
+                 	// 節氣每年 24 筆；為保守處理跨年邊界與（你提醒的）閏月/資料偏移風險，
+                 	// 取較大的回溯窗口：450 天（規則不變，只是縮小查詢集合的方式）。
+                 	window_start = effective_dt.addDay(-450);
                  	// 先用時間範圍縮小查詢集合，避免 SolarTerms 全表掃描造成 loading。
                  	terms_window = SolarTerms[Solar_Term_DateTime >= window_start && Solar_Term_DateTime <= effective_dt];
                  	// 若資料異常導致查不到（例如 SolarTerms 資料不完整），才退回全表掃描（保守且向後相容）。
