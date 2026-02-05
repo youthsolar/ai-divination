@@ -7496,30 +7496,42 @@
                  		effective_dt = solar_datetime;
                  	}
                  	target_year = effective_dt.getYear();
-                 	// 撈取節氣資料（效能優化）：只抓 effective_dt 前一年內的節氣，再從中找出 <= effective_dt 的最近者。
-                 	// 規則不變：仍然是「effective_dt 之前最近的節氣」。
+                 	// 撈取所有節氣資料，這是為了規避 Deluge 的查詢限制。
+                 	all_terms_in_year = SolarTerms[ID != 0];
                  	latest_term = null;
                  	latest_term_datetime = null;
-                 	// 節氣每年 24 筆，理論上最近節氣必然落在 370 天內。
-                 	window_start = effective_dt.addDay(-370);
-                 	// 先用時間範圍縮小查詢集合，避免 SolarTerms 全表掃描造成 loading。
-                 	terms_window = SolarTerms[Solar_Term_DateTime >= window_start && Solar_Term_DateTime <= effective_dt];
-                 	// 若資料異常導致查不到（例如 SolarTerms 資料不完整），才退回全表掃描（保守且向後相容）。
-                 	if(terms_window == null || terms_window.count() == 0)
+                 	// 步驟 4.1: 先在當年範圍內查找。
+                 	for each  record in all_terms_in_year
                  	{
-                 		terms_window = SolarTerms[ID != 0];
-                 	}
-                 	for each  record in terms_window
-                 	{
+                 		// 遵循 Deluge 語法限制，將判斷拆分為巢狀 if。
                  		if(record.Solar_Term_DateTime != null)
                  		{
-                 			// 注意：這裡不再以年份篩選，完全依照時間窗與 <= effective_dt 來決定「最近節氣」。
-                 			if(record.Solar_Term_DateTime <= effective_dt)
+                 			if(record.Solar_Term_DateTime.getYear() == target_year && record.Solar_Term_DateTime <= effective_dt)
                  			{
                  				if(latest_term_datetime == null || record.Solar_Term_DateTime > latest_term_datetime)
                  				{
                  					latest_term = record.Solar_Term_Name;
                  					latest_term_datetime = record.Solar_Term_DateTime;
+                 				}
+                 			}
+                 		}
+                 	}
+                 	// 步驟 4.2: 如果在當年沒找到（通常發生在年初，需要參考去年的節氣），則查找前一年的年末節氣。
+                 	if(latest_term == null)
+                 	{
+                 		// 注意：此處再次撈取了所有記錄，在極端情況下可能有效能問題，但保證了邏輯的正確性。
+                 		prev_year_terms = SolarTerms[ID != 0];
+                 		for each  record in prev_year_terms
+                 		{
+                 			if(record.Solar_Term_DateTime != null)
+                 			{
+                 				if(record.Solar_Term_DateTime.getYear() == target_year - 1 && record.Solar_Term_DateTime <= effective_dt)
+                 				{
+                 					if(latest_term_datetime == null || record.Solar_Term_DateTime > latest_term_datetime)
+                 					{
+                 						latest_term = record.Solar_Term_Name;
+                 						latest_term_datetime = record.Solar_Term_DateTime;
+                 					}
                  				}
                  			}
                  		}
@@ -7586,59 +7598,32 @@
                  	stemsList = bazi_constants.get("heavenly_stems");
                  	branchesList = bazi_constants.get("earthly_branches");
                  	solar_year = solar_datetime.getYear();
-                 	// 步驟 2: 查詢立春資料（效能優化）。
-                 	// 規則不變：仍以「立春的精確時間」作為年柱切換點。
-                 	// 作法：先用時間窗縮小查詢集合（約前後 60 天內），避免撈出全部年份的立春記錄。
-                 	lichun_datetime = null;
-                 	try
+                 	// 步驟 2: 查詢立春資料。
+                 	// 採用「先撈取，後遍歷」的方式，以規避 Deluge 不支援在查詢條件左側使用函數的限制。
+                 	lichun_records = SolarTerms[Solar_Term_Name == "立春"];
+                 	if(lichun_records.count() == 0)
                  	{
-                 		window_start = solar_datetime.addDay(-60);
-                 		window_end = solar_datetime.addDay(60);
-                 		lichun_window = SolarTerms[Solar_Term_Name == "立春" && Solar_Term_DateTime >= window_start && Solar_Term_DateTime <= window_end];
-                 		if(lichun_window != null && lichun_window.count() > 0)
+                 		result.put("error","找不到" + solar_year + "年的立春資料");
+                 		return result;
+                 	}
+                 	lichun_datetime = null;
+                 	for each  record in lichun_records
+                 	{
+                 		// 根據 Deluge 的限制，此處的 if 判斷必須保持簡單，不能用 && 或 || 合併。
+                 		if(record.Solar_Term_DateTime != null)
                  		{
-                 			for each  record in lichun_window
+                 			if(record.Solar_Term_DateTime.getYear() == solar_year)
                  			{
-                 				if(record.Solar_Term_DateTime != null)
-                 				{
-                 					// 取時間窗內最新的一筆（通常就 1 筆），避免排序依賴
-                 					if(lichun_datetime == null || record.Solar_Term_DateTime > lichun_datetime)
-                 					{
-                 						lichun_datetime = record.Solar_Term_DateTime;
-                 					}
-                 				}
+                 				lichun_datetime = record.Solar_Term_DateTime;
+                 				break;
                  			}
                  		}
                  	}
-                 	catch(_e_lichun)
-                 	{
-                 		lichun_datetime = null;
-                 	}
-                 	// 保守回退：若時間窗查不到，仍使用原本的全表方式（向後相容）
+                 	// 如果在迴圈後依然沒有找到當年的立春，回傳錯誤。
                  	if(lichun_datetime == null)
                  	{
-                 		lichun_records = SolarTerms[Solar_Term_Name == "立春"];
-                 		if(lichun_records.count() == 0)
-                 		{
-                 			result.put("error","找不到" + solar_year + "年的立春資料");
-                 			return result;
-                 		}
-                 		for each  record in lichun_records
-                 		{
-                 			if(record.Solar_Term_DateTime != null)
-                 			{
-                 				if(record.Solar_Term_DateTime.getYear() == solar_year)
-                 				{
-                 					lichun_datetime = record.Solar_Term_DateTime;
-                 					break;
-                 				}
-                 			}
-                 		}
-                 		if(lichun_datetime == null)
-                 		{
-                 			result.put("error","找不到" + solar_year + "年的立春資料");
-                 			return result;
-                 		}
+                 		result.put("error","找不到" + solar_year + "年的立春資料");
+                 		return result;
                  	}
                  	// 步驟 3: 判斷八字年份。
                  	// 子時換日政策：23:00–23:59 視為隔日（A），避免立春前後邊界錯誤
