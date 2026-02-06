@@ -3231,26 +3231,6 @@
 	 			column = 1   
 				width = medium
 			)
-
-			Delivery_Token
-			(
-    			type = text
-				displayname = "交付Token"
-				maxchar = 120
-    			row = 1
-    			column = 1   
-				width = medium
-			)
-			Delivery_Token_ExpiresAt
-			(
-    			type = datetime
-				displayname = "交付Token到期"
-				timedisplayoptions = "hh:mm:ss"
-				alloweddays = 0,1,2,3,4,5,6
-    			row = 1
-    			column = 1   
-				width = medium
-			)
 			Status
 			(
 				type = picklist
@@ -7406,22 +7386,8 @@
                   		for each  o in orders
                   		{
                   			o.Status=new_status;
-						if(new_status == "Paid" && (o.Delivery_Token == null || o.Delivery_Token == ""))
-						{
-							// 生成難猜的交付 token（以訂單資訊+時間做 sha256）
-							token_source = merchant_trade_no + "|" + trade_no + "|" + zoho.currenttime.toLong();
-							delivery_token = zoho.encryption.sha256(token_source).toLowerCase();
-							o.Delivery_Token=delivery_token;
-							// Token 到期：預設 7 天（可再調）
-							o.Delivery_Token_ExpiresAt=zoho.currenttime.addDay(7);
-						}
-
-                  			o.TradeNo=trade_no;
-                  			o.PaymentDate=payment_date;
-						o.RtnCode=rtn_code.toNumber();
-						o.RtnMsg=if(ecpay_params.get("RtnMsg") != null,ecpay_params.get("RtnMsg").toString(),"");
-						o.CheckMacValue=recv_mac;
-
+                  			o.ECPay_TradeNo=trade_no;
+                  			o.ECPay_PaymentDate=payment_date;
                   			break;
                   		}
 
