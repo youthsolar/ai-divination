@@ -17,6 +17,9 @@ Workflows:
 
 ## 3) Zoho Creator variables
 Fill these before launch:
+- [ ] `thisapp.variables.ECPay.merchantID_Production` = <ECPay MerchantID (Production)>
+- [ ] `thisapp.variables.ECPay.hashKey_Production` = <ECPay HashKey (Production)>
+- [ ] `thisapp.variables.ECPay.hashIV_Production` = <ECPay HashIV (Production)>
 - [ ] `thisapp.variables.ECPay.ReturnURL_Production` = <PUBLIC URL to Creator API.ECPayReturn>
 - [ ] `thisapp.variables.ECPay.ClientBackURL_Production` = <optional; we prefer A-flow (push link in LINE)>
 

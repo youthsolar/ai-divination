@@ -7391,7 +7391,7 @@
                   	return result;
                  }
 
-map API.ECPayReturn(map ecpay_params)
+string API.ECPayReturn(map ecpay_params)
                  {
                   	// =============================================================================
                   	// Creator API：綠界 ECPay 付款回拋（ReturnURL）
@@ -7399,13 +7399,14 @@ map API.ECPayReturn(map ecpay_params)
                   	// 注意：此 API 必須是對外可被 ECPay 呼叫的 endpoint（公開網址），安全性靠 CheckMacValue 驗簽。
                   	// =============================================================================
                   	result = Map();
+				response_text = "0|FAIL";
                   	try
                   	{
                   		if(ecpay_params == null)
                   		{
                   			result.put("success",false);
                   			result.put("message","參數為空");
-                  			return result;
+                  			return response_text;
                   		}
 
                   		merchant_trade_no = if(ecpay_params.get("MerchantTradeNo") != null,ecpay_params.get("MerchantTradeNo").toString(),"");
@@ -7418,7 +7419,7 @@ map API.ECPayReturn(map ecpay_params)
                   		{
                   			result.put("success",false);
                   			result.put("message","MerchantTradeNo 缺失");
-                  			return result;
+                  			return response_text;
                   		}
 
                   		// 1) 驗簽：用生產環境 hashKey/hashIV 重算 CheckMacValue
@@ -7432,13 +7433,19 @@ map API.ECPayReturn(map ecpay_params)
                   		}
                   		hash_key = thisapp.variables.ECPay.hashKey_Production;
                   		hash_iv = thisapp.variables.ECPay.hashIV_Production;
+				if(hash_key == null || hash_iv == null || hash_key.toString() == "" || hash_iv.toString() == "")
+				{
+					result.put("success",false);
+					result.put("message","生產環境 hashKey/hashIV 未設定");
+					return response_text;
+				}
                   		calc_mac = thisapp.ECPay.generateCheckMacValue_private(verify_params,hash_key,hash_iv);
                   		if(recv_mac == "" || calc_mac.toString().toUpperCase() != recv_mac.toString().toUpperCase())
                   		{
                   			result.put("success",false);
                   			result.put("message","CheckMacValue 驗證失敗");
                   			result.put("merchantTradeNo",merchant_trade_no);
-                  			return result;
+                  			return response_text;
                   		}
 
                   		// 2) 更新訂單狀態（以 MerchantTradeNo 對應）
@@ -7448,7 +7455,7 @@ map API.ECPayReturn(map ecpay_params)
                   			result.put("success",false);
                   			result.put("message","找不到對應訂單");
                   			result.put("merchantTradeNo",merchant_trade_no);
-                  			return result;
+                  			return response_text;
                   		}
 
                   		new_status = "Paid";
@@ -7456,10 +7463,15 @@ map API.ECPayReturn(map ecpay_params)
                   		{
                   			new_status = "Failed";
                   		}
+				should_notify = false;
+				already_paid = false;
+				token_created = false;
 
                   		for each  o in orders
                   		{
+						already_paid = (o.Status == "Paid");
                   			o.Status=new_status;
+						token_created = false;
 						if(new_status == "Paid" && (o.Delivery_Token == null || o.Delivery_Token == ""))
 						{
 							// 生成難猜的交付 token（以訂單資訊+時間做 sha256）
@@ -7468,6 +7480,7 @@ map API.ECPayReturn(map ecpay_params)
 							o.Delivery_Token=delivery_token;
 							// Token 到期：預設 7 天（可再調）
 							o.Delivery_Token_ExpiresAt=zoho.currenttime.addDay(7);
+							token_created = true;
 						}
 
                   			o.TradeNo=trade_no;
@@ -7475,7 +7488,10 @@ map API.ECPayReturn(map ecpay_params)
 						o.RtnCode=rtn_code.toNumber();
 						o.RtnMsg=if(ecpay_params.get("RtnMsg") != null,ecpay_params.get("RtnMsg").toString(),"");
 						o.CheckMacValue=recv_mac;
-
+						if(new_status == "Paid" && (!already_paid || token_created))
+						{
+							should_notify = true;
+						}
                   			break;
                   		}
 
@@ -7483,7 +7499,7 @@ map API.ECPayReturn(map ecpay_params)
 				// 3) 付款成功後通知 n8n 推播交付連結（A1）
 				try
 				{
-					if(new_status == "Paid")
+					if(new_status == "Paid" && should_notify == true)
 					{
 						notify_url = if(thisapp.variables.System.N8N.ECPayPaidNotifyURL != null,thisapp.variables.System.N8N.ECPayPaidNotifyURL.toString(),"");
 						base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
@@ -7542,7 +7558,11 @@ result.put("success",true);
                   		result.put("success",false);
                   		result.put("message","系統錯誤：" + e);
                   	}
-                  	return result;
+				if(result.get("success") == true)
+				{
+					response_text = "1|OK";
+				}
+                  	return response_text;
                  }
 
  map API.generatePersonalityProfile(string client_id)
@@ -19032,12 +19052,12 @@ result.put("success",true);
                  		}
                  		// Client_Link 在 Workflow 中可以直接使用 ID，不需要記錄物件
                  		// --- 步驟 2: 執行 AI 問題分類 ---
-                 		classification_result = thisapp.AIInterpreter.classifyQuestionType(user_question);
-                 		question_type = "其他";
-                 		if(classification_result.get("success") == true)
-                 		{
-                 			question_type = classification_result.get("question_type");
-                 		}
+                  		classification_result = thisapp.AIInterpreter.classifyQuestionType(user_question);
+                  		question_type = "其他";
+                  		if(classification_result != null && classification_result.get("success") == true && classification_result.get("question_type") != null)
+                  		{
+                  			question_type = classification_result.get("question_type");
+                  		}
                  		// --- 步驟 3: 獲取牌位意義 ---
                  		position_meanings = thisapp.Tarot.getPositionMeanings(question_type);
                  		// --- 步驟 4: 執行抽牌 ---
@@ -19457,8 +19477,13 @@ result.put("success",true);
                  	//          以便 Flow 的 Webhook 觸發器能夠學習並識別資料結構。
                  	//          執行成功後即可刪除。
                  	// =============================================================================
-                 	// 1. 這是你在 Zoho Flow 拿到的 Webhook URL
-                 	flowWebhookUrl = "https://flow.zoho.com/876589298/flow/webhook/incoming?zapikey=1001.c2f3c731da1c083c0e9b189b9beed841.aeaee06484461f4563e8d52e8cc42f25&isdebug=false";
+                	// 1. 這是你在 Zoho Flow 拿到的 Webhook URL
+                	flowWebhookUrl = if(thisapp.variables.System.FlowWebhookUrl != null,thisapp.variables.System.FlowWebhookUrl.toString(),"");
+                	if(flowWebhookUrl == "")
+                	{
+                		info "Flow webhook URL 未設定，取消測試";
+                		return;
+                	}
                  	// 2. 準備一筆模擬的報告請求資料 (Map)
                  	sampleData = Map();
                  	sampleData.put("reportTitle","關於事業發展的塔羅指引");
