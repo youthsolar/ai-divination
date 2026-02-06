@@ -274,15 +274,6 @@
 				width = medium
 				personal data = true
 			)
-			Line_User_ID
-			(
-    			type = text
-				displayname = "Line User Id"
-				maxchar = 120
-    			row = 1
-    			column = 1   
-				width = medium
-			)
 			Phone_Number
 			(
     			type = phonenumber
@@ -3087,15 +3078,6 @@
 	 			column = 1   
 				width = medium
 			)
-			Line_User_ID
-			(
-    			type = text
-				displayname = "Line User Id"
-				maxchar = 120
-    			row = 1
-    			column = 1   
-				width = medium
-			)
 			Talisman_Sequence
 			(
 				type = picklist
@@ -4560,10 +4542,6 @@
 		thisapp.variables.System.Max_Tokens = 1000;
 		thisapp.variables.System.Temperature = 0.9;
 		thisapp.variables.System.Tone_Default = "\"隨機\"";
-		// n8n notify webhook (set before launch)
-		thisapp.variables.System.N8N.ECPayPaidNotifyURL = "";
-		// Delivery page base URL (B1 Creator Page). n8n will append ?token=...
-		thisapp.variables.System.DeliveryPageBaseURL = "";
 		thisapp.variables.System.zoho_client_id = "1000.AF2I35WXIXZEMMT0MTKZMLEFNZCU5U";
 		thisapp.variables.System.zoho_client_secret = "08bded57ec6048610787145e9fc4ae0ab39a4c0a1f";
 		thisapp.variables.System.zoho_internal_api_refresh_token = "1000.776cd1024523fe1ae7573bf90f45e5dd.34f44c13d58e9c2f6de8168d6e8ebd0d";
@@ -7359,39 +7337,7 @@
                  	return api_result;
                  }
 				
-			
-			map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price, string lineUserId)
-                 {
-                  	// =============================================================================
-                  	// Creator API：建立符令購買訂單（v2）
-                  	// - 新增參數 lineUserId：用於付款成功後推播交付連結（n8n push）
-                  	// - 其餘邏輯沿用 CreateTalismanOrder，不改規則
-                  	// =============================================================================
-                  	result = thisapp.API.CreateTalismanOrder(firstName,lastName,email,phoneNumber,divinationId,talismanName,element,price);
-                  	try
-                  	{
-                  		if(result != null && result.get("success") == true && result.get("data") != null && lineUserId != null && lineUserId.trim() != "")
-                  		{
-                  			order_id = result.get("data").get("order_id");
-                  			if(order_id != null && order_id != "")
-                  			{
-                  				orders = Talisman_Purchases[ID == order_id.toLong()];
-                  				for each  o in orders
-                  				{
-                  					o.Line_User_ID=lineUserId;
-                  					break;
-                  				}
-                  			}
-                  		}
-                  	}
-                  	catch (e)
-                  	{
-                  		// 不影響建單主流程
-                  	}
-                  	return result;
-                 }
-
-map API.ECPayReturn(map ecpay_params)
+			map API.ECPayReturn(map ecpay_params)
                  {
                   	// =============================================================================
                   	// Creator API：綠界 ECPay 付款回拋（ReturnURL）
@@ -7479,60 +7425,7 @@ map API.ECPayReturn(map ecpay_params)
                   			break;
                   		}
 
-                  		
-				// 3) 付款成功後通知 n8n 推播交付連結（A1）
-				try
-				{
-					if(new_status == "Paid")
-					{
-						notify_url = if(thisapp.variables.System.N8N.ECPayPaidNotifyURL != null,thisapp.variables.System.N8N.ECPayPaidNotifyURL.toString(),"");
-						base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
-						if(notify_url != "" && base_url != "")
-						{
-							order_rec = null;
-							orders2 = Talisman_Purchases[MerchantTradeNo == merchant_trade_no];
-							for each  oo in orders2
-							{
-								order_rec = oo;
-								break;
-							}
-							if(order_rec != null)
-							{
-								line_uid = if(order_rec.Line_User_ID != null,order_rec.Line_User_ID,"");
-								if(line_uid == "" && order_rec.Client_Link != null)
-								{
-									client_rec = Clients_Report[ID == order_rec.Client_Link];
-									for each  cc in client_rec
-									{
-										line_uid = if(cc.Line_User_ID != null,cc.Line_User_ID,"");
-										break;
-									}
-								}
-								// 把 client 的 lineUserId 回寫到訂單，方便追蹤
-								if(order_rec.Line_User_ID == null || order_rec.Line_User_ID == "")
-								{
-									order_rec.Line_User_ID=line_uid;
-								}
-								delivery_token = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
-								if(line_uid != "" && delivery_token != "")
-								{
-									push_payload = Map();
-									push_payload.put("lineUserId",line_uid);
-									push_payload.put("merchantTradeNo",merchant_trade_no);
-									push_payload.put("deliveryToken",delivery_token);
-									push_payload.put("deliveryUrl",base_url + "?token=" + delivery_token);
-									ignore = postUrl(notify_url,push_payload.toString(),{"Content-Type":"application/json"});
-								}
-							}
-						}
-					}
-				}
-				catch (e)
-				{
-					// 不影響回拋主要流程
-				}
-
-result.put("success",true);
+                  		result.put("success",true);
                   		result.put("message","ok");
                   		result.put("merchantTradeNo",merchant_trade_no);
                   		result.put("status",new_status);
