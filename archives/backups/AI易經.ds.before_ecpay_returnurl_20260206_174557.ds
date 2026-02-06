@@ -4509,10 +4509,6 @@
 		thisapp.variables.ECPay.merchantID_Production = 3333458;
 		thisapp.variables.ECPay.PublicKey = "8HVQ9CPrtTatKJvBrVXqOfa3y";
 
-		// ECPay callback URLs (MVP placeholders; set to real public endpoints before launch)
-		thisapp.variables.ECPay.ReturnURL_Production = "";
-		thisapp.variables.ECPay.ClientBackURL_Production = "";
-
 		thisapp.variables.OpenAI.OpenAI_API_Key = "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";
 		thisapp.variables.OpenAI.OpenAI_API_URL = "https://api.openai.com/v1/chat/completions";
 		thisapp.variables.OpenAI.OpenAI_Assistant_ID = "asst_HBPtMUAYxX8Gxe17bUFL0m0W";
@@ -7204,10 +7200,7 @@
                  		ecpay_order_info.put("totalAmount",price.toNumber());
                  		ecpay_order_info.put("itemName",item_name_english);
                  		ecpay_order_info.put("tradeDesc",item_description);
-                 		return_url = if(thisapp.variables.ECPay.ReturnURL_Production != null,thisapp.variables.ECPay.ReturnURL_Production.toString(),"");
-						ecpay_order_info.put("returnURL",return_url);
-						client_back_url = if(thisapp.variables.ECPay.ClientBackURL_Production != null,thisapp.variables.ECPay.ClientBackURL_Production.toString(),"");
-						ecpay_order_info.put("clientBackURL",client_back_url);
+                 		ecpay_order_info.put("clientBackURL","https://your-success-page.com/talisman-success");
                  		info "準備調用 ECPay 付款表單生成函數";
                  		// 調用 ECPay 付款表單生成函數
                  		payment_form_html = thisapp.ECPay.generateCheckoutForm_Production(ecpay_order_info);
@@ -7316,95 +7309,7 @@
                  	}
                  	return api_result;
                  }
-				
-			map API.ECPayReturn(map ecpay_params)
-                 {
-                  	// =============================================================================
-                  	// Creator API：綠界 ECPay 付款回拋（ReturnURL）
-                  	// 用途：ECPay server-to-server 回拋後，驗簽 CheckMacValue，並更新訂單狀態
-                  	// 注意：此 API 必須是對外可被 ECPay 呼叫的 endpoint（公開網址），安全性靠 CheckMacValue 驗簽。
-                  	// =============================================================================
-                  	result = Map();
-                  	try
-                  	{
-                  		if(ecpay_params == null)
-                  		{
-                  			result.put("success",false);
-                  			result.put("message","參數為空");
-                  			return result;
-                  		}
-
-                  		merchant_trade_no = if(ecpay_params.get("MerchantTradeNo") != null,ecpay_params.get("MerchantTradeNo").toString(),"");
-                  		rtn_code = if(ecpay_params.get("RtnCode") != null,ecpay_params.get("RtnCode").toString(),"");
-                  		trade_no = if(ecpay_params.get("TradeNo") != null,ecpay_params.get("TradeNo").toString(),"");
-                  		payment_date = if(ecpay_params.get("PaymentDate") != null,ecpay_params.get("PaymentDate").toString(),"");
-                  		recv_mac = if(ecpay_params.get("CheckMacValue") != null,ecpay_params.get("CheckMacValue").toString(),"");
-
-                  		if(merchant_trade_no == "")
-                  		{
-                  			result.put("success",false);
-                  			result.put("message","MerchantTradeNo 缺失");
-                  			return result;
-                  		}
-
-                  		// 1) 驗簽：用生產環境 hashKey/hashIV 重算 CheckMacValue
-                  		verify_params = Map();
-                  		for each  k in ecpay_params.keys()
-                  		{
-                  			if(k != "CheckMacValue")
-                  			{
-                  				verify_params.put(k,ecpay_params.get(k));
-                  			}
-                  		}
-                  		hash_key = thisapp.variables.ECPay.hashKey_Production;
-                  		hash_iv = thisapp.variables.ECPay.hashIV_Production;
-                  		calc_mac = thisapp.ECPay.generateCheckMacValue_private(verify_params,hash_key,hash_iv);
-                  		if(recv_mac == "" || calc_mac.toString().toUpperCase() != recv_mac.toString().toUpperCase())
-                  		{
-                  			result.put("success",false);
-                  			result.put("message","CheckMacValue 驗證失敗");
-                  			result.put("merchantTradeNo",merchant_trade_no);
-                  			return result;
-                  		}
-
-                  		// 2) 更新訂單狀態（以 MerchantTradeNo 對應）
-                  		orders = Talisman_Purchases[MerchantTradeNo == merchant_trade_no];
-                  		if(orders.count() == 0)
-                  		{
-                  			result.put("success",false);
-                  			result.put("message","找不到對應訂單");
-                  			result.put("merchantTradeNo",merchant_trade_no);
-                  			return result;
-                  		}
-
-                  		new_status = "Paid";
-                  		if(rtn_code != "1")
-                  		{
-                  			new_status = "Failed";
-                  		}
-
-                  		for each  o in orders
-                  		{
-                  			o.Status=new_status;
-                  			o.ECPay_TradeNo=trade_no;
-                  			o.ECPay_PaymentDate=payment_date;
-                  			break;
-                  		}
-
-                  		result.put("success",true);
-                  		result.put("message","ok");
-                  		result.put("merchantTradeNo",merchant_trade_no);
-                  		result.put("status",new_status);
-                  	}
-                  	catch (e)
-                  	{
-                  		result.put("success",false);
-                  		result.put("message","系統錯誤：" + e);
-                  	}
-                  	return result;
-                 }
-
- map API.generatePersonalityProfile(string client_id)
+				 map API.generatePersonalityProfile(string client_id)
                  {
                  	// =============================================================================
                  	// Creator API：生成個性側寫並寫回資料庫
@@ -8422,20 +8327,14 @@
                  	params.put("TotalAmount",orderInfo.get("totalAmount"));
                  	params.put("TradeDesc",orderInfo.get("tradeDesc"));
                  	params.put("ItemName",orderInfo.get("itemName"));
-                 	return_url = orderInfo.get("returnURL");
-				if(return_url == null || return_url == "")
-				{
-					return_url = if(thisapp.variables.ECPay.ReturnURL_Production != null,thisapp.variables.ECPay.ReturnURL_Production.toString(),"");
-				}
-				params.put("ReturnURL",return_url);
+                 	params.put("ReturnURL","https://ecpay-webhook-proxy-ptmk.vercel.app/api/webhook");
                  	params.put("ChoosePayment","Credit");
                  	params.put("EncryptType",1);
                  	// 客戶返回頁面（付款完成後的跳轉頁面）
                  	clientBackURL = orderInfo.get("clientBackURL");
                  	if(clientBackURL == null || clientBackURL == "")
                  	{
-                 		clientBackURL = if(thisapp.variables.ECPay.ClientBackURL_Production != null,thisapp.variables.ECPay.ClientBackURL_Production.toString(),"");
-				// 請替換為您的網站
+                 		clientBackURL = "https://yourdomain.com/payment/success";
                  		// 請替換為您的網站
                  	}
                  	params.put("ClientBackURL",clientBackURL);
