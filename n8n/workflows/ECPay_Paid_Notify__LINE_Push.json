@@ -1,0 +1,102 @@
+{
+  "name": "ECPay Paid Notify — LINE Push (MVP)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ecpay-paid-notify",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "Paid Notify Webhook (IN)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Expect JSON: { lineUserId, deliveryUrl, merchantTradeNo, deliveryToken }\nconst b = $json;\nconst lineUserId = (b.lineUserId || '').trim();\nconst deliveryUrl = (b.deliveryUrl || '').trim();\n\nif (!lineUserId || !deliveryUrl) {\n  return [{ json: { ok: false, error: 'missing lineUserId/deliveryUrl', input: b } }];\n}\n\n// Message template A (short, direct)\nconst msg = `付款完成✅ 交付連結（7天內有效）：\n${deliveryUrl}`;\n\nreturn [{ json: { ok: true, lineUserId, message: msg, raw: b } }];"
+      },
+      "name": "Build Push Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.ok}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [740, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.line.me/v2/bot/message/push",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.LINE_CHANNEL_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": $json.lineUserId,\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": $json.message\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "LINE Push",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [980, 260]
+    }
+  ],
+  "connections": {
+    "Paid Notify Webhook (IN)": {
+      "main": [
+        [
+          { "node": "Build Push Message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Push Message": {
+      "main": [
+        [
+          { "node": "OK?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OK?": {
+      "main": [
+        [
+          { "node": "LINE Push", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true
+  }
+}
