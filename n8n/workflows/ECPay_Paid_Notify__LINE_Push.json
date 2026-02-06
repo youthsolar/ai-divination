@@ -10,7 +10,8 @@
       "name": "Paid Notify Webhook (IN)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [260, 300]
+      "position": [260, 300],
+      "webhookId": "ecpay-paid-notify"
     },
     {
       "parameters": {
