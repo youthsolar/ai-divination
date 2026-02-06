@@ -5986,7 +5986,85 @@
                  	}
                  	return finalResult;
                  }
-				 map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data)
+				
+			string AIInterpreter.getMvpDivination_v1(string question, date solarDateTime, string clientId)
+                 {
+                  	// =============================================================================
+                  	// MVP Router：由系統自動決定占卜方式（易經 or 塔羅）
+                  	// - 不讓使用者選擇語氣/方式
+                  	// - 不改既有起卦/解卦/抽牌規則，只做「分流封裝」
+                  	// =============================================================================
+                  	final_text = "";
+                  	try 
+                  	{
+                  		if(question == null || question.trim() == "")
+                  		{
+                  			return "抱歉，占卜問題不能為空，請重新輸入您的問題。";
+                  		}
+                  		if(solarDateTime == null)
+                  		{
+                  			return "抱歉，起卦時間無效，請檢查日期時間設定。";
+                  		}
+                  		if(clientId == null || clientId.trim() == "")
+                  		{
+                  			return "為了讓占卜更準確、也保護你不被情緒牽著走，我需要先綁定你的生日資料。請先完成生日設定後再提問。";
+                  		}
+
+                  		classification_result = thisapp.AIInterpreter.classifyQuestionType(question);
+                  		question_type = "其他";
+                  		if(classification_result != null && classification_result.get("success") == true && classification_result.get("question_type") != null)
+                  		{
+                  			question_type = classification_result.get("question_type");
+                  		}
+
+                  		selected_method = "易經";
+                  		if(question_type == "愛情" || question_type == "婚姻")
+                  		{
+                  			selected_method = "塔羅";
+                  		}
+
+                  		if(selected_method == "塔羅")
+                  		{
+                  			tarot_result = thisapp.Tarot.TarotDivinationFunction(clientId,question);
+                  			if(tarot_result != null && tarot_result.get("success") == true && tarot_result.get("divination_id") != null)
+                  			{
+                  				div_id = tarot_result.get("divination_id");
+                  				div_records = Divination_Logs[ID == div_id.toLong()];
+                  				for each  d in div_records
+                  				{
+                  					if(d.AI_Interpretation != null && d.AI_Interpretation.trim() != "")
+                  					{
+                  						final_text = d.AI_Interpretation;
+                  					}
+                  					break;
+                  				}
+                  				if(final_text == "")
+                  				{
+                  					final_text = "塔羅占卜已完成，但解讀內容暫時未能生成，請稍後再試。";
+                  				}
+                  			}
+                  			else
+                  			{
+                  				final_text = "很抱歉，塔羅占卜暫時無法完成。請稍後再試。";
+                  				if(tarot_result != null && tarot_result.get("message") != null)
+                  				{
+                  					final_text = final_text + "（" + tarot_result.get("message") + "）";
+                  				}
+                  			}
+                  		}
+                  		else
+                  		{
+                  			final_text = thisapp.AIInterpreter.getPredictionByQuestionAndBirthday_v2(question,solarDateTime,clientId);
+                  		}
+                  	}
+                  	catch (e)
+                  	{
+                  		final_text = "很抱歉，MVP 占卜流程發生錯誤，請稍後再試。錯誤代碼：" + e;
+                  	}
+                  	return final_text;
+                 }
+
+ map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]] [[memory:6341405]]
                  	// ==================================================================================
