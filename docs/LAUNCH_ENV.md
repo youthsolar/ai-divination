@@ -10,6 +10,11 @@
 Environment variables (recommended):
 - [ ] `LINE_CHANNEL_ACCESS_TOKEN`
 - [ ] `ZOHO_CREATOR_PREDICT_URL`
+- [ ] Decide delivery mode for talisman images (deployment decision):
+  - [ ] A: Push token URL only (images shown on delivery page)
+  - [ ] B: Push images in LINE (requires public HTTPS image URLs)
+  - [ ] If B: decide storage (Cloudflare R2 / CDN) + URL signing/expiry policy
+  - [ ] Ensure **payment/delivery logs** are persisted in Zoho Creator (n8n CE executions expire quickly)
 
 Workflows:
 - [ ] LINE inbound → Creator → reply (active)
