@@ -5768,7 +5768,7 @@
                  	}
                  	return final_response;
                  }
-				 string AIInterpreter.getPredictionByQuestionAndBirthday_v2(string question, date solarDateTime, string clientId)
+string AIInterpreter.getPredictionByQuestionAndBirthday_v2(string question, date solarDateTime, string clientId)
                  {
                  	// getPredictionByQuestionAndBirthday v2.0
                  	// 使用 OpenAI Assistant 進行易經占卜
