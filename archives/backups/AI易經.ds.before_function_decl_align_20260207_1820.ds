@@ -4575,7 +4575,7 @@
 		 {
 			 Deluge
 			 {
-map AIInterpreter.checkCooldownStatus(string client_id, string question_text, date divination_time)
+				 map AIInterpreter.checkCooldownStatus(string client_id, string question_text, date divination_time)
                  {
                  	// ========================================
                  	// AI 智能冷卻機制檢查函數
@@ -4800,7 +4800,7 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  	}
                  	return result;
                  }
-map AIInterpreter.classifyQuestionType(string question_text)
+				 map AIInterpreter.classifyQuestionType(string question_text)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]]
                  	// ==================================================================================
@@ -4911,7 +4911,7 @@ map AIInterpreter.classifyQuestionType(string question_text)
                  	}
                  	return final_response;
                  }
-map AIInterpreter.compareQuestionSimilarity(string question1, string question2)
+				 map AIInterpreter.compareQuestionSimilarity(string question1, string question2)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]]
                  	// ==================================================================================
@@ -5052,7 +5052,7 @@ map AIInterpreter.compareQuestionSimilarity(string question1, string question2)
                  	}
                  	return final_response;
                  }
-map AIInterpreter.generatePersonalityProfile(string client_id)
+				 map AIInterpreter.generatePersonalityProfile(string client_id)
                  {
                  	// ==================================================================================
                  	// 函數名稱：AIInterpreter.generatePersonalityProfile
@@ -5306,7 +5306,7 @@ map AIInterpreter.generatePersonalityProfile(string client_id)
                  	}
                  	return result;
                  }
-map AIInterpreter.generateTalismanExplanation(string hexagram_code, int talisman_number, string talisman_element, string question_type, string original_question)
+				 map AIInterpreter.generateTalismanExplanation(string hexagram_code, int talisman_number, string talisman_element, string question_type, string original_question)
                  {
                  	//
                  	// 函數名稱：AIInterpreter.generateTalismanExplanation
@@ -5534,7 +5534,7 @@ map AIInterpreter.generateTalismanExplanation(string hexagram_code, int talisman
                  	result.put("question_type",question_type);
                  	return result;
                  }
-void AIInterpreter.getGenderFromName(int clientID)
+				 void AIInterpreter.getGenderFromName(int clientID)
                  {
                  	//
                  	// 函數名稱：getGenderFromName
@@ -5618,7 +5618,7 @@ void AIInterpreter.getGenderFromName(int clientID)
                  		info "無法從 API 回應中解析出有效性別，跳過更新。";
                  	}
                  }
-map AIInterpreter.getPersonalizedInterpretation(string question_text, string question_type, map hexagram_details)
+				 map AIInterpreter.getPersonalizedInterpretation(string question_text, string question_type, map hexagram_details)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]]
                  	// ==================================================================================
@@ -6033,7 +6033,7 @@ string AIInterpreter.getPredictionByQuestionAndBirthday_v2(string question, date
                  	return finalResult;
                  }
 				
-string AIInterpreter.getMvpDivination_v1(string question, date solarDateTime, string clientId)
+			string AIInterpreter.getMvpDivination_v1(string question, date solarDateTime, string clientId)
                  {
                   	// =============================================================================
                   	// MVP Router：由系統自動決定占卜方式（易經 or 塔羅）
@@ -6110,7 +6110,7 @@ string AIInterpreter.getMvpDivination_v1(string question, date solarDateTime, st
                   	return final_text;
                  }
 
-map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data)
+ map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]] [[memory:6341405]]
                  	// ==================================================================================
@@ -6366,7 +6366,7 @@ map AIInterpreter.getTarotInterpretation(string question_text, string question_t
                  	}
                  	return final_response;
                  }
-map AIInterpreter.getTarotInterpretationFull(string question_text, string question_type, map tarot_spread_data)
+				 map AIInterpreter.getTarotInterpretationFull(string question_text, string question_type, map tarot_spread_data)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]] [[memory:6341405]]
                  	// ==================================================================================
@@ -6610,7 +6610,7 @@ map AIInterpreter.getTarotInterpretationFull(string question_text, string questi
                  	}
                  	return final_response;
                  }
-map AIInterpreter.getTarotInterpretation_v2(string question_text, string question_type, map tarot_spread_data)
+				 map AIInterpreter.getTarotInterpretation_v2(string question_text, string question_type, map tarot_spread_data)
                  {
                  	// =============================================================================
                  	// 函數名稱：AIInterpreter.getTarotInterpretation_v2
@@ -6658,7 +6658,7 @@ map AIInterpreter.getTarotInterpretation_v2(string question_text, string questio
                  	}
                  	return final_response;
                  }
-map API.CreateClientProfile(string lastName, string firstName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string salesiqVisitorId)
+				 map API.CreateClientProfile(string lastName, string firstName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string salesiqVisitorId)
                  {
                  	// =============================================================================
                  	// Creator API：建立個案檔案並觸發命理運算
@@ -7137,7 +7137,7 @@ map API.CreateClientProfile(string lastName, string firstName, string phoneNumbe
                  	}
                  	return api_result;
                  }
-map API.CreateTalismanOrder(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price)
+				 map API.CreateTalismanOrder(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price)
                  {
                  	// =============================================================================
                  	// Creator API：建立符令購買訂單
@@ -7360,7 +7360,7 @@ map API.CreateTalismanOrder(string firstName, string lastName, string email, str
                  }
 				
 			
-map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price, string lineUserId)
+			map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price, string lineUserId)
                  {
                   	// =============================================================================
                   	// Creator API：建立符令購買訂單（v2）
@@ -7565,7 +7565,7 @@ result.put("success",true);
                   	return response_text;
                  }
 
-map API.generatePersonalityProfile(string client_id)
+ map API.generatePersonalityProfile(string client_id)
                  {
                  	// =============================================================================
                  	// Creator API：生成個性側寫並寫回資料庫
@@ -7659,7 +7659,7 @@ map API.generatePersonalityProfile(string client_id)
                  	}
                  	return api_result;
                  }
-map Bazi.calculatePreciseDayPillar(date solar_datetime)
+				 map Bazi.calculatePreciseDayPillar(date solar_datetime)
                  {
                  	//
                  	// 函數名稱：calculatePreciseDayPillar
@@ -7724,7 +7724,7 @@ map Bazi.calculatePreciseDayPillar(date solar_datetime)
                  	result.put("base_index",base_ganzhi_index);
                  	return result;
                  }
-map Bazi.calculatePreciseHourPillar(date solar_datetime)
+				 map Bazi.calculatePreciseHourPillar(date solar_datetime)
                  {
                  	//
                  	// 函數名稱：calculatePreciseHourPillar
@@ -7849,7 +7849,7 @@ map Bazi.calculatePreciseHourPillar(date solar_datetime)
                  	result.put("hour_stem_start_for_reference",hour_stem_start);
                  	return result;
                  }
-map Bazi.calculatePreciseMonthPillar(date solar_datetime)
+				 map Bazi.calculatePreciseMonthPillar(date solar_datetime)
                  {
                  	//
                  	// 函數名稱：calculatePreciseMonthPillar
@@ -7997,7 +7997,7 @@ map Bazi.calculatePreciseMonthPillar(date solar_datetime)
                  	result.put("year_stem_for_reference",year_stem);
                  	return result;
                  }
-map Bazi.calculatePreciseYearPillar(date solar_datetime)
+				 map Bazi.calculatePreciseYearPillar(date solar_datetime)
                  {
                  	//
                  	// 函數名稱：calculatePreciseYearPillar
@@ -8133,7 +8133,7 @@ map Bazi.calculatePreciseYearPillar(date solar_datetime)
                  	result.put("year_offset",year_offset);
                  	return result;
                  }
-map Bazi.getDivinationTimeDetails()
+				 map Bazi.getDivinationTimeDetails()
                  {
                  	//
                  	// 函數名稱：getDivinationTimeDetails
@@ -8199,7 +8199,7 @@ map Bazi.getDivinationTimeDetails()
                  	final_result.put("hour_pillar_details",hour_pillar);
                  	return final_result;
                  }
-map Bazi.PreciseBaziCalculator(date solar_datetime)
+				 map Bazi.PreciseBaziCalculator(date solar_datetime)
                  {
                  	//
                  	// 函數名稱：PreciseBaziCalculator
@@ -8297,7 +8297,7 @@ map Bazi.PreciseBaziCalculator(date solar_datetime)
                  	}
                  	return result_map;
                  }
-void CRM.syncContact(map contact_data)
+				 void CRM.syncContact(map contact_data)
                  {
                  	/*
                   * 函數名稱: CRM.syncContact.deluge
@@ -8437,7 +8437,7 @@ void CRM.syncContact(map contact_data)
                  		info "CRM 建立結果: " + create_response;
                  	}
                  }
-string ECPay.generateCheckMacValue_private(map params, string hashKey, string hashIV)
+				 string ECPay.generateCheckMacValue_private(map params, string hashKey, string hashIV)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8489,7 +8489,7 @@ string ECPay.generateCheckMacValue_private(map params, string hashKey, string ha
                  	checkMacValue = zoho.encryption.sha256(lowerCaseString).toUpperCase();
                  	return checkMacValue;
                  }
-string ECPay.generateCheckoutConfirmationPage(map orderDetails)
+				 string ECPay.generateCheckoutConfirmationPage(map orderDetails)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8548,7 +8548,7 @@ string ECPay.generateCheckoutConfirmationPage(map orderDetails)
                  	html = "<!DOCTYPE html><html lang=\"zh-Hant\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>訂單確認</title><style>body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8f9fa; } .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; } h1 { color: #333; margin-bottom: 20px; } .item { text-align: left; margin-bottom: 15px; } .item span { font-weight: bold; color: #555; } .price { font-size: 24px; font-weight: bold; color: #007bff; margin-top: 20px; } .button { background-color: #28a745; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-top: 30px; } .button:hover { background-color: #218838; } .footer { font-size: 12px; color: #999; margin-top: 20px; } </style></head><body><div class=\"container\"><h1>訂單確認</h1><div class=\"item\"><span>商品項目：</span>" + orderDetails.get("itemName") + "</div><div class=\"item\"><span>訂單描述：</span>" + orderDetails.get("tradeDesc") + "</div><div class=\"price\">NT$ " + orderDetails.get("totalAmount") + "</div><button class=\"button\" onclick=\"goToECPay()\">確認無誤，前往綠界安全支付</button><div class=\"footer\">您即將被引導至綠界科技的金流頁面</div></div><script>function goToECPay() { var params = " + paramsJson + "; var form = document.createElement('form'); form.method = 'post'; form.action = '" + checkoutUrl + "'; form.style.display = 'none'; for (var key in params) { if (params.hasOwnProperty(key)) { var hiddenField = document.createElement('input'); hiddenField.type = 'hidden'; hiddenField.name = key; hiddenField.value = params[key]; form.appendChild(hiddenField); } } document.body.appendChild(form); form.submit(); }</script></body></html>";
                  	return html;
                  }
-string ECPay.generateCheckoutForm_Production(map orderInfo)
+				 string ECPay.generateCheckoutForm_Production(map orderInfo)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8678,7 +8678,7 @@ string ECPay.generateCheckoutForm_Production(map orderInfo)
                  	html = html + "</html>";
                  	return html;
                  }
-string ECPay.generateECPayCheckoutForm(string merchantID, string hashKey, string hashIV, string checkoutUrl, map orderInfoMap)
+				 string ECPay.generateECPayCheckoutForm(string merchantID, string hashKey, string hashIV, string checkoutUrl, map orderInfoMap)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8741,7 +8741,7 @@ string ECPay.generateECPayCheckoutForm(string merchantID, string hashKey, string
                  	htmlForm = htmlForm + "</body></html>";
                  	return htmlForm;
                  }
-map ECPay.generatePaymentLink(string itemName, string itemDesc, decimal amount, string customerName, string divinationLogId)
+				 map ECPay.generatePaymentLink(string itemName, string itemDesc, decimal amount, string customerName, string divinationLogId)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8843,7 +8843,7 @@ map ECPay.generatePaymentLink(string itemName, string itemDesc, decimal amount, 
                  	}
                  	return result;
                  }
-map ECPay.handleECPayResponse(map requestParamsMap, string hashKey, string hashIV)
+				 map ECPay.handleECPayResponse(map requestParamsMap, string hashKey, string hashIV)
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -8894,7 +8894,7 @@ map ECPay.handleECPayResponse(map requestParamsMap, string hashKey, string hashI
                  	}
                  	return responseMap;
                  }
-string ECPay.processFlowCallback(map flowData)
+				 string ECPay.processFlowCallback(map flowData)
                  {
                  	// 專門處理來自 Zoho Flow 的 ECPay 回調
                  	// 這個函數由 Zoho Flow 的 "Invoke Function" 動作調用
@@ -8967,7 +8967,7 @@ string ECPay.processFlowCallback(map flowData)
                  	// 統一的回傳點
                  	return result;
                  }
-string ECPay.publicWebhook(map crmAPIRequest)
+				 string ECPay.publicWebhook(map crmAPIRequest)
                  {
                  	// 公開 Webhook 函數（如果 Creator 支援 POST）
                  	// 設定為 "Everyone can access" 權限
@@ -9050,7 +9050,7 @@ string ECPay.publicWebhook(map crmAPIRequest)
                  	// 統一的回傳點
                  	return result;
                  }
-void ECPay.simulateECPayCallback()
+				 void ECPay.simulateECPayCallback()
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -9135,7 +9135,7 @@ void ECPay.simulateECPayCallback()
                  		return false;
                  	}
                  }
-map Email.sendTalismanReport(string order_id)
+				 map Email.sendTalismanReport(string order_id)
                  {
                  	// =============================================================================
                  	// Email 函數：發送符令完整報告
@@ -9400,7 +9400,7 @@ map Email.sendTalismanReport(string order_id)
                  	}
                  	return email_result;
                  }
-map Flow.triggerTarotFlowProcessor(map flowParams)
+				 map Flow.triggerTarotFlowProcessor(map flowParams)
                  {
                  	response = Map();
                  	try 
@@ -9572,7 +9572,7 @@ map Flow.triggerTarotFlowProcessor(map flowParams)
                  	}
                  	return response;
                  }
-void Gamma.generateReportFromLog(int divinationLogId)
+				 void Gamma.generateReportFromLog(int divinationLogId)
                  {
                  	// =============================================================================
                  	// 函數名稱：Gamma.generateReportFromLog
@@ -9665,7 +9665,7 @@ void Gamma.generateReportFromLog(int divinationLogId)
                  		info "找不到指定的占卜紀錄，ID：" + divinationLogId;
                  	}
                  }
-string GuaCalculator.BaziToBitSequence(string bazi)
+				 string GuaCalculator.BaziToBitSequence(string bazi)
                  {
                  	// 1. 定義天干、地支順序列表
                  	stems = List();
@@ -9713,7 +9713,7 @@ string GuaCalculator.BaziToBitSequence(string bazi)
                  	seq = seq.subString(0,seq.length() - 1);
                  	return seq;
                  }
-string GuaCalculator.BitToHexagramCode(date birthDateTime)
+				 string GuaCalculator.BitToHexagramCode(date birthDateTime)
                  {
                  	birthBazi = thisapp.LunarAI.GetSolarDateTimeBazi(birthDateTime);
                  	birthSeqStr = thisapp.GuaCalculator.BaziToBitSequence(birthBazi);
@@ -9799,7 +9799,7 @@ string GuaCalculator.BitToHexagramCode(date birthDateTime)
                  	C = (L3 + L4) % 2;
                  	return X.toString() + Y.toString() + Z.toString() + A.toString() + B.toString() + C.toString();
                  }
-string GuaCalculator.getHexagramBySolarBirthday(date solarDateTime)
+				 string GuaCalculator.getHexagramBySolarBirthday(date solarDateTime)
                  {
                  	// A7: 陽曆 → 八字 → 爻碼（結合「出生時辰八字」與「系統當前占卜時辰八字」）
                  	// 1. 呼叫 A6：將「生日 + 占卜時間」轉成 6 位爻碼字串
@@ -9807,7 +9807,7 @@ string GuaCalculator.getHexagramBySolarBirthday(date solarDateTime)
                  	// 2. 直接回傳六爻爻碼（格式例如："001001"）
                  	return hexCode;
                  }
-map Hexagram.fetchHexagram(int hex_id)
+				 map Hexagram.fetchHexagram(int hex_id)
                  {
                  	// 抓出卦象的資料表中符合 ID 的那一筆
                  	hex_list = I_Ching_Form[ID == hex_id];
@@ -9824,7 +9824,7 @@ map Hexagram.fetchHexagram(int hex_id)
                  		return Map();
                  	}
                  }
-map Hexagram.getHexagramByYaoCode(string yao_code)
+				 map Hexagram.getHexagramByYaoCode(string yao_code)
                  {
                  	result = I_Ching_Form[yao == yao_code];
                  	if(result == null)
@@ -9862,7 +9862,7 @@ map Hexagram.getHexagramByYaoCode(string yao_code)
                  	hex_data.put("yao_code",yao_code);
                  	return hex_data;
                  }
-map IChing.calculateHexagram(date solar_birthday, date divination_datetime)
+				 map IChing.calculateHexagram(date solar_birthday, date divination_datetime)
                  {
                  	// [[memory:2376637]] [[memory:3369310]] [[memory:3974009]]
                  	// ==================================================================================
@@ -10018,7 +10018,7 @@ map IChing.calculateHexagram(date solar_birthday, date divination_datetime)
                  	}
                  	return response_map;
                  }
-map IChing.getDivinationResult(date solar_birthday)
+				 map IChing.getDivinationResult(date solar_birthday)
                  {
                  	// [[memory:2376637]] [[memory:3974009]]
                  	// ==================================================================================
@@ -10076,7 +10076,7 @@ map IChing.getDivinationResult(date solar_birthday)
                  	// 在函數的最後，統一回傳結果
                  	return final_response;
                  }
-map IChing.getHexagramDetails(string hexagram_code)
+				 map IChing.getHexagramDetails(string hexagram_code)
                  {
                  	// [[memory:2376637]] [[memory:3369427]]
                  	// ==================================================================================
@@ -10144,7 +10144,7 @@ map IChing.getHexagramDetails(string hexagram_code)
                  	}
                  	return response_map;
                  }
-map LunarAI.calculateLunarDetails(date current_solar_date, map lunar_constants)
+				 map LunarAI.calculateLunarDetails(date current_solar_date, map lunar_constants)
                  {
                  	/*
                  	 * ======================================================================
@@ -10302,7 +10302,7 @@ map LunarAI.calculateLunarDetails(date current_solar_date, map lunar_constants)
                  	result_map.put("error","");
                  	return result_map;
                  }
-map LunarAI.convertToBaZi(date solar_date, map lunar)
+				 map LunarAI.convertToBaZi(date solar_date, map lunar)
                  {
                  	// 1. 先拿到農曆資訊
                  	y = lunar.get("lunar_year").toLong();
@@ -10362,7 +10362,7 @@ map LunarAI.convertToBaZi(date solar_date, map lunar)
                  	bazi.put("hour_pillar",hour_stem + hour_branch);
                  	return bazi;
                  }
-void LunarAI.createSixtyGanZhiTable()
+				 void LunarAI.createSixtyGanZhiTable()
                  {
                  	// 天干地支列表
                  	heavenly_stems = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
@@ -10598,7 +10598,7 @@ void LunarAI.createSixtyGanZhiTable()
                  	}
                  	info "60干支資料表建立/驗證完成。";
                  }
-void LunarAI.debugSolarToLunar()
+				 void LunarAI.debugSolarToLunar()
                  {
                  	/*
                  	 * ======================================================================
@@ -10666,7 +10666,7 @@ void LunarAI.debugSolarToLunar()
                  	}
                  	info "--- 偵錯結束 ---";
                  }
-map LunarAI.getBaziConstants()
+				 map LunarAI.getBaziConstants()
                  {
                  	// 【LunarAI.getBaziConstants】八字天干地支常數函式
                  	// 本函式集中定義八字計算所需的天干、地支、五虎遁月、五鼠遁時等常數對照表，供年柱、月柱、日柱、時柱等主函式調用。
@@ -10732,7 +10732,7 @@ map LunarAI.getBaziConstants()
                  	constants.put("hour_stem_map",hour_stem_map);
                  	return constants;
                  }
-string LunarAI.GetCurrentTimeBazi()
+				 string LunarAI.GetCurrentTimeBazi()
                  {
                  	// 1. 取得目前系統時間（含日期與時分秒）
                  	now = zoho.currenttime;
@@ -10743,7 +10743,7 @@ string LunarAI.GetCurrentTimeBazi()
                  	// 4. 組成「年柱 月柱 日柱 時柱」字串並回傳
                  	return baziMap.get("year_pillar") + " " + baziMap.get("month_pillar") + " " + baziMap.get("day_pillar") + " " + baziMap.get("hour_pillar");
                  }
-map LunarAI.getDayPillar(date solar_date)
+				 map LunarAI.getDayPillar(date solar_date)
                  {
                  	// 根據輸入的國曆日期，計算其對應的八字「日柱」。
                  	// 此函數利用 LunarData 表中的農曆新年日及其干支作為基準點進行計算。
@@ -10805,7 +10805,7 @@ map LunarAI.getDayPillar(date solar_date)
                  	pillar_map.put("pillar_string",day_stem + day_branch);
                  	return pillar_map;
                  }
-map LunarAI.getHourPillar(int input_hour, string day_heavenly_stem)
+				 map LunarAI.getHourPillar(int input_hour, string day_heavenly_stem)
                  {
                  	// 初始化返回結果的 Map
                  	result_map = Map();
@@ -10946,7 +10946,7 @@ map LunarAI.getHourPillar(int input_hour, string day_heavenly_stem)
                  	result_map.put("時柱干支",hour_heavenly_stem_str + hour_earthly_branch_str);
                  	return result_map;
                  }
-map LunarAI.getLunarMonthStructure(int year)
+				 map LunarAI.getLunarMonthStructure(int year)
                  {
                  	lunar_month_structure_map = Map();
                  	lunar_month_structure_map.put("1930",{30,29,30,29,30,29,29,29,30,29,30,29,30});
@@ -11115,7 +11115,7 @@ map LunarAI.getLunarMonthStructure(int year)
                  	lunar_month_structure_map.put("2049",{30,29,30,29,30,29,30,29,30,29,30,29});
                  	return ifnull(lunar_month_structure_map.get(year.toString()),{0});
                  }
-string LunarAI.getMonthPillar(string year_pillar, int lunar_month)
+				 string LunarAI.getMonthPillar(string year_pillar, int lunar_month)
                  {
                  	stems = List();
                  	stems.add("甲");
@@ -11191,7 +11191,7 @@ string LunarAI.getMonthPillar(string year_pillar, int lunar_month)
                  	branch = branches.get(lunar_month - 1);
                  	return stem + branch;
                  }
-string LunarAI.GetSolarDateTimeBazi(date solarDate)
+				 string LunarAI.GetSolarDateTimeBazi(date solarDate)
                  {
                  	// 1. 將傳入的國曆生日轉成農曆 Map
                  	lunarMap = thisapp.LunarAI.SolarToLunar(solarDate);
@@ -11200,7 +11200,7 @@ string LunarAI.GetSolarDateTimeBazi(date solarDate)
                  	// 3. 組成「年柱 月柱 日柱 時柱」字串並回傳
                  	return baziMap.get("year_pillar") + " " + baziMap.get("month_pillar") + " " + baziMap.get("day_pillar") + " " + baziMap.get("hour_pillar");
                  }
-map LunarAI.getSolarTermsDataMap()
+				 map LunarAI.getSolarTermsDataMap()
                  {
                  	all_solar_terms_data_map = Map();
                  	// 年份：1900
@@ -15282,7 +15282,7 @@ map LunarAI.getSolarTermsDataMap()
                  	all_solar_terms_data_map.put("2050",year_2050_terms);
                  	return all_solar_terms_data_map;
                  }
-map LunarAI.getYearPillar(date solarDate)
+				 map LunarAI.getYearPillar(date solarDate)
                  {
                  	// 最終返回的 Map
                  	result_map = Map();
@@ -15376,7 +15376,7 @@ map LunarAI.getYearPillar(date solarDate)
                  	result_map.put("yearPillar",yearPillarStr);
                  	return result_map;
                  }
-string LunarAI.LunarToWords(map lunar)
+				 string LunarAI.LunarToWords(map lunar)
                  {
                  	// 1. 取出農曆年/月/日 及閏月旗標
                  	y = lunar.get("lunar_year").toLong();
@@ -15472,7 +15472,7 @@ string LunarAI.LunarToWords(map lunar)
                  	// 6. 組合並回傳
                  	return yearName + " " + monthName + dayName;
                  }
-string LunarAI.LunarWordsToBazi(string lunarText, string timeStr)
+				 string LunarAI.LunarWordsToBazi(string lunarText, string timeStr)
                  {
                  	// 目前是範例函數，參數是硬寫入，需要再改或是另函數整合呼叫
                  	// 1. 先把 lunarText 拆成年柱與月日
@@ -15556,7 +15556,7 @@ string LunarAI.LunarWordsToBazi(string lunarText, string timeStr)
                  	return "甲子 丙寅 戊辰 庚午";
                  	// 範例，請依實際邏輯替換
                  }
-map LunarAI.SolarToLunar(date solarBirthday)
+				 map LunarAI.SolarToLunar(date solarBirthday)
                  {
                  	/*
                  	 * ======================================================================
@@ -15582,7 +15582,7 @@ map LunarAI.SolarToLunar(date solarBirthday)
                  	overall_result_map.put("占卜日",divination_lunar_map);
                  	return overall_result_map;
                  }
-map LunarAI.TestConvertSolarToLunar(date solarBirthday, date solarDivinationDate)
+				 map LunarAI.TestConvertSolarToLunar(date solarBirthday, date solarDivinationDate)
                  {
                  	// 本函數之用途：可自行輸入占卜時間以【驗證計算參數】，並測試占卜準確度
                  	// 整體回傳結果 Map
@@ -16131,7 +16131,7 @@ map LunarAI.TestConvertSolarToLunar(date solarBirthday, date solarDivinationDate
                  	overall_result_map.put("占卜日",divination_lunar_map);
                  	return overall_result_map;
                  }
-void LunarAI.updateGanZhiProperties()
+				 void LunarAI.updateGanZhiProperties()
                  {
                  	// 1. 定義天干屬性資料 (根據 八卦干支五行表.csv 更新)
                  	stems_data = Map();
@@ -16195,7 +16195,7 @@ void LunarAI.updateGanZhiProperties()
                  	}
                  	info "更新完成！";
                  }
-map LunarData.getConstants()
+				 map LunarData.getConstants()
                  {
                  	/*
                  	 * ======================================================================
@@ -16571,7 +16571,7 @@ map LunarData.getConstants()
                  	constants.put("day_name_map",day_name_map);
                  	return constants;
                  }
-map OpenAI.callAssistant(string userMessage, string threadId)
+				 map OpenAI.callAssistant(string userMessage, string threadId)
                  {
                  	// OpenAI.callAssistant
                  	// 目的：作為通用介面，將用戶訊息傳遞給 OpenAI Assistant，並獲取其文字回應。
@@ -16789,7 +16789,7 @@ map OpenAI.callAssistant(string userMessage, string threadId)
                  	}
                  	return responseMap;
                  }
-string OpenAI.callChatGPT(string prompt)
+				 string OpenAI.callChatGPT(string prompt)
                  {
                  	// 預設回應文字
                  	responseText = "⚠ 尚未取得回應";
@@ -16862,7 +16862,7 @@ string OpenAI.callChatGPT(string prompt)
                  	}
                  	return responseText;
                  }
-string OpenAI.combineDivinationPrompt(string question, map hex_data, string tone_prompt)
+				 string OpenAI.combineDivinationPrompt(string question, map hex_data, string tone_prompt)
                  {
                  	prompt = "";
                  	// 卦象摘要（從 hex_data map 中取出幾個代表欄位）
@@ -16884,7 +16884,7 @@ string OpenAI.combineDivinationPrompt(string question, map hex_data, string tone
                  	full_prompt = full_prompt + summary;
                  	return full_prompt;
                  }
-void SolarTerms.clearAllDayHourPillars()
+				 void SolarTerms.clearAllDayHourPillars()
                  {
                  	// [[memory:2376637]] Creator's Functions must declare parameters on the first line
                  	// 清空所有SolarTerms表單：節氣資料的日干支和時干支記錄
@@ -16948,7 +16948,7 @@ void SolarTerms.clearAllDayHourPillars()
                  	info "✅ 清理完成！總共清空了 " + totalCleared + " 筆節氣資料的日干支和時干支記錄";
                  	info "現在可以重新執行日干支和時干支的計算函數了。";
                  }
-void SolarTerms.populateNext3Batches(int startBatchNumber)
+				 void SolarTerms.populateNext3Batches(int startBatchNumber)
                  {
                  	// [[memory:2376637]] Creator's Functions must declare parameters on the first line
                  	// startBatchNumber: 起始批次號碼，例如：2, 5, 8, 11, 14...
@@ -17300,7 +17300,7 @@ void SolarTerms.populateNext3Batches(int startBatchNumber)
                  		info "? 所有批次處理完成！節氣資料的年柱和月柱已全部填充。";
                  	}
                  }
-void SolarTerms.populateSolarTermsDayHourPillars(int startBatchNumber)
+				 void SolarTerms.populateSolarTermsDayHourPillars(int startBatchNumber)
                  {
                  	// [[memory:2376637]] Creator's Functions must declare parameters on the first line
                  	// startBatchNumber: 起始批次號碼，例如：1, 4, 7, 10...
@@ -17734,7 +17734,7 @@ void SolarTerms.populateSolarTermsDayHourPillars(int startBatchNumber)
                  		info "? 所有批次處理完成！節氣資料的日干支和時干支已全部填充。";
                  	}
                  }
-map Star.getLunarMansion(date solar_date)
+				 map Star.getLunarMansion(date solar_date)
                  {
                  	//
                  	// Star.getLunarMansion
@@ -17792,7 +17792,7 @@ map Star.getLunarMansion(date solar_date)
                  	}
                  	return response;
                  }
-map Talisman.generateTalismanExplanation(string question_type, map hexagram_info, string talisman_element, string client_name)
+				 map Talisman.generateTalismanExplanation(string question_type, map hexagram_info, string talisman_element, string client_name)
                  {
                  	//
                  	// 函數名稱：Talisman.generateTalismanExplanation
@@ -17911,7 +17911,7 @@ map Talisman.generateTalismanExplanation(string question_type, map hexagram_info
                  	}
                  	return response_map;
                  }
-map Talisman.getBasicRecommendation(string divination_log_id)
+				 map Talisman.getBasicRecommendation(string divination_log_id)
                  {
                  	//
                  	// 函數名稱：Talisman.getBasicRecommendation
@@ -18014,7 +18014,7 @@ map Talisman.getBasicRecommendation(string divination_log_id)
                  	}
                  	return response_map;
                  }
-map Talisman.getCompleteRecommendation(string divination_log_id, string client_name)
+				 map Talisman.getCompleteRecommendation(string divination_log_id, string client_name)
                  {
                  	//
                  	// 函數名稱：Talisman.getCompleteRecommendation
@@ -18099,7 +18099,7 @@ map Talisman.getCompleteRecommendation(string divination_log_id, string client_n
                  	}
                  	return final_response;
                  }
-string Talisman.getRecommendationReason(string life_death, string element, string question_type)
+				 string Talisman.getRecommendationReason(string life_death, string element, string question_type)
                  {
                  	//
                  	// 函數名稱：Talisman.getRecommendationReason
@@ -18170,7 +18170,7 @@ string Talisman.getRecommendationReason(string life_death, string element, strin
                  	}
                  	return reason;
                  }
-map Talisman.getTalismanRecommendation(int divination_log_id)
+				 map Talisman.getTalismanRecommendation(int divination_log_id)
                  {
                  	//
                  	// 函式名稱：Talisman.getTalismanRecommendation
@@ -18277,7 +18277,7 @@ map Talisman.getTalismanRecommendation(int divination_log_id)
                  	}
                  	return final_response;
                  }
-map Tarot.completeTarotDivination(string firstName, string lastName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string userQuestion)
+				 map Tarot.completeTarotDivination(string firstName, string lastName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string userQuestion)
                  {
                  	finalResponse = Map();
                  	try 
@@ -18432,7 +18432,7 @@ map Tarot.completeTarotDivination(string firstName, string lastName, string phon
                  	}
                  	return finalResponse;
                  }
-map Tarot.determinePrimaryCard(list card_ids, list reversed_statuses)
+				 map Tarot.determinePrimaryCard(list card_ids, list reversed_statuses)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]] [[memory:6341405]]
                  	// ==================================================================================
@@ -18594,7 +18594,7 @@ map Tarot.determinePrimaryCard(list card_ids, list reversed_statuses)
                  	}
                  	return result;
                  }
-list Tarot.drawRandomSpread()
+				 list Tarot.drawRandomSpread()
                  {
                  	// =========================================================================
                  	// 本函數使用「ID列表隨機法」為「占卜塔羅」抽出一個五張牌的牌陣。
@@ -18668,7 +18668,7 @@ list Tarot.drawRandomSpread()
                  	// 7. 回傳包含五張牌結果的列表
                  	return spread_results;
                  }
-map Tarot.getLifePathTarot(date solar_date)
+				 map Tarot.getLifePathTarot(date solar_date)
                  {
                  	// =========================================================================
                  	// 本函數根據「本命塔羅」新版規則，透過使用者的公曆生日計算出其本命塔羅牌。
@@ -18751,7 +18751,7 @@ map Tarot.getLifePathTarot(date solar_date)
                  	// 回傳包含所有結果的 Map
                  	return response_map;
                  }
-map Tarot.getPositionMeanings(string question_type)
+				 map Tarot.getPositionMeanings(string question_type)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]]
                  	// ==================================================================================
@@ -18860,7 +18860,7 @@ map Tarot.getPositionMeanings(string question_type)
                  	}
                  	return position_meanings;
                  }
-map Tarot.getPrimaryTalismanForSalesIQ(string client_id)
+				 map Tarot.getPrimaryTalismanForSalesIQ(string client_id)
                  {
                  	// [[memory:2376637]] [[memory:3974009]] [[memory:4651243]] [[memory:6341405]]
                  	// ==================================================================================
@@ -19006,7 +19006,7 @@ map Tarot.getPrimaryTalismanForSalesIQ(string client_id)
                  	}
                  	return result;
                  }
-map Tarot.TarotDivinationFunction(string client_id, string user_question)
+				 map Tarot.TarotDivinationFunction(string client_id, string user_question)
                  {
                  	// ==================================================================================
                  	// 函數名稱：Tarot.TarotDivinationFunction
@@ -19469,7 +19469,7 @@ map Tarot.TarotDivinationFunction(string client_id, string user_question)
                  	}
                  	return result;
                  }
-void TEST.sendSampleDataToFlow()
+				 void TEST.sendSampleDataToFlow()
                  {
                  	// =============================================================================
                  	// 函數名稱：TEST.sendSampleDataToFlow
@@ -19507,7 +19507,7 @@ void TEST.sendSampleDataToFlow()
                  	info "已成功發送測試資料到 Zoho Flow！";
                  	info "Flow 的回應：" + response;
                  }
-map Tools.getTimezoneFromIP(string ip_address)
+				 map Tools.getTimezoneFromIP(string ip_address)
                  {
                  	//
                  	// 從 IP 位址獲取時區資訊
@@ -19570,7 +19570,7 @@ map Tools.getTimezoneFromIP(string ip_address)
                  	}
                  	return response_map;
                  }
-void Tools.populateTaisuiDeityNames()
+				 void Tools.populateTaisuiDeityNames()
                  {
                  	//
                  	// 函數名稱：populateTaisuiDeityNames
@@ -19697,7 +19697,7 @@ void Tools.populateTaisuiDeityNames()
                  		info "⚠️ 有 " + not_found_count + " 筆記錄未找到對應的太歲星君，請檢查以上的警告訊息。";
                  	}
                  }
-void Training.generateVirtualClient()
+				 void Training.generateVirtualClient()
                  {
                  	//
                  	// 函數名稱：generateVirtualClient
@@ -19855,7 +19855,7 @@ void Training.generateVirtualClient()
                  	}
                  	info "--- 批次生成 5 位虛擬個案作業完成 ---";
                  }
-map Webhook.handleECPayReturn()
+				 map Webhook.handleECPayReturn()
                  {
                  	//
                  	// 開發者：Lunar Tom
@@ -19943,7 +19943,7 @@ map Webhook.handleECPayReturn()
                  	info "======= 回調處理完成 =======";
                  	return result;
                  }
-void Webhook.handleSimplyBook(map simplybook_data)
+				 void Webhook.handleSimplyBook(map simplybook_data)
                  {
                  	//
                  	// ===================================================================================
@@ -19999,7 +19999,7 @@ void Webhook.handleSimplyBook(map simplybook_data)
                  	// 最後，呼叫核心的 CRM 同步函數，將打包好的資料傳遞過去
                  	thisapp.CRM.syncContact(contact_data);
                  }
-map Webhook.processChatMessage(string jsonPayload)
+				 map Webhook.processChatMessage(string jsonPayload)
                  {
                  	// =============================================================================
                  	// 函數名稱：processChatMessage
@@ -20183,7 +20183,7 @@ map Webhook.processChatMessage(string jsonPayload)
                  	}
                  	return api_result;
                  }
-string Widget.getBirthSelectorHTML()
+				 string Widget.getBirthSelectorHTML()
                  {
                  	// Creator Custom API: 回傳生日選擇器的 HTML 內容
                  	// 用途：供 SalesIQ Widget 調用，獲取生日選擇器的 HTML 代碼
@@ -20212,7 +20212,7 @@ string Widget.getBirthSelectorHTML()
                  	// 單一出口點
                  	return result;
                  }
-map Zodiac.getChineseZodiacSign(date solar_date)
+				 map Zodiac.getChineseZodiacSign(date solar_date)
                  {
                  	//
                  	// Zodiac.getChineseZodiacSign
@@ -20300,7 +20300,7 @@ map Zodiac.getChineseZodiacSign(date solar_date)
                  	}
                  	return response;
                  }
-map Zodiac.getTaisuiStatus(date solar_date, int query_year)
+				 map Zodiac.getTaisuiStatus(date solar_date, int query_year)
                  {
                  	//
                  	// Zodiac.getTaisuiStatus
@@ -20426,7 +20426,7 @@ map Zodiac.getTaisuiStatus(date solar_date, int query_year)
                  	response.put("success",true);
                  	return response;
                  }
-map Zodiac.getZodiacSign(date solar_date)
+				 map Zodiac.getZodiacSign(date solar_date)
                  {
                  	//
                  	// Zodiac.getZodiacSign
