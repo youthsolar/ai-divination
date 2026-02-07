@@ -17,16 +17,22 @@
       "name": "Cron (Weekly Mon 11:55)",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [260, 300]
+      "position": [
+        260,
+        300
+      ]
     },
     {
       "parameters": {
-        "functionCode": "// Weekly fortune content pillar (gentle + render)\n// Placeholder mode: we will later replace with real BaZi payload from Zoho Creator.\n\nconst now = new Date();\n\n// Compute next Monday 12:00 local as the reference time (Asia/Taipei assumed by server TZ)\nconst ref = new Date(now);\nconst day = ref.getDay(); // 0 Sun .. 6 Sat\nconst diffToMon = (8 - day) % 7; // days until next Mon (0 if Mon)\nref.setDate(ref.getDate() + diffToMon);\nref.setHours(12, 0, 0, 0);\n\n// Output payload expected by the Creator-side generator (to be implemented)\nreturn [{\n  json: {\n    kind: 'weekly_fortune',\n    referenceLocalTime: ref.toISOString(),\n    tone: 'gentle_render',\n    cta: 'line_free_divination',\n    channels: ['ig', 'threads', 'short_video'],\n    // Placeholder: once we have BaZi API, we will include:\n    // bazi: { yearPillar, monthPillar, dayPillar, hourPillar, fiveElementsBalance, notes }\n    placeholder: true,\n    note: 'Template workflow: replace placeholder with Zoho Creator BaZi result + final content generation.'\n  }\n}];"
+        "functionCode": "// Weekly fortune content pillar (gentle + render)\n// IMPORTANT: Reference time is *Taipei local time* (Asia/Taipei).\n// We send both a Taipei-local string and an ISO timestamp for debugging.\n\nconst tz = 'Asia/Taipei';\nconst now = new Date();\n\n// Compute next Monday 12:00 in Taipei local semantics (week base).\nconst ref = new Date(now);\nconst day = ref.getDay(); // 0 Sun .. 6 Sat\nconst diffToMon = (8 - day) % 7; // days until next Mon (0 if Mon)\nref.setDate(ref.getDate() + diffToMon);\nref.setHours(12, 0, 0, 0);\n\n// Format as Taipei-local string: YYYY-MM-DD HH:mm:ss\nconst parts = new Intl.DateTimeFormat('sv-SE', {\n  timeZone: tz,\n  year: 'numeric', month: '2-digit', day: '2-digit',\n  hour: '2-digit', minute: '2-digit', second: '2-digit',\n  hour12: false\n}).formatToParts(ref).reduce((acc,p)=>{acc[p.type]=p.value;return acc;},{});\nconst referenceLocalTime = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;\n\nreturn [{\n  json: {\n    kind: 'weekly_fortune',\n    referenceLocalTime,\n    timezone: tz,\n    referenceIsoUtc: ref.toISOString(),\n    tone: 'gentle_render',\n    cta: 'line_free_divination',\n    channels: ['ig', 'threads', 'short_video'],\n    placeholder: true,\n    note: 'Template workflow: Creator should compute BaZi using referenceLocalTime+timezone; replace placeholder once API is ready.'\n  }\n}];\n"
       },
       "name": "Build Reference Payload (Placeholder)",
       "type": "n8n-nodes-base.function",
       "typeVersion": 2,
-      "position": [520, 300]
+      "position": [
+        520,
+        300
+      ]
     },
     {
       "parameters": {
@@ -42,7 +48,10 @@
       "name": "Zoho Creator (Queue Fortune)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [800, 300]
+      "position": [
+        800,
+        300
+      ]
     }
   ],
   "connections": {
@@ -69,7 +78,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
