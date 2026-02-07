@@ -1,0 +1,104 @@
+{
+  "name": "Weekly Fortune — Noon BaZi → Generate & Queue (Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "hour": 11,
+              "minute": 55,
+              "weekday": "1"
+            }
+          ]
+        }
+      },
+      "name": "Cron (Weekly Mon 11:55)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Weekly fortune content pillar (gentle + render)
+// Placeholder mode: we will later replace with real BaZi payload from Zoho Creator.
+
+const now = new Date();
+
+// Compute next Monday 12:00 local as the reference time (Asia/Taipei assumed by server TZ)
+const ref = new Date(now);
+const day = ref.getDay(); // 0 Sun .. 6 Sat
+const diffToMon = (8 - day) % 7; // days until next Mon (0 if Mon)
+ref.setDate(ref.getDate() + diffToMon);
+ref.setHours(12, 0, 0, 0);
+
+// Output payload expected by the Creator-side generator (to be implemented)
+return [{
+  json: {
+    kind: 'weekly_fortune',
+    referenceLocalTime: ref.toISOString(),
+    tone: 'gentle_render',
+    cta: 'line_free_divination',
+    channels: ['ig', 'threads', 'short_video'],
+    // Placeholder: once we have BaZi API, we will include:
+    // bazi: { yearPillar, monthPillar, dayPillar, hourPillar, fiveElementsBalance, notes }
+    placeholder: true,
+    note: 'Template workflow: replace placeholder with Zoho Creator BaZi result + final content generation.'
+  }
+}];"
+      },
+      "name": "Build Reference Payload (Placeholder)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ZOHO_CREATOR_WEEKLY_FORTUNE_URL}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Zoho Creator (Queue Fortune)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Cron (Weekly Mon 11:55)": {
+      "main": [
+        [
+          {
+            "node": "Build Reference Payload (Placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reference Payload (Placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Zoho Creator (Queue Fortune)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCreds": true
+  }
+}
