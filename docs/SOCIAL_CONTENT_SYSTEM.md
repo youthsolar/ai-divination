@@ -63,9 +63,15 @@ D) 排程/發布
 - 已新增模板：`Weekly Fortune — Noon BaZi → Generate & Queue (Template)`
   - repo 檔：`n8n/workflows/Weekly_Fortune__NoonBaZi__Generate_And_Queue.json`
   - n8n workflow id：`qG0UCMKcAGcv7mK8`
+  - 注意：payload 會帶 `timezone=Asia/Taipei`，並用 `referenceLocalTime`（台北時間字串）避免 `toISOString()` 的 UTC 偏移造成八字基準錯誤。
 - 待新增：
-  1) `Creator -> Queue Weekly Fortune` API（n8n 用 env：`ZOHO_CREATOR_WEEKLY_FORTUNE_URL`）
-  2) `Daily/Weekly Publish Reminder`（推送待發內容給操作人 + 回寫 Creator）
+  1) Creator API：`API.QueueWeeklyFortune_v1`（n8n env：`ZOHO_CREATOR_WEEKLY_FORTUNE_URL`）
+     - Input（JSON）：`{ referenceLocalTime, timezone, tone, cta, channels }`
+     - Output（JSON）：`{ ok, idea_id, asset_ids, schedule_ids, message }`
+  2) Creator API：`API.PublishCallback_v1`（n8n env：`ZOHO_CREATOR_PUBLISH_CALLBACK_URL`）
+     - Input（JSON）：`{ schedule_id, platform, published_at, published_by, publish_status, published_url }`
+     - Output（JSON）：`{ ok, message }`
+  3) `Daily/Weekly Publish Reminder`（推送待發內容給操作人 + 回寫 Creator）
 
 ## 五、驗收（Definition of Done）
 Phase 1 DoD（先能營運）：
