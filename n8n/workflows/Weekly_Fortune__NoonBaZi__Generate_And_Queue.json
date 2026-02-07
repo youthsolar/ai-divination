@@ -21,32 +21,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Weekly fortune content pillar (gentle + render)
-// Placeholder mode: we will later replace with real BaZi payload from Zoho Creator.
-
-const now = new Date();
-
-// Compute next Monday 12:00 local as the reference time (Asia/Taipei assumed by server TZ)
-const ref = new Date(now);
-const day = ref.getDay(); // 0 Sun .. 6 Sat
-const diffToMon = (8 - day) % 7; // days until next Mon (0 if Mon)
-ref.setDate(ref.getDate() + diffToMon);
-ref.setHours(12, 0, 0, 0);
-
-// Output payload expected by the Creator-side generator (to be implemented)
-return [{
-  json: {
-    kind: 'weekly_fortune',
-    referenceLocalTime: ref.toISOString(),
-    tone: 'gentle_render',
-    cta: 'line_free_divination',
-    channels: ['ig', 'threads', 'short_video'],
-    // Placeholder: once we have BaZi API, we will include:
-    // bazi: { yearPillar, monthPillar, dayPillar, hourPillar, fiveElementsBalance, notes }
-    placeholder: true,
-    note: 'Template workflow: replace placeholder with Zoho Creator BaZi result + final content generation.'
-  }
-}];"
+        "functionCode": "// Weekly fortune content pillar (gentle + render)\n// Placeholder mode: we will later replace with real BaZi payload from Zoho Creator.\n\nconst now = new Date();\n\n// Compute next Monday 12:00 local as the reference time (Asia/Taipei assumed by server TZ)\nconst ref = new Date(now);\nconst day = ref.getDay(); // 0 Sun .. 6 Sat\nconst diffToMon = (8 - day) % 7; // days until next Mon (0 if Mon)\nref.setDate(ref.getDate() + diffToMon);\nref.setHours(12, 0, 0, 0);\n\n// Output payload expected by the Creator-side generator (to be implemented)\nreturn [{\n  json: {\n    kind: 'weekly_fortune',\n    referenceLocalTime: ref.toISOString(),\n    tone: 'gentle_render',\n    cta: 'line_free_divination',\n    channels: ['ig', 'threads', 'short_video'],\n    // Placeholder: once we have BaZi API, we will include:\n    // bazi: { yearPillar, monthPillar, dayPillar, hourPillar, fiveElementsBalance, notes }\n    placeholder: true,\n    note: 'Template workflow: replace placeholder with Zoho Creator BaZi result + final content generation.'\n  }\n}];"
       },
       "name": "Build Reference Payload (Placeholder)",
       "type": "n8n-nodes-base.function",
