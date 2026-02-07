@@ -10,6 +10,12 @@
 Environment variables (recommended):
 - [ ] `LINE_CHANNEL_ACCESS_TOKEN`
 - [ ] `ZOHO_CREATOR_PREDICT_URL`
+- [ ] `ZOHO_CREATOR_WEEKLY_FORTUNE_URL` = <Creator API.QueueWeeklyFortune_v1 endpoint>
+- [ ] `ZOHO_CREATOR_PUBLISH_CALLBACK_URL` = <Creator API.PublishCallback_v1 endpoint>
+- [ ] `ZOHO_CREATOR_SCHEDULE_QUERY_URL` = <Creator API for pending schedules (publish reminder)>
+- [ ] `ZOHO_CREATOR_WEEKLY_FORTUNE_URL` = <Creator API QueueWeeklyFortune endpoint>
+- [ ] `ZOHO_CREATOR_PUBLISH_CALLBACK_URL` = <Creator API PublishCallback endpoint>
+- [ ] `ZOHO_CREATOR_SCHEDULE_QUERY_URL` = <Creator API query pending schedules endpoint>
 - [ ] Decide delivery mode for talisman images (deployment decision):
   - [ ] A: Push token URL only (images shown on delivery page)
   - [ ] B: Push images in LINE (requires public HTTPS image URLs)
