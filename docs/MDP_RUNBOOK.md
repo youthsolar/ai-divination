@@ -53,8 +53,10 @@
 ### 4.1 既有
 - `API.CreateTalismanOrder(...)` 會產生 `payment_form_html` 並建立 `Talisman_Purchases`
 
-### 4.2（待補）ReturnURL / ClientBackURL
-- ReturnURL：綠界 server-to-server 回拋 → Creator（驗簽 + 更新訂單 Paid）
+### 4.2 ReturnURL / ClientBackURL
+- ReturnURL：綠界 server-to-server 回拋 → Creator（**必須驗簽 CheckMacValue + 精準對單 MerchantTradeNo**）
+  - 已知 ReturnURL（Production）：`https://www.zohoapis.com/creator/custom/uneedwind/handle_ecpay_return`
+  - 上線前必做修補：`docs/ECPAY_RETURNURL_PATCH_RUNBOOK.md`
 - ClientBackURL：導回「查看內容頁」URL（B1 先用 Creator Page；之後可換官網）
 
 ## 5) 上線驗收（最小）

@@ -7,4 +7,5 @@
 - 2026-02-08：營運目標調整為每日 100 筆符令成交。
 - 2026-02-08：n8n CE 執行紀錄僅留存 1 天 → 金流/交付/對帳紀錄以 Zoho Creator 為 SSOT。
 - 待決：符令圖片交付策略（LINE 直接發圖 vs token URL 交付頁）。
+- 2026-02-09：ECPay ReturnURL 已確認為 `https://www.zohoapis.com/creator/custom/uneedwind/handle_ecpay_return`，且必須在上線前把 handler 修補為「驗簽 + 精準對單 + token + 通知 n8n」（見 `docs/ECPAY_RETURNURL_PATCH_RUNBOOK.md`）。
 
