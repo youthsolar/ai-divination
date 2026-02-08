@@ -1,0 +1,94 @@
+// =============================================================================
+// Creator API Wrapper (MVP)
+// Name: API.PredictFromLine_v1
+// Purpose:
+// - n8n calls this endpoint with { lineUserId, text, timestamp }
+// - Creator returns { ok, blocked, message, meta }
+// Rules:
+// - Do NOT change divination rules; only wrap/route.
+// - Cooldown must short-circuit and must NOT call OpenAI (handled inside AIInterpreter.getPredictionByQuestionAndBirthday_v2).
+// =============================================================================
+
+map API.PredictFromLine_v1(map payload)
+{
+	resp = Map();
+	meta = Map();
+	try
+	{
+		lineUserId = "";
+		text = "";
+		ts = "";
+		if(payload != null)
+		{
+			lineUserId = if(payload.get("lineUserId") != null, payload.get("lineUserId").toString().trim(), "");
+			text = if(payload.get("text") != null, payload.get("text").toString().trim(), "");
+			ts = if(payload.get("timestamp") != null, payload.get("timestamp").toString(), "");
+		}
+
+		if(lineUserId == "" || text == "")
+		{
+			resp.put("ok",false);
+			resp.put("blocked",false);
+			resp.put("message","請輸入要占卜的問題（文字）即可。");
+			resp.put("meta",meta);
+			return resp;
+		}
+
+		// Resolve clientId by LINE userId
+		clientId = "";
+		try
+		{
+			clients = Clients_Report[Line_User_ID == lineUserId];
+			for each  c in clients
+			{
+				clientId = c.ID.toString();
+				break;
+			}
+		}
+		catch (e)
+		{
+			// ignore
+		}
+
+		if(clientId == "")
+		{
+			// MVP: force binding first (birthday etc.).
+			resp.put("ok",true);
+			resp.put("blocked",true);
+			resp.put("message","為了讓占卜更準確、也保護你不被情緒牽著走，我需要先綁定你的生日資料。請先完成生日設定後再提問。");
+			meta.put("reason","missing_client_binding");
+			resp.put("meta",meta);
+			return resp;
+		}
+
+		// Determine divination time (Taipei). If helper is missing, fallback to server currenttime.
+		solarDateTime = zoho.currenttime;
+		try
+		{
+			solarDateTime = thisapp.Calendar.normalizeTime.normalizeToTaipei(zoho.currenttime);
+		}
+		catch (e)
+		{
+			// keep default
+		}
+
+		// Main router (易經/塔羅). This function already enforces rule constraints.
+		answer = thisapp.AIInterpreter.getMvpDivination_v1(text, solarDateTime, clientId);
+
+		resp.put("ok",true);
+		resp.put("blocked",false);
+		resp.put("message",answer);
+		meta.put("clientId",clientId);
+		meta.put("timestamp",ts);
+		resp.put("meta",meta);
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("blocked",false);
+		resp.put("message","目前系統忙碌中，請稍後再試。（錯誤代碼：" + e + ")");
+		resp.put("meta",meta);
+		return resp;
+	}
+}

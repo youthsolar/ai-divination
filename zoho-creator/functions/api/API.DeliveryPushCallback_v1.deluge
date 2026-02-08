@@ -1,0 +1,54 @@
+// =============================================================================
+// Creator API (Phase 2 / Ops)
+// Name: API.DeliveryPushCallback_v1
+// Purpose:
+// - After n8n pushes delivery link/image to LINE, call back Creator to persist SSOT delivery logs.
+// - This is optional for MVP but recommended for daily 100 orders ops.
+// =============================================================================
+
+map API.DeliveryPushCallback_v1(map payload)
+{
+	resp = Map();
+	try
+	{
+		merchantTradeNo = if(payload != null && payload.get("merchantTradeNo") != null, payload.get("merchantTradeNo").toString().trim(), "");
+		ok = if(payload != null && payload.get("ok") != null, payload.get("ok"), false);
+		error = if(payload != null && payload.get("error") != null, payload.get("error").toString(), "");
+		lineMessageId = if(payload != null && payload.get("lineMessageId") != null, payload.get("lineMessageId").toString(), "");
+
+		if(merchantTradeNo == "")
+		{
+			resp.put("ok",false);
+			resp.put("message","merchantTradeNo missing");
+			return resp;
+		}
+
+		orders = Talisman_Purchases[MerchantTradeNo == merchantTradeNo];
+		for each  o in orders
+		{
+			// These fields may need to be created in Creator schema
+			try
+			{
+				o.Delivery_Push_Status = if(ok == true, "Success", "Fail");
+				o.Delivery_Push_Time = zoho.currenttime;
+				o.Delivery_Push_Error = error;
+				o.Delivery_Push_LineMessageId = lineMessageId;
+			}
+			catch (e)
+			{
+				// ignore schema mismatch
+			}
+			break;
+		}
+
+		resp.put("ok",true);
+		resp.put("message","ok");
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e);
+		return resp;
+	}
+}

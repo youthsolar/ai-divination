@@ -15,7 +15,7 @@ To avoid webhook URL mismatches:
 
 ### 2.2 MVP env vars (must-have)
 - [ ] `LINE_CHANNEL_ACCESS_TOKEN`
-- [ ] `ZOHO_CREATOR_PREDICT_URL` = <Creator API wrapper endpoint for LINE inbound>
+- [ ] `ZOHO_CREATOR_PREDICT_URL` = <Creator API.PredictFromLine_v1 endpoint for LINE inbound>
 
 ### 2.3 Payment delivery (A1) env vars (when enabled)
 - [ ] `LINE_CHANNEL_ACCESS_TOKEN` (same token)
