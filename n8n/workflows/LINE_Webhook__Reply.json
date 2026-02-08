@@ -10,7 +10,10 @@
       "name": "LINE Webhook (IN)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [260, 300]
+      "position": [
+        260,
+        300
+      ]
     },
     {
       "parameters": {
@@ -19,7 +22,10 @@
       "name": "Parse LINE Events",
       "type": "n8n-nodes-base.function",
       "typeVersion": 2,
-      "position": [520, 300]
+      "position": [
+        520,
+        300
+      ]
     },
     {
       "parameters": {
@@ -37,7 +43,10 @@
       "name": "Zoho Creator Predict (API wrapper)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [780, 300]
+      "position": [
+        780,
+        300
+      ]
     },
     {
       "parameters": {
@@ -46,7 +55,10 @@
       "name": "Pick Reply Text",
       "type": "n8n-nodes-base.function",
       "typeVersion": 2,
-      "position": [1040, 300]
+      "position": [
+        1040,
+        300
+      ]
     },
     {
       "parameters": {
@@ -75,35 +87,54 @@
       "name": "Reply to LINE",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 300]
+      "position": [
+        1280,
+        300
+      ]
     }
   ],
   "connections": {
     "LINE Webhook (IN)": {
       "main": [
         [
-          { "node": "Parse LINE Events", "type": "main", "index": 0 }
+          {
+            "node": "Parse LINE Events",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse LINE Events": {
       "main": [
         [
-          { "node": "Zoho Creator Predict (API wrapper)", "type": "main", "index": 0 }
+          {
+            "node": "Zoho Creator Predict (API wrapper)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Zoho Creator Predict (API wrapper)": {
       "main": [
         [
-          { "node": "Pick Reply Text", "type": "main", "index": 0 }
+          {
+            "node": "Pick Reply Text",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Pick Reply Text": {
       "main": [
         [
-          { "node": "Reply to LINE", "type": "main", "index": 0 }
+          {
+            "node": "Reply to LINE",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -114,6 +145,7 @@
   },
   "versionId": "TEMPLATE",
   "meta": {
-    "templateCreds": true
+    "templateCreds": true,
+    "description": "用途：LINE Messaging API webhook 收到文字訊息後，轉送 Zoho Creator API wrapper (API.PredictFromLine_v1) 取得回覆文字，並 reply 回 LINE。\n入口：POST /webhook/line-webhook (Production URL)\n必填環境變數：LINE_CHANNEL_ACCESS_TOKEN, ZOHO_CREATOR_PREDICT_URL\n必填 credentials：Zoho Creator OAuth2 (zohoCreatorOAuth2Api)\n輸入：LINE events(text)\n輸出：LINE reply text\n注意：n8n import 會自動 deactivate，需手動 Active。"
   }
 }

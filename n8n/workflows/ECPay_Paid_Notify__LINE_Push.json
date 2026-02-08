@@ -10,7 +10,10 @@
       "name": "Paid Notify Webhook (IN)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [260, 300],
+      "position": [
+        260,
+        300
+      ],
       "webhookId": "ecpay-paid-notify"
     },
     {
@@ -20,7 +23,10 @@
       "name": "Build Push Message",
       "type": "n8n-nodes-base.function",
       "typeVersion": 2,
-      "position": [520, 300]
+      "position": [
+        520,
+        300
+      ]
     },
     {
       "parameters": {
@@ -36,7 +42,10 @@
       "name": "OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [740, 300]
+      "position": [
+        740,
+        300
+      ]
     },
     {
       "parameters": {
@@ -65,28 +74,43 @@
       "name": "LINE Push",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [980, 260]
+      "position": [
+        980,
+        260
+      ]
     }
   ],
   "connections": {
     "Paid Notify Webhook (IN)": {
       "main": [
         [
-          { "node": "Build Push Message", "type": "main", "index": 0 }
+          {
+            "node": "Build Push Message",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Push Message": {
       "main": [
         [
-          { "node": "OK?", "type": "main", "index": 0 }
+          {
+            "node": "OK?",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "OK?": {
       "main": [
         [
-          { "node": "LINE Push", "type": "main", "index": 0 }
+          {
+            "node": "LINE Push",
+            "type": "main",
+            "index": 0
+          }
         ],
         []
       ]
@@ -98,6 +122,7 @@
   },
   "versionId": "TEMPLATE",
   "meta": {
-    "templateCreds": true
+    "templateCreds": true,
+    "description": "用途：Zoho Creator 付款回拋驗簽後（Paid），呼叫此 webhook 觸發 LINE push 交付連結。\n入口：POST /webhook/ecpay-paid-notify，JSON: { lineUserId, deliveryUrl, merchantTradeNo, deliveryToken }\n必填環境變數：LINE_CHANNEL_ACCESS_TOKEN\n輸出：對 LINE push 訊息。\n注意：可加簽/白名單作為 Phase 2 強化。"
   }
 }
