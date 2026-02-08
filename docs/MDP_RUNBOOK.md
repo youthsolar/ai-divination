@@ -42,10 +42,42 @@
   - 塔羅走 `Tarot.TarotDivinationFunction(clientId, question)`
   - 易經走 `getPredictionByQuestionAndBirthday_v2`（含冷卻先擋 + persona tone）
 
-### 3.2（待補）Creator API Wrapper
-建議建立一支對外 API wrapper，固定輸入/輸出：
-- input: `{ lineUserId, text, timestamp }`
-- output: `{ ok, blocked, message, meta }`
+### 3.2 Creator API Wrapper（n8n → Creator SSOT）
+建立一支對外 API wrapper，讓 n8n 只要打這支就能拿到「可直接回 LINE 的文字」。
+
+**API 名稱（標準）：** `API.PredictFromLine_v1`
+
+**Input (JSON)**
+```json
+{
+  "lineUserId": "Uxxxxxxxx",
+  "text": "想問…",
+  "timestamp": 1739030400000
+}
+```
+
+**Output (JSON)**
+```json
+{
+  "ok": true,
+  "blocked": false,
+  "message": "...給使用者的回覆文字...",
+  "meta": {
+    "divinationType": "iching|tarot",
+    "clientId": "<optional>",
+    "cooldownRule": "<optional>"
+  }
+}
+```
+
+**行為規範（MVP）**
+- `text` 為空：`ok=false`，回短錯誤訊息
+- 冷卻觸發：`blocked=true`，`message` 為安撫短文，且**直接 return 不呼叫 OpenAI**
+- 正常：呼叫 `AIInterpreter.getMvpDivination_v1(...)` 取得易經/塔羅解讀
+
+**n8n 對應**
+- workflow：`LINE Webhook — Zoho Creator → Reply (MVP)`
+- 環境變數：`ZOHO_CREATOR_PREDICT_URL` 指向 `API.PredictFromLine_v1` endpoint
 
 > clientId 綁定可先放在 n8n（Data store）或 Creator（新增欄位）二選一。
 
