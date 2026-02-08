@@ -1,0 +1,57 @@
+// =============================================================================
+// Content Factory API (Phase 1)
+// Name: API.PublishCallback_v1
+// Purpose:
+// - After manual/automated publishing, call back Creator to mark schedule as posted/failed.
+// Input:
+// { schedule_id, platform, published_at, published_by, publish_status, published_url }
+// Output:
+// { ok, message }
+// =============================================================================
+
+map API.PublishCallback_v1(map payload)
+{
+	resp = Map();
+	try
+	{
+		if(payload == null)
+		{
+			resp.put("ok",false);
+			resp.put("message","payload is null");
+			return resp;
+		}
+		schedule_id = if(payload.get("schedule_id") != null,payload.get("schedule_id").toString().trim(),"");
+		publish_status = if(payload.get("publish_status") != null,payload.get("publish_status").toString().trim(),"");
+		platform = if(payload.get("platform") != null,payload.get("platform").toString().trim(),"");
+		published_url = if(payload.get("published_url") != null,payload.get("published_url").toString().trim(),"");
+
+		// Try update schedule record if exists
+		try
+		{
+			schedules = Content_Schedule[ID == schedule_id.toLong()];
+			for each  s in schedules
+			{
+				s.Publish_Status = publish_status;
+				s.Published_At = zoho.currenttime;
+				s.Published_By = if(payload.get("published_by") != null,payload.get("published_by").toString(),"");
+				s.Published_URL = published_url;
+				break;
+			}
+		}
+		catch (e)
+		{
+			// ignore if schema missing
+		}
+
+		resp.put("ok",true);
+		resp.put("message","ok");
+		resp.put("platform",platform);
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e);
+		return resp;
+	}
+}

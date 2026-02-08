@@ -72,14 +72,60 @@ D) 排程/發布
   - repo 檔：`n8n/workflows/Weekly_Fortune__NoonBaZi__Generate_And_Queue.json`
   - n8n workflow id：`qG0UCMKcAGcv7mK8`
   - 注意：payload 會帶 `timezone=Asia/Taipei`，並用 `referenceLocalTime`（台北時間字串）避免 `toISOString()` 的 UTC 偏移造成八字基準錯誤。
-- 待新增：
-  1) Creator API：`API.QueueWeeklyFortune_v1`（n8n env：`ZOHO_CREATOR_WEEKLY_FORTUNE_URL`）
-     - Input（JSON）：`{ referenceLocalTime, timezone, tone, cta, channels }`
-     - Output（JSON）：`{ ok, idea_id, asset_ids, schedule_ids, message }`
-  2) Creator API：`API.PublishCallback_v1`（n8n env：`ZOHO_CREATOR_PUBLISH_CALLBACK_URL`）
-     - Input（JSON）：`{ schedule_id, platform, published_at, published_by, publish_status, published_url }`
-     - Output（JSON）：`{ ok, message }`
-  3) `Daily/Weekly Publish Reminder`（推送待發內容給操作人 + 回寫 Creator）
+
+### 4.1 週運勢 Queue API（Creator SSOT）
+1) Creator API：`API.QueueWeeklyFortune_v1`（n8n env：`ZOHO_CREATOR_WEEKLY_FORTUNE_URL`）
+
+Input（JSON）
+```json
+{
+  "kind": "weekly_fortune",
+  "referenceLocalTime": "YYYY-MM-DD HH:mm:ss",
+  "timezone": "Asia/Taipei",
+  "referenceIsoUtc": "<debug>",
+  "tone": "gentle_render",
+  "cta": "line_free_divination",
+  "channels": ["ig","threads","short_video"]
+}
+```
+
+Output（JSON）
+```json
+{
+  "ok": true,
+  "idea_id": "<string>",
+  "asset_ids": [1,2,3],
+  "schedule_ids": [],
+  "message": "queued"
+}
+```
+
+> SSOT 程式碼已在 repo：`zoho-creator/functions/content-factory/API.QueueWeeklyFortune_v1.deluge`
+
+### 4.2 發佈回寫 Callback API
+2) Creator API：`API.PublishCallback_v1`（n8n env：`ZOHO_CREATOR_PUBLISH_CALLBACK_URL`）
+
+Input（JSON）
+```json
+{
+  "schedule_id": "123",
+  "platform": "ig",
+  "published_at": "2026-02-09T00:00:00+08:00",
+  "published_by": "Jeffery",
+  "publish_status": "posted",
+  "published_url": "https://..."
+}
+```
+
+Output（JSON）
+```json
+{ "ok": true, "message": "ok" }
+```
+
+> SSOT 程式碼已在 repo：`zoho-creator/functions/content-factory/API.PublishCallback_v1.deluge`
+
+### 4.3 待發提醒（待新增）
+3) `Daily/Weekly Publish Reminder`（推送待發內容給操作人 + 回寫 Creator）
 
 ## 五、驗收（Definition of Done）
 Phase 1 DoD（先能營運）：

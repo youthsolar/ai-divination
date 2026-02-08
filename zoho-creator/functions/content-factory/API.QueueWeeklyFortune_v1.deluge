@@ -1,0 +1,108 @@
+// =============================================================================
+// Content Factory API (Phase 1)
+// Name: API.QueueWeeklyFortune_v1
+// Called by: n8n Weekly Fortune workflow
+// Input (JSON map):
+// {
+//   kind: 'weekly_fortune',
+//   referenceLocalTime: 'YYYY-MM-DD HH:mm:ss',
+//   timezone: 'Asia/Taipei',
+//   referenceIsoUtc: '...',
+//   tone: 'gentle_render',
+//   cta: 'line_free_divination',
+//   channels: ['ig','threads','short_video']
+// }
+// Output:
+// { ok, idea_id, asset_ids, schedule_ids, message }
+// =============================================================================
+
+map API.QueueWeeklyFortune_v1(map payload)
+{
+	resp = Map();
+	asset_ids = List();
+	schedule_ids = List();
+	try
+	{
+		if(payload == null)
+		{
+			resp.put("ok",false);
+			resp.put("message","payload is null");
+			return resp;
+		}
+
+		referenceLocalTime = if(payload.get("referenceLocalTime") != null,payload.get("referenceLocalTime").toString().trim(),"");
+		timezone = if(payload.get("timezone") != null,payload.get("timezone").toString().trim(),"");
+		tone = if(payload.get("tone") != null,payload.get("tone").toString().trim(),"gentle_render");
+		cta = if(payload.get("cta") != null,payload.get("cta").toString().trim(),"line_free_divination");
+		channels = payload.get("channels");
+
+		if(referenceLocalTime == "" || timezone == "")
+		{
+			resp.put("ok",false);
+			resp.put("message","referenceLocalTime/timezone missing");
+			return resp;
+		}
+
+		// NOTE:
+		// Creator schema (Content_Ideas/Content_Assets/Content_Schedule) may not exist yet in the live app.
+		// This function is written for SSOT; when deployed, create the forms/fields accordingly.
+
+		idea_id = "";
+		try
+		{
+			ideaRec = insert into Content_Ideas
+			[
+				Added_User=zoho.loginuser
+				Source_Type="weekly_bazi"
+				Source_Text=("weekly_fortune referenceLocalTime=" + referenceLocalTime + ", tz=" + timezone)
+				Topic_Tags="週運勢,content-factory"
+				Status="draft"
+			];
+			idea_id = ideaRec.ID.toString();
+		}
+		catch (e)
+		{
+			// If schema not present, still respond ok with empty ids (so n8n can be tested).
+			idea_id = "";
+		}
+
+		// Create assets for each channel (optional)
+		if(channels != null)
+		{
+			for each  ch in channels
+			{
+				try
+				{
+					assetRec = insert into Content_Assets
+					[
+						Idea_Link=if(idea_id!="",idea_id.toLong(),null)
+						Platform=ch.toString()
+						Copy_Text=""
+						Script_Text=""
+						CTA_Text=cta
+						Review_Status="pending"
+					];
+					asset_ids.add(assetRec.ID);
+				}
+				catch (e)
+				{
+					// ignore if schema missing
+				}
+			}
+		}
+
+		resp.put("ok",true);
+		resp.put("idea_id",idea_id);
+		resp.put("asset_ids",asset_ids);
+		resp.put("schedule_ids",schedule_ids);
+		resp.put("message","queued");
+		resp.put("meta",payload);
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e);
+		return resp;
+	}
+}

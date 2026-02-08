@@ -83,6 +83,7 @@
     "executionOrder": "v1"
   },
   "meta": {
-    "templateCreds": true
+    "templateCreds": true,
+    "description": "用途：每週一 11:55 觸發，組出「週一 12:00 台北時間」基準，送到 Creator API.QueueWeeklyFortune_v1 入隊，讓 Creator 做 BaZi/素材 SSOT。\n必填 env：ZOHO_CREATOR_WEEKLY_FORTUNE_URL（指向 API.QueueWeeklyFortune_v1 endpoint）\n注意：payload 需包含 timezone=Asia/Taipei + referenceLocalTime（避免 UTC 偏移）。"
   }
 }
