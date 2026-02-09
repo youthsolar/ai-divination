@@ -1,0 +1,50 @@
+{
+  "name": "winds.tw News — Remake → Queue (Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "winds-news-remake",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook (IN) — News Payload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "winds-news-remake"
+    },
+    {
+      "parameters": {
+        "functionCode": "// winds.tw news remake — placeholder\n// 目的：把 news payload 正規化後送到 Creator 入庫（SSOT）\n// 注意：繁中註記，方便 Jeffery 維護\n\nconst tz = 'Asia/Taipei';\nconst b = $json || {};\n\nreturn [{\n  json: {\n    source: 'winds_news',\n    newsId: (b.newsId || '').toString(),\n    url: (b.url || '').toString(),\n    title: (b.title || '').toString(),\n    contentText: (b.contentText || b.content || '').toString(),\n    timezone: tz,\n    tone: 'warm_clear',\n    cta: 'line_free_divination',\n    channels: ['ig','threads','fb','linkedin']\n  }\n}];"
+      },
+      "name": "Build Queue Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ZOHO_CREATOR_NEWS_REMAKE_URL}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": { "timeout": 30000 }
+      },
+      "name": "Zoho Creator (Queue News Remake)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (IN) — News Payload": { "main": [[{ "node": "Build Queue Payload", "type": "main", "index": 0 }]] },
+    "Build Queue Payload": { "main": [[{ "node": "Zoho Creator (Queue News Remake)", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "templateCreds": true,
+    "description": "用途：接收 winds.tw news 文章 payload（可先手動 POST 測試），正規化後送到 Creator API.QueueNewsRemake_v1 入庫（SSOT）。\n必填 env：ZOHO_CREATOR_NEWS_REMAKE_URL（指向 API.QueueNewsRemake_v1 endpoint）"
+  }
+}

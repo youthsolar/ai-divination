@@ -1,0 +1,105 @@
+// =============================================================================
+// 內容工廠 API（#2 winds.tw News 再製）
+// 功能：接收 winds.tw news 文章資料，先入庫 SSOT（Content_Ideas / Content_Assets）
+// 呼叫者：n8n workflow（或手動測試）
+// 輸入：payload map（JSON）
+//   { source, newsId, url, title, contentText, timezone, tone, channels, cta }
+// 輸出：{ ok, idea_id, asset_ids, message, meta }
+// 注意：
+// - 先做「入庫 + 產出骨架」，真正文案生成可 Phase 2 再接 OpenAI。
+// - n8n CE logs 只留 1 天，必須回寫 Creator 作為 SSOT。
+// =============================================================================
+
+map API.QueueNewsRemake_v1(map payload)
+{
+	resp = Map();
+	asset_ids = List();
+	try
+	{
+		if(payload == null)
+		{
+			resp.put("ok",false);
+			resp.put("message","payload is null");
+			return resp;
+		}
+
+		source = if(payload.get("source") != null,payload.get("source").toString().trim(),"winds_news");
+		newsId = if(payload.get("newsId") != null,payload.get("newsId").toString().trim(),"");
+		url = if(payload.get("url") != null,payload.get("url").toString().trim(),"");
+		title = if(payload.get("title") != null,payload.get("title").toString().trim(),"");
+		contentText = if(payload.get("contentText") != null,payload.get("contentText").toString(),"");
+		timezone = if(payload.get("timezone") != null,payload.get("timezone").toString().trim(),"Asia/Taipei");
+		tone = if(payload.get("tone") != null,payload.get("tone").toString().trim(),"warm_clear");
+		cta = if(payload.get("cta") != null,payload.get("cta").toString().trim(),"line_free_divination");
+		channels = payload.get("channels");
+
+		// 允許 contentText 空，但至少要有 title 或 url
+		if(title == "" && url == "")
+		{
+			resp.put("ok",false);
+			resp.put("message","title/url missing");
+			return resp;
+		}
+
+		idea_id = "";
+		try
+		{
+			ideaRec = insert into Content_Ideas
+			[
+				Added_User=zoho.loginuser
+				Source_Type="manual"
+				Source_Text=("[winds_news] " + title + "\n" + url + "\nnewsId=" + newsId + "\n\n" + contentText)
+				Topic_Tags="winds_news,content-factory"
+				Status="draft"
+			];
+			idea_id = ideaRec.ID.toString();
+		}
+		catch (e)
+		{
+			idea_id = "";
+		}
+
+		// 建立各平台 asset 骨架（先空文案，待後續生成或人工填寫）
+		if(channels != null)
+		{
+			for each  ch in channels
+			{
+				try
+				{
+					assetRec = insert into Content_Assets
+					[
+						Idea_Link=if(idea_id!="",idea_id.toLong(),null)
+						Platform=ch.toString()
+						Copy_Text=""
+						Script_Text=""
+						CTA_Text=cta
+						Review_Status="pending"
+					];
+					asset_ids.add(assetRec.ID);
+				}
+				catch (e)
+				{
+					// ignore if schema missing
+				}
+			}
+		}
+
+		resp.put("ok",true);
+		resp.put("idea_id",idea_id);
+		resp.put("asset_ids",asset_ids);
+		resp.put("message","queued");
+		meta = Map();
+		meta.put("source",source);
+		meta.put("timezone",timezone);
+		meta.put("tone",tone);
+		meta.put("cta",cta);
+		resp.put("meta",meta);
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e);
+		return resp;
+	}
+}

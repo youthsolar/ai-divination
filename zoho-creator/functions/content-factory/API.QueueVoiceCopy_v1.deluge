@@ -1,0 +1,100 @@
+// =============================================================================
+// 內容工廠 API（#3 Voice-to-copy）
+// 功能：接收 Whisper 逐字稿（繁中），入庫 SSOT（Content_Ideas / Content_Assets）
+// 呼叫者：n8n workflow（或手動測試）
+// 輸入：payload map（JSON）
+//   { source, sourceText, intent, channels, timezone, cta, constraints }
+// 輸出：{ ok, idea_id, asset_ids, message, meta }
+// 注意：
+// - 先做「入庫 + 產出骨架」，真正文案生成可 Phase 2 再接 OpenAI。
+// - 產出必須保留來源逐字稿，方便人工改寫。
+// =============================================================================
+
+map API.QueueVoiceCopy_v1(map payload)
+{
+	resp = Map();
+	asset_ids = List();
+	try
+	{
+		if(payload == null)
+		{
+			resp.put("ok",false);
+			resp.put("message","payload is null");
+			return resp;
+		}
+
+		source = if(payload.get("source") != null,payload.get("source").toString().trim(),"voice");
+		sourceText = if(payload.get("sourceText") != null,payload.get("sourceText").toString().trim(),"");
+		intent = if(payload.get("intent") != null,payload.get("intent").toString().trim(),"insight");
+		timezone = if(payload.get("timezone") != null,payload.get("timezone").toString().trim(),"Asia/Taipei");
+		cta = if(payload.get("cta") != null,payload.get("cta").toString().trim(),"line_free_divination");
+		channels = payload.get("channels");
+
+		if(sourceText == "")
+		{
+			resp.put("ok",false);
+			resp.put("message","sourceText missing");
+			return resp;
+		}
+
+		idea_id = "";
+		try
+		{
+			ideaRec = insert into Content_Ideas
+			[
+				Added_User=zoho.loginuser
+				Source_Type="voice"
+				Source_Text=sourceText
+				Topic_Tags=("voice_copy," + intent)
+				Status="draft"
+			];
+			idea_id = ideaRec.ID.toString();
+		}
+		catch (e)
+		{
+			idea_id = "";
+		}
+
+		if(channels != null)
+		{
+			for each  ch in channels
+			{
+				try
+				{
+					assetRec = insert into Content_Assets
+					[
+						Idea_Link=if(idea_id!="",idea_id.toLong(),null)
+						Platform=ch.toString()
+						Copy_Text=""
+						Script_Text=""
+						CTA_Text=cta
+						Review_Status="pending"
+					];
+					asset_ids.add(assetRec.ID);
+				}
+				catch (e)
+				{
+					// ignore if schema missing
+				}
+			}
+		}
+
+		resp.put("ok",true);
+		resp.put("idea_id",idea_id);
+		resp.put("asset_ids",asset_ids);
+		resp.put("message","queued");
+		meta = Map();
+		meta.put("source",source);
+		meta.put("timezone",timezone);
+		meta.put("intent",intent);
+		meta.put("cta",cta);
+		resp.put("meta",meta);
+		return resp;
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e);
+		return resp;
+	}
+}

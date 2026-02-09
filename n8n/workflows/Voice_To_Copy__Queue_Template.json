@@ -1,0 +1,50 @@
+{
+  "name": "Voice-to-copy — Queue (Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "voice-to-copy",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook (IN) — STT Text",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "voice-to-copy"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Voice-to-copy — placeholder\n// 目的：接收 Whisper 逐字稿（文字），送到 Creator 入庫（SSOT）\n\nconst tz = 'Asia/Taipei';\nconst b = $json || {};\nconst sourceText = (b.sourceText || b.text || '').toString().trim();\n\nreturn [{\n  json: {\n    source: 'voice',\n    sourceText,\n    intent: (b.intent || 'insight').toString(),\n    timezone: tz,\n    cta: 'line_free_divination',\n    channels: ['ig','threads','fb','linkedin']\n  }\n}];"
+      },
+      "name": "Build Queue Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.ZOHO_CREATOR_VOICE_COPY_URL}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": { "timeout": 30000 }
+      },
+      "name": "Zoho Creator (Queue Voice Copy)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (IN) — STT Text": { "main": [[{ "node": "Build Queue Payload", "type": "main", "index": 0 }]] },
+    "Build Queue Payload": { "main": [[{ "node": "Zoho Creator (Queue Voice Copy)", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "templateCreds": true,
+    "description": "用途：接收 Whisper 逐字稿（文字），正規化後送到 Creator API.QueueVoiceCopy_v1 入庫（SSOT）。\n必填 env：ZOHO_CREATOR_VOICE_COPY_URL（指向 API.QueueVoiceCopy_v1 endpoint）"
+  }
+}
