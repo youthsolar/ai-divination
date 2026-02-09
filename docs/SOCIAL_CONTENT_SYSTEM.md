@@ -73,7 +73,20 @@ D) 排程/發布
 - 文案輸出格式（MVP）：`docs/WEEKLY_FORTUNE_COPY_FORMAT.md`
 - Prompt 模板（gentle_render）：`docs/prompts/weekly_fortune_gentle_render.md`
 
-## 五、n8n 工作流（Phase 1）
+## 五、其他內容產生器（Phase 2/3）
+### 5.1 winds.tw News 再製
+- Spec：`docs/CONTENT_FACTORY_NEWS_REMAKE_SPEC.md`
+- Queue API（SSOT stub）：`zoho-creator/functions/content-factory/API.QueueNewsRemake_v1.deluge`
+
+### 5.2 口述一段話 → 產生文案（Voice-to-copy）
+- Spec：`docs/CONTENT_FACTORY_VOICE_TO_COPY_SPEC.md`
+- Queue API（SSOT stub）：`zoho-creator/functions/content-factory/API.QueueVoiceCopy_v1.deluge`
+
+### 5.3 占卜結果匿名化 → 改寫問題 → 社群貼文（Divination Feed）
+- Spec：`docs/CONTENT_FACTORY_DIVINATION_FEED_SPEC.md`
+- 目的：每日把占卜結果做去敏/匿名化後，轉成可公開的案例貼文（保護隱私）
+
+## 六、n8n 工作流（Phase 1）
 - 已新增模板：`Weekly Fortune — Noon BaZi → Generate & Queue (Template)`
   - repo 檔：`n8n/workflows/Weekly_Fortune__NoonBaZi__Generate_And_Queue.json`
   - n8n workflow id：`qG0UCMKcAGcv7mK8`
