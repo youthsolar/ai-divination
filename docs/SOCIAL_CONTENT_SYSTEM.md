@@ -69,13 +69,17 @@ D) 排程/發布
 - Performance_Clicks (optional)
 - Performance_Conversions (optional)
 
-## 四、n8n 工作流（Phase 1）
+## 四、週運勢文案格式 / Prompt（Phase 1）
+- 文案輸出格式（MVP）：`docs/WEEKLY_FORTUNE_COPY_FORMAT.md`
+- Prompt 模板（gentle_render）：`docs/prompts/weekly_fortune_gentle_render.md`
+
+## 五、n8n 工作流（Phase 1）
 - 已新增模板：`Weekly Fortune — Noon BaZi → Generate & Queue (Template)`
   - repo 檔：`n8n/workflows/Weekly_Fortune__NoonBaZi__Generate_And_Queue.json`
   - n8n workflow id：`qG0UCMKcAGcv7mK8`
   - 注意：payload 會帶 `timezone=Asia/Taipei`，並用 `referenceLocalTime`（台北時間字串）避免 `toISOString()` 的 UTC 偏移造成八字基準錯誤。
 
-### 4.1 週運勢 Queue API（Creator SSOT）
+### 5.1 週運勢 Queue API（Creator SSOT）
 1) Creator API：`API.QueueWeeklyFortune_v1`（n8n env：`ZOHO_CREATOR_WEEKLY_FORTUNE_URL`）
 
 Input（JSON）
@@ -104,7 +108,7 @@ Output（JSON）
 
 > SSOT 程式碼已在 repo：`zoho-creator/functions/content-factory/API.QueueWeeklyFortune_v1.deluge`
 
-### 4.2 發佈回寫 Callback API
+### 5.2 發佈回寫 Callback API
 2) Creator API：`API.PublishCallback_v1`（n8n env：`ZOHO_CREATOR_PUBLISH_CALLBACK_URL`）
 
 Input（JSON）
@@ -126,16 +130,16 @@ Output（JSON）
 
 > SSOT 程式碼已在 repo：`zoho-creator/functions/content-factory/API.PublishCallback_v1.deluge`
 
-### 4.3 待發提醒（待新增）
+### 5.3 待發提醒（待新增）
 3) `Daily/Weekly Publish Reminder`（推送待發內容給操作人 + 回寫 Creator）
 
-## 五、驗收（Definition of Done）
+## 六、驗收（Definition of Done）
 Phase 1 DoD（先能營運）：
 1) 每週能穩定產出 1 篇週運勢內容（貼文 + 口播稿）
 2) 內容在 Creator 有留存（SSOT）
 3) n8n 能把待發內容在固定時間推送提醒（S2）或產出排程包（S1）
 
-## 六、風險與注意事項
+## 七、風險與注意事項
 - n8n CE execution 只留 1 天 → 必須回寫 Creator 留存。
 - 平台 API 自動發文（S3）權限/風控高，先不要一開始做。
 
