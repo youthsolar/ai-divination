@@ -1,9 +1,12 @@
 // =============================================================================
-// Creator API (Phase 2 / Ops)
-// Name: API.DeliveryPushCallback_v1
-// Purpose:
-// - After n8n pushes delivery link/image to LINE, call back Creator to persist SSOT delivery logs.
-// - This is optional for MVP but recommended for daily 100 orders ops.
+// 功能：交付推播回寫（Ops / Phase 2）
+// 名稱：API.DeliveryPushCallback_v1
+// 呼叫者：n8n（LINE push 成功/失敗後回寫 Creator，確保 SSOT 可對帳）
+// 輸入（payload JSON）：{ merchantTradeNo, ok, error, lineMessageId }
+// 輸出：{ ok, message }
+// 注意：
+// - n8n CE execution logs 只留 1 天；交付結果必須回寫 Creator 才能追溯。
+// - 本 function 為建議項（MVP 可先不啟用），但「每日 100 單」營運建議要做。
 // =============================================================================
 
 map API.DeliveryPushCallback_v1(map payload)

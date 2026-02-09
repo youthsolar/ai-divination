@@ -1,12 +1,13 @@
 // =============================================================================
-// Creator API Wrapper (MVP)
-// Name: API.PredictFromLine_v1
-// Purpose:
-// - n8n calls this endpoint with { lineUserId, text, timestamp }
-// - Creator returns { ok, blocked, message, meta }
-// Rules:
-// - Do NOT change divination rules; only wrap/route.
-// - Cooldown must short-circuit and must NOT call OpenAI (handled inside AIInterpreter.getPredictionByQuestionAndBirthday_v2).
+// 功能：LINE 占卜入口 API（MVP Wrapper）
+// 名稱：API.PredictFromLine_v1
+// 呼叫者：n8n（LINE Webhook → Creator → Reply）
+// 輸入（payload JSON）：{ lineUserId, text, timestamp }
+// 輸出：{ ok, blocked, message, meta }
+// 注意：
+// - 不可改占卜規則本質；此 function 只做「包裝/路由」。
+// - 冷卻規則必須先擋：安撫但不占卜，且直接 return 不呼叫 OpenAI（由 getPredictionByQuestionAndBirthday_v2 內部保證）。
+// - 時區口徑：以台北時間為準（Asia/Taipei）。
 // =============================================================================
 
 map API.PredictFromLine_v1(map payload)

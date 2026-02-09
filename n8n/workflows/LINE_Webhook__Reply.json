@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse LINE events (text only)\nconst body = $json;\nconst events = (body && body.events) ? body.events : [];\n\nconst out = [];\nfor (const ev of events) {\n  if (!ev || ev.type !== 'message') continue;\n  if (!ev.message || ev.message.type !== 'text') continue;\n  out.push({\n    json: {\n      replyToken: ev.replyToken,\n      lineUserId: ev.source?.userId || '',\n      text: (ev.message?.text || '').trim(),\n      timestamp: ev.timestamp || Date.now()\n    }\n  });\n}\nreturn out;"
+        "functionCode": "// 功能：解析 LINE Webhook events（只保留文字訊息）\n// 輸出：{ replyToken, lineUserId, text, timestamp }\nconst body = $json;\nconst events = (body && body.events) ? body.events : [];\n\nconst out = [];\nfor (const ev of events) {\n  if (!ev || ev.type !== 'message') continue;\n  if (!ev.message || ev.message.type !== 'text') continue;\n  out.push({\n    json: {\n      replyToken: ev.replyToken,\n      lineUserId: ev.source?.userId || '',\n      text: (ev.message?.text || '').trim(),\n      timestamp: ev.timestamp || Date.now()\n    }\n  });\n}\nreturn out;"
       },
       "name": "Parse LINE Events",
       "type": "n8n-nodes-base.function",
@@ -50,7 +50,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Normalize response for LINE reply\n// Expect Creator response: { ok, blocked, message }\nconst resp = $json;\nlet message = resp?.message || '目前系統忙碌中，請稍後再試。';\n// Keep it short for token + UX\nif (typeof message === 'string') message = message.trim();\nreturn [{ json: { message } }];"
+        "functionCode": "// 功能：整理 Creator 回傳，抽出要回覆給 LINE 的文字\n// 預期 Creator response: { ok, blocked, message }\nconst resp = $json;\nlet message = resp?.message || '目前系統忙碌中，請稍後再試。';\n// Keep it short for token + UX\nif (typeof message === 'string') message = message.trim();\nreturn [{ json: { message } }];"
       },
       "name": "Pick Reply Text",
       "type": "n8n-nodes-base.function",

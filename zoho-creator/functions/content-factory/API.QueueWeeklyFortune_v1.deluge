@@ -1,19 +1,21 @@
 // =============================================================================
-// Content Factory API (Phase 1)
-// Name: API.QueueWeeklyFortune_v1
-// Called by: n8n Weekly Fortune workflow
-// Input (JSON map):
+// 功能：週運勢入庫/入隊（內容工廠 Phase 1）
+// 名稱：API.QueueWeeklyFortune_v1
+// 呼叫者：n8n（Weekly Fortune — Noon BaZi → Generate & Queue）
+// 輸入（payload JSON map）：
 // {
 //   kind: 'weekly_fortune',
-//   referenceLocalTime: 'YYYY-MM-DD HH:mm:ss',
+//   referenceLocalTime: 'YYYY-MM-DD HH:mm:ss',   // 台北時間字串
 //   timezone: 'Asia/Taipei',
-//   referenceIsoUtc: '...',
+//   referenceIsoUtc: '...',                     // debug
 //   tone: 'gentle_render',
 //   cta: 'line_free_divination',
 //   channels: ['ig','threads','short_video']
 // }
-// Output:
-// { ok, idea_id, asset_ids, schedule_ids, message }
+// 輸出：{ ok, idea_id, asset_ids, schedule_ids, message }
+// 注意：
+// - 時區口徑必須帶 timezone + referenceLocalTime，避免 UTC 偏移造成八字基準錯誤。
+// - n8n CE logs 只留 1 天 → 內容與排程必須回寫 Creator 作為 SSOT。
 // =============================================================================
 
 map API.QueueWeeklyFortune_v1(map payload)
