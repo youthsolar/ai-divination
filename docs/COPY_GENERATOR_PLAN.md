@@ -18,12 +18,17 @@
 - Output：多版本文案 + CTA + 標題
 - Pipeline：Whisper STT → Creator Content_Ideas 入庫 → 轉寫生成
 
-## 通用規範（適用三者）
+### 4) 占卜結果匿名化 → 改寫問題 → 社群貼文（Divination Feed）
+- Input：免費占卜 / 付費符令的結果（需保留 SSOT 原文，但對外要匿名化）
+- Output：匿名化案例貼文（去姓名/可識別資訊）+ 改寫後問題 + 精簡解讀 + CTA
+- Pipeline：Creator/n8n 拉取候選 → 匿名化/去敏 → 入庫 Content_Ideas/Assets → 審核 → PublishCallback
+
+## 通用規範（適用四者）
 - 語氣：使用者不選；由 persona/context 決定
 - 產出格式：必含 `generator`, `source`, `timezone`, `referenceLocalTime` 等 debug 欄位
 - SSOT：所有產出與發布結果回寫 Creator（n8n CE logs 不可靠）
 
 ## 下一步（本 repo 要補的東西）
-- [ ] 在 `docs/SOCIAL_CONTENT_SYSTEM.md` 內補齊「三生成器」的 I/O schema
+- [ ] 在 `docs/SOCIAL_CONTENT_SYSTEM.md` 內補齊「四生成器」的 I/O schema
 - [ ] 在 `n8n/workflows/` 補齊對應模板（先週運勢）
 - [ ] 在 Creator 端建立 API：Queue/Callback（已在 docs 列出）
