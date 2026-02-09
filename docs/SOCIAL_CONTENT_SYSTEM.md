@@ -45,7 +45,7 @@ D) 排程/發布
 > 先定欄位，不必一次做完 UI。
 
 ### 3.1 Content_Ideas（原始素材）
-- Source_Type: voice / weekly_bazi / manual
+- Source_Type: voice / weekly_bazi / manual / news_remake
 - Source_Text: Whisper 逐字稿
 - Topic_Tags: 愛情/事業/靈擾/…
 - Status: draft / ready / archived
@@ -64,8 +64,10 @@ D) 排程/發布
 - Scheduled_At
 - Published_At
 - Published_By
+- Published_URL（發布後的貼文 URL）
 - Publish_Status: scheduled / posted / failed
-- Performance (optional): clicks / conversions
+- Performance_Clicks (optional)
+- Performance_Conversions (optional)
 
 ## 四、n8n 工作流（Phase 1）
 - 已新增模板：`Weekly Fortune — Noon BaZi → Generate & Queue (Template)`

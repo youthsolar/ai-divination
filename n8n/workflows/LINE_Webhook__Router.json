@@ -68,6 +68,7 @@
   },
   "versionId": "TEMPLATE",
   "meta": {
-    "templateCreds": true
+    "templateCreds": true,
+    "description": "[WIP - DO NOT ACTIVATE] 用途：LINE webhook 路由（未來可擴展多種訊息類型處理）。目前 true branch 未連接 node，生產環境請使用 LINE_Webhook__Reply。"
   }
 }

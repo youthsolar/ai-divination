@@ -1,12 +1,20 @@
 // =============================================================================
-// Content Factory API (Phase 1)
-// Name: API.PublishCallback_v1
-// Purpose:
-// - After manual/automated publishing, call back Creator to mark schedule as posted/failed.
-// Input:
-// { schedule_id, platform, published_at, published_by, publish_status, published_url }
-// Output:
-// { ok, message }
+// 功能：發布回寫 API（內容工廠 Phase 1）
+// 名稱：API.PublishCallback_v1
+// 呼叫者：n8n（人工發布後回寫 Creator，確保 SSOT 可追蹤）
+// 輸入（payload JSON map）：
+// {
+//   schedule_id: '排程記錄 ID',
+//   platform: 'ig/threads/fb/linkedin/short_video',
+//   published_at: 'ISO 或 YYYY-MM-DD HH:mm:ss',
+//   published_by: '發布人名稱',
+//   publish_status: 'posted/failed',
+//   published_url: '發布後的貼文 URL'
+// }
+// 輸出：{ ok, message, platform }
+// 注意：
+// - Content_Schedule 必須有 Published_URL 欄位（type=url）。
+// - n8n CE logs 只留 1 天，發布結果必須回寫 Creator 作為 SSOT。
 // =============================================================================
 
 map API.PublishCallback_v1(map payload)

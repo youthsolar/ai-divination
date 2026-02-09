@@ -68,7 +68,7 @@ map API.QueueWeeklyFortune_v1(map payload)
 			idea_id = "";
 		}
 
-		// Create assets for each channel (optional)
+		// 為每個 channel 建立 asset 與 schedule（SSOT）
 		if(channels != null)
 		{
 			for each  ch in channels
@@ -85,6 +85,26 @@ map API.QueueWeeklyFortune_v1(map payload)
 						Review_Status="pending"
 					];
 					asset_ids.add(assetRec.ID);
+					// 同步建立排程記錄（Content_Schedule）
+					try
+					{
+						scheduled_at = zoho.currenttime;
+						if(referenceLocalTime != "")
+						{
+							scheduled_at = referenceLocalTime.toDate("yyyy-MM-dd HH:mm:ss");
+						}
+						schedRec = insert into Content_Schedule
+						[
+							Asset_Link=assetRec.ID
+							Scheduled_At=scheduled_at
+							Publish_Status="scheduled"
+						];
+						schedule_ids.add(schedRec.ID);
+					}
+					catch (sch_e)
+					{
+						// Content_Schedule 表尚未建立時安全略過
+					}
 				}
 				catch (e)
 				{

@@ -47,7 +47,7 @@ map API.QueueNewsRemake_v1(map payload)
 			ideaRec = insert into Content_Ideas
 			[
 				Added_User=zoho.loginuser
-				Source_Type="manual"
+				Source_Type="news_remake"
 				Source_Text=("[winds_news] " + title + "\n" + url + "\nnewsId=" + newsId + "\n\n" + contentText)
 				Topic_Tags="winds_news,content-factory"
 				Status="draft"

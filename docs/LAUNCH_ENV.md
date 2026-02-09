@@ -29,7 +29,7 @@ To avoid webhook URL mismatches:
 - [ ] `ZOHO_CREATOR_NEWS_REMAKE_URL` = <Creator API.QueueNewsRemake_v1 endpoint>
 - [ ] `ZOHO_CREATOR_VOICE_COPY_URL` = <Creator API.QueueVoiceCopy_v1 endpoint>
 
-### 2.5 Workflows
+### 2.6 Workflows
 - [ ] LINE inbound → Creator → reply (active)
 - [ ] ECPay paid notify → LINE push (active if A1 enabled)
 
