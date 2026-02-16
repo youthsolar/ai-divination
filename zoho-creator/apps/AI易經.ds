@@ -7391,6 +7391,113 @@ map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, 
                   	return result;
                  }
 
+map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
+                 {
+                  	// =============================================================================
+                  	// Creator API：LINE LIFF 入口（MVP）
+                  	// Input : lineUserId, birthday(YYYY-MM-DD), question
+                  	// Output: reading_id, summary_text(約300字), cooldown_until, next_action
+                  	// Notes :
+                  	// - v1 先做「生日+問題」最小入口，不收姓名/性別/手機/Email
+                  	// - 收費策略：先免費摘要(約300字)，再引導付費解鎖完整版/符令
+                  	// =============================================================================
+                  	api_result = Map();
+                  	try
+                  	{
+                  		// 1) Validate
+                  		if(lineUserId == null || lineUserId.trim() == "")
+                  		{
+                  			api_result.put("success",false);
+                  			api_result.put("message","lineUserId 不能為空");
+                  			return api_result;
+                  		}
+                  		if(birthday == null || birthday.trim() == "")
+                  		{
+                  			api_result.put("success",false);
+                  			api_result.put("message","生日不能為空");
+                  			return api_result;
+                  		}
+                  		if(question == null || question.trim() == "")
+                  		{
+                  			api_result.put("success",false);
+                  			api_result.put("message","問題不能為空");
+                  			return api_result;
+                  		}
+
+                  		// 2) Normalize + hash (for cooldown)
+                  		norm_question = question.trim().toLowerCase();
+                  		norm_question = norm_question.replaceAll("\\s+"," ");
+                  		question_hash = zoho.encryption.md5(lineUserId + "|" + norm_question);
+
+                  		// 3) Cooldown (MVP: same hash within 7 days)
+                  		now_time = zoho.currenttime;
+                  		cooldown_days = 7;
+                  		cooldown_until = now_time.addDay(cooldown_days);
+                  		recent_same = Divination_Logs[Line_User_ID == lineUserId && Question_Hash == question_hash && Created_Time >= now_time.addDay(-cooldown_days)];
+                  		if(recent_same.count() > 0)
+                  		{
+                  			api_result.put("success",false);
+                  			api_result.put("message","冷卻中：相同問題請稍後再來");
+                  			api_result.put("cooldown_until",recent_same.get(0).Created_Time.addDay(cooldown_days));
+                  			return api_result;
+                  		}
+
+                  		// 4) Create Divination log (minimal)
+                  		// NOTE: 若實際欄位/LinkName 不同，需依 Jeffery 提供之 Creator 端設定調整
+                  		new_log_id = insert into Divination_Logs
+                  		[
+                  			Added_User=zoho.loginuser
+                  			Line_User_ID=lineUserId
+                  			Date_of_Birth=birthday
+                  			Question=question
+                  			Question_Hash=question_hash
+                  		];
+
+                  		// 5) Generate free summary (約300字)
+                  		// TODO: 之後可改成「先跑你現有 tarot/iching 計算」再摘要
+                  		prompt = "你是專業占卜師（塔羅+易經），請用繁體中文給出約300字的摘要解讀。\n" +
+                  			"使用者國曆生日：" + birthday + "\n" +
+                  			"問題：" + question + "\n\n" +
+                  			"請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
+                  		summary_text = thisapp.OpenAI.callChatGPT(prompt);
+
+                  		// 6) Save summary back (best-effort)
+                  		try
+                  		{
+                  			logs = Divination_Logs[ID == new_log_id.toLong()];
+                  			for each  l in logs
+                  			{
+                  				l.Summary_Text=summary_text;
+                  				l.Cooldown_Until=cooldown_until;
+                  				break;
+                  			}
+                  		}
+                  		catch (e2)
+                  		{
+                  			// ignore
+                  		}
+
+                  		// 7) Response
+                  		api_result.put("success",true);
+                  		api_result.put("reading_id",new_log_id.toString());
+                  		api_result.put("summary_text",summary_text);
+                  		api_result.put("cooldown_until",cooldown_until);
+                  		next_action = Map();
+                  		next_action.put("kind","offer_unlock");
+                  		next_action.put("price",360);
+                  		next_action.put("currency","TWD");
+                  		next_action.put("cta_label","解鎖完整版/購買符令");
+                  		api_result.put("next_action",next_action);
+                  		return api_result;
+                  	}
+                  	catch (e)
+                  	{
+                  		api_result.put("success",false);
+                  		api_result.put("message","系統錯誤：" + e.toString());
+                  		return api_result;
+                  	}
+                 }
+
 string API.ECPayReturn(map ecpay_params)
                  {
                   	// =============================================================================
