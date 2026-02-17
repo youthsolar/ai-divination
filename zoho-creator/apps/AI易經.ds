@@ -7622,12 +7622,17 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   			// Security: free summary link should NOT expose numeric div id. Link back to LIFF entry only.
                    			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url, "（待設定 LIFF URL）"));
                   			line_text = "【免費摘要】\n" + summary_text + unlock_hint;
-                  			ignore = thisapp.API.LINE_PushText(lineUserId,line_text);
+                  			push_res = thisapp.API.LINE_PushText(lineUserId,line_text);
+                  			api_result.put("line_pushed", if(push_res != null && push_res.get("success") == true, true, false));
+                  			if(push_res != null && push_res.get("success") == false)
+                  			{
+                  				api_result.put("line_push_error", push_res.get("message"));
+                  			}
                   		}
                   		catch (pushErr)
                   		{
-                  			// keep warning for ops visibility
-                  			api_result.put("push_warning","LINE push 失敗：" + pushErr.toString());
+                  			api_result.put("line_pushed", false);
+                  			api_result.put("line_push_error", pushErr.toString());
                   		}
 
                   		return api_result;
@@ -7819,7 +7824,11 @@ string API.ECPayReturn(map ecpay_params)
 									full_prompt = "你是專業占卜師（塔羅+易經）。請針對以下問題，提供完整版解讀（約800~1200字），用繁體中文，語氣溫柔但冷靜，包含：\n" +
 										"1) 現況與核心矛盾\n2) 走勢與關鍵提醒\n3) 具體行動建議（3點）\n4) 一句收束祝福。\n\n" +
 										"問題：" + d.Original_Question;
+									// MVP: use faster/cheaper model in payment callback to reduce timeout risk
+									old_model = thisapp.variables.OpenAI.OpenAI_Model;
+									thisapp.variables.OpenAI.OpenAI_Model = "gpt-4o-mini";
 									full_text = thisapp.OpenAI.callChatGPT(full_prompt);
+									thisapp.variables.OpenAI.OpenAI_Model = old_model;
 									d.AI_Interpretation_Full=full_text;
 									d.Status="已購買";
 								}
