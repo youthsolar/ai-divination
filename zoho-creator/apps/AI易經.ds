@@ -7396,8 +7396,9 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   	// =============================================================================
                   	// Creator API：LINE LIFF 入口（MVP）
                   	// Input : lineUserId, birthday(YYYY-MM-DD), question
-                  	// Output: reading_id, summary_text(約300字), cooldown_until, next_action
+                  	// Output: divination_log_id(reading_id), summary_text(約300字), next_action
                   	// Notes :
+                  	// - 以 repo 內 DS 檔定義為準（Divination_Logs 欄位/中文翻譯皆已在此）
                   	// - v1 先做「生日+問題」最小入口，不收姓名/性別/手機/Email
                   	// - 收費策略：先免費摘要(約300字)，再引導付費解鎖完整版/符令
                   	// =============================================================================
@@ -7424,64 +7425,89 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   			return api_result;
                   		}
 
-                  		// 2) Normalize + hash (for cooldown)
-                  		norm_question = question.trim().toLowerCase();
-                  		norm_question = norm_question.replaceAll("\\s+"," ");
-                  		question_hash = zoho.encryption.md5(lineUserId + "|" + norm_question);
+                  		// 2) Find or create client by LINE user id (Clients_Report has Line_User_ID)
+                  		client_id = "";
+                  		client_records = Clients_Report[Line_User_ID == lineUserId];
+                  		if(client_records.count() > 0)
+                  		{
+                  			for each  c in client_records
+                  			{
+                  				client_id = c.ID.toString();
+                  				break;
+                  			}
+                  		}
+                  		else
+                  		{
+                  			// create minimal virtual client (姓名未知；以虛擬個案保存生日與 lineUserId)
+                  			birth_dt = null;
+                  			try
+                  			{
+                  				birth_dt = birthday.toDate();
+                  			}
+                  			catch (e0)
+                  			{
+                  				birth_dt = zoho.currenttime;
+                  			}
+                  			new_client = insert into Clients_Report
+                  			[
+                  				Added_User=zoho.loginuser
+                  				Client_Type="虛擬"
+                  				Visitor_Name.last_name="(LINE)"
+                  				Visitor_Name.first_name="使用者"
+                  				Line_User_ID=lineUserId
+                  				Date_Of_Birth=birth_dt
+                  			];
+                  			if(new_client != null)
+                  			{
+                  				client_id = new_client.toString();
+                  			}
+                  		}
 
-                  		// 3) Cooldown (MVP: same hash within 7 days)
-                  		now_time = zoho.currenttime;
-                  		cooldown_days = 7;
-                  		cooldown_until = now_time.addDay(cooldown_days);
-                  		recent_same = Divination_Logs[Line_User_ID == lineUserId && Question_Hash == question_hash && Created_Time >= now_time.addDay(-cooldown_days)];
-                  		if(recent_same.count() > 0)
+                  		if(client_id == null || client_id == "")
                   		{
                   			api_result.put("success",false);
-                  			api_result.put("message","冷卻中：相同問題請稍後再來");
-                  			api_result.put("cooldown_until",recent_same.get(0).Created_Time.addDay(cooldown_days));
+                  			api_result.put("message","個案建立/查詢失敗");
                   			return api_result;
                   		}
 
-                  		// 4) Create Divination log (minimal)
-                  		// NOTE: 若實際欄位/LinkName 不同，需依 Jeffery 提供之 Creator 端設定調整
-                  		new_log_id = insert into Divination_Logs
-                  		[
-                  			Added_User=zoho.loginuser
-                  			Line_User_ID=lineUserId
-                  			Date_of_Birth=birthday
-                  			Question=question
-                  			Question_Hash=question_hash
-                  		];
+                  		// 3) Cooldown check (use existing logic)
+                  		now_time = zoho.currenttime;
+                  		cooldown_check = thisapp.AIInterpreter.checkCooldownStatus(client_id,question,now_time);
+                  		selected_question_type = "其他";
+                  		if(cooldown_check != null && cooldown_check.get("question_type") != null)
+                  		{
+                  			selected_question_type = cooldown_check.get("question_type");
+                  		}
+                  		if(cooldown_check != null && cooldown_check.get("allowed") == false)
+                  		{
+                  			api_result.put("success",false);
+                  			api_result.put("message",if(cooldown_check.get("message") != null,cooldown_check.get("message"),"冷卻中，請稍後再來"));
+                  			return api_result;
+                  		}
 
-                  		// 5) Generate free summary (約300字)
-                  		// TODO: 之後可改成「先跑你現有 tarot/iching 計算」再摘要
+                  		// 4) Generate free summary (約300字)
                   		prompt = "你是專業占卜師（塔羅+易經），請用繁體中文給出約300字的摘要解讀。\n" +
                   			"使用者國曆生日：" + birthday + "\n" +
                   			"問題：" + question + "\n\n" +
                   			"請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
                   		summary_text = thisapp.OpenAI.callChatGPT(prompt);
 
-                  		// 6) Save summary back (best-effort)
-                  		try
-                  		{
-                  			logs = Divination_Logs[ID == new_log_id.toLong()];
-                  			for each  l in logs
-                  			{
-                  				l.Summary_Text=summary_text;
-                  				l.Cooldown_Until=cooldown_until;
-                  				break;
-                  			}
-                  		}
-                  		catch (e2)
-                  		{
-                  			// ignore
-                  		}
+                  		// 5) Create Divination_Logs record (use DS-defined fields)
+                  		new_log_id = insert into Divination_Logs
+                  		[
+                  			Added_User=zoho.loginuser
+                  			Client_Link=client_id.toLong()
+                  			Original_Question=question
+                  			Divination_Timestamp=now_time
+                  			Divination_Method="易經"
+                  			Status="已提問"
+                  			Question_Type_AI=selected_question_type
+                  			AI_Interpretation=summary_text
+                  		];
 
-                  		// 7) Response
                   		api_result.put("success",true);
                   		api_result.put("reading_id",new_log_id.toString());
                   		api_result.put("summary_text",summary_text);
-                  		api_result.put("cooldown_until",cooldown_until);
                   		next_action = Map();
                   		next_action.put("kind","offer_unlock");
                   		next_action.put("price",360);
