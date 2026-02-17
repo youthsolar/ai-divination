@@ -7540,21 +7540,44 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   			return api_result;
                   		}
 
-                  		// 4) Generate free summary (約300字)
-                  		prompt = "你是專業占卜師（塔羅+易經），請用繁體中文給出約300字的摘要解讀。\n" +
+                  		// 4) Choose divination method (MVP policy)
+                  		// Jeffery rule: 感情/人際→塔羅；大方向/抉擇→易經；fallback=易經
+                  		div_method = "易經";
+                  		if(selected_question_type == "愛情" || selected_question_type == "婚姻")
+                  		{
+                  			div_method = "塔羅";
+                  		}
+                  		else
+                  		{
+                  			// 人際關係 keyword fallback
+                  			q2 = question;
+                  			if(q2 != null)
+                  			{
+                  				q2 = q2.toLowerCase();
+                  				if(q2.contains("同事") || q2.contains("朋友") || q2.contains("家人") || q2.contains("主管") || q2.contains("同學") || q2.contains("老闆"))
+                  				{
+                  					div_method = "塔羅";
+                  				}
+                  			}
+                  		}
+
+                  		// 5) Generate free summary (約300字)
+                  		prompt = "你是專業占卜師。請依指定占卜方式提供約300字的摘要解讀（繁體中文）。\n" +
+                  			"占卜方式：" + div_method + "\n" +
+                  			"問題類型：" + selected_question_type + "\n" +
                   			"使用者國曆生日：" + birthday + "\n" +
                   			"問題：" + question + "\n\n" +
                   			"請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
                   		summary_text = thisapp.OpenAI.callChatGPT(prompt);
 
-                  		// 5) Create Divination_Logs record (use DS-defined fields)
+                  		// 6) Create Divination_Logs record (use DS-defined fields)
                   		new_log_id = insert into Divination_Logs
                   		[
                   			Added_User=zoho.loginuser
                   			Client_Link=client_id.toLong()
                   			Original_Question=question
                   			Divination_Timestamp=now_time
-                  			Divination_Method="易經"
+                  			Divination_Method=div_method
                   			Status="已提問"
                   			Question_Type_AI=selected_question_type
                   			AI_Interpretation=summary_text
