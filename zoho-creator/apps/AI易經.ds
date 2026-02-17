@@ -4546,7 +4546,8 @@
 		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
 		thisapp.variables.ECPay.hashKey_Production = "<SET_IN_CREATOR_UI>";
 		thisapp.variables.ECPay.merchantID = 3002607;
-		thisapp.variables.ECPay.merchantID_Production = 3333458;
+		// IMPORTANT: do NOT commit account identifiers. Set in Creator UI only.
+		thisapp.variables.ECPay.merchantID_Production = 0;
 		thisapp.variables.ECPay.PublicKey = "8HVQ9CPrtTatKJvBrVXqOfa3y";
 
 		// ECPay callback URLs (MVP placeholders; set to real public endpoints before launch)
@@ -4569,7 +4570,8 @@
 		thisapp.variables.System.DeliveryPageBaseURL = "";
 		// LINE Messaging API channel access token (set before launch)
 		thisapp.variables.System.LINE_ChannelAccessToken = "";
-		thisapp.variables.System.zoho_client_id = "1000.AF2I35WXIXZEMMT0MTKZMLEFNZCU5U";
+		// IMPORTANT: do NOT commit account identifiers. Set in Creator UI only.
+		thisapp.variables.System.zoho_client_id = "<SET_IN_CREATOR_UI>";
 		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
 		thisapp.variables.System.zoho_client_secret = "<SET_IN_CREATOR_UI>";
 		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
@@ -7415,6 +7417,7 @@ string API.jsonEscape(string s)
                   	out = out.replaceAll("\"","\\\\\"");
                   	out = out.replaceAll("\r","\\n");
                   	out = out.replaceAll("\n","\\n");
+                  	out = out.replaceAll("\t","\\t");
                   	return out;
                  }
 
@@ -7441,7 +7444,8 @@ map API.LINE_PushText(string lineUserId, string messageText)
                   			return res;
                   		}
                   		text_escaped = thisapp.API.jsonEscape(messageText);
-                  		json_body = "{\"to\":\"" + lineUserId + "\",\"messages\":[{\"type\":\"text\",\"text\":\"" + text_escaped + "\"}]}";
+                  		uid_escaped = thisapp.API.jsonEscape(lineUserId);
+                  		json_body = "{\"to\":\"" + uid_escaped + "\",\"messages\":[{\"type\":\"text\",\"text\":\"" + text_escaped + "\"}]}";
 
                   		headers = Map();
                   		headers.put("Authorization","Bearer " + token);
@@ -7622,7 +7626,8 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   		}
                   		catch (pushErr)
                   		{
-                  			// ignore
+                  			// keep warning for ops visibility
+                  			api_result.put("push_warning","LINE push 失敗：" + pushErr.toString());
                   		}
 
                   		return api_result;
