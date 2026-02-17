@@ -4564,6 +4564,8 @@
 		thisapp.variables.System.N8N.ECPayPaidNotifyURL = "";
 		// Delivery page base URL (B1 Creator Page). n8n will append ?token=...
 		thisapp.variables.System.DeliveryPageBaseURL = "";
+		// LINE Messaging API channel access token (set before launch)
+		thisapp.variables.System.LINE_ChannelAccessToken = "";
 		thisapp.variables.System.zoho_client_id = "1000.AF2I35WXIXZEMMT0MTKZMLEFNZCU5U";
 		thisapp.variables.System.zoho_client_secret = "08bded57ec6048610787145e9fc4ae0ab39a4c0a1f";
 		thisapp.variables.System.zoho_internal_api_refresh_token = "1000.776cd1024523fe1ae7573bf90f45e5dd.34f44c13d58e9c2f6de8168d6e8ebd0d";
@@ -7391,8 +7393,61 @@ map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, 
                   	return result;
                  }
 
+map API.LINE_PushText(string lineUserId, string messageText)
+                 {
+                  	// =============================================================================
+                  	// Creator API：LINE Push Message（純文字）
+                  	// 依 thisapp.variables.System.LINE_ChannelAccessToken 呼叫 LINE Messaging API
+                  	// =============================================================================
+                  	res = Map();
+                  	try
+                  	{
+                  		token = if(thisapp.variables.System.LINE_ChannelAccessToken != null,thisapp.variables.System.LINE_ChannelAccessToken.toString(),"");
+                  		if(token == "")
+                  		{
+                  			res.put("success",false);
+                  			res.put("message","LINE token 未設定");
+                  			return res;
+                  		}
+                  		if(lineUserId == null || lineUserId.trim() == "")
+                  		{
+                  			res.put("success",false);
+                  			res.put("message","lineUserId 為空");
+                  			return res;
+                  		}
+                  		payload = Map();
+                  		payload.put("to",lineUserId);
+                  		msg = Map();
+                  		msg.put("type","text");
+                  		msg.put("text",messageText);
+                  		payload.put("messages",{msg});
+
+                  		headers = Map();
+                  		headers.put("Authorization","Bearer " + token);
+                  		headers.put("Content-Type","application/json");
+
+                  		api_response = invokeurl
+                  		[
+                  			url :"https://api.line.me/v2/bot/message/push"
+                  			type :POST
+                  			parameters:payload.toString()
+                  			headers:headers
+                  		];
+                  		res.put("success",true);
+                  		res.put("api_response",api_response);
+                  		return res;
+                  	}
+                  	catch (e)
+                  	{
+                  		res.put("success",false);
+                  		res.put("message","LINE push error: " + e.toString());
+                  		return res;
+                  	}
+                 }
+
 map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                  {
+
                   	// =============================================================================
                   	// Creator API：LINE LIFF 入口（MVP）
                   	// Input : lineUserId, birthday(YYYY-MM-DD), question
@@ -7514,6 +7569,20 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   		next_action.put("currency","TWD");
                   		next_action.put("cta_label","解鎖完整版/購買符令");
                   		api_result.put("next_action",next_action);
+
+                  		// 6) Push summary to LINE (MVP: text + unlock hint)
+                  		try
+                  		{
+                  			base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
+                  			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url + "?div=" + new_log_id.toString(), "（待設定 LIFF URL）"));
+                  			line_text = "【免費摘要】\n" + summary_text + unlock_hint;
+                  			ignore = thisapp.API.LINE_PushText(lineUserId,line_text);
+                  		}
+                  		catch (pushErr)
+                  		{
+                  			// ignore
+                  		}
+
                   		return api_result;
                   	}
                   	catch (e)
@@ -7679,6 +7748,46 @@ string API.ECPayReturn(map ecpay_params)
 				catch (e)
 				{
 					// 不影響回拋主要流程
+				}
+
+				// 4) 付款成功後：生成完整版並推播到 LINE（MVP）
+				try
+				{
+					if(new_status == "Paid" && should_notify == true && order_rec != null)
+					{
+						div_id = if(order_rec.Divination_Log_Link != null,order_rec.Divination_Log_Link.toString(),"");
+						line_uid2 = if(order_rec.Line_User_ID != null,order_rec.Line_User_ID,"");
+						if(div_id != "" && line_uid2 != "")
+						{
+							div_logs = Divination_Logs[ID == div_id.toLong()];
+							for each  d in div_logs
+							{
+								full_text = "";
+								if(d.AI_Interpretation_Full != null && d.AI_Interpretation_Full != "")
+								{
+									full_text = d.AI_Interpretation_Full;
+								}
+								else
+								{
+									full_prompt = "你是專業占卜師（塔羅+易經）。請針對以下問題，提供完整版解讀（約800~1200字），用繁體中文，語氣溫柔但冷靜，包含：\n" +
+										"1) 現況與核心矛盾\n2) 走勢與關鍵提醒\n3) 具體行動建議（3點）\n4) 一句收束祝福。\n\n" +
+										"問題：" + d.Original_Question;
+									full_text = thisapp.OpenAI.callChatGPT(full_prompt);
+									d.AI_Interpretation_Full=full_text;
+									d.Status="已購買";
+								}
+								base_url2 = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
+								link_text = if(base_url2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?div=" + div_id, "");
+								msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
+								ignore2 = thisapp.API.LINE_PushText(line_uid2,msg_text);
+								break;
+							}
+						}
+					}
+				}
+				catch (e_push_full)
+				{
+					// ignore
 				}
 
 result.put("success",true);
