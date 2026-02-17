@@ -4540,9 +4540,11 @@
 	variables
 	{
 		thisapp.variables.ECPay.hashIV = "EkRm7iFT261dpevs";
-		thisapp.variables.ECPay.hashIV_Production = "GlsOEM4htA5coPXD";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.ECPay.hashIV_Production = "<SET_IN_CREATOR_UI>";
 		thisapp.variables.ECPay.hashKey = "pwFHCqoQZGmho4w6";
-		thisapp.variables.ECPay.hashKey_Production = "YybeAHTw9sWUmyGN";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.ECPay.hashKey_Production = "<SET_IN_CREATOR_UI>";
 		thisapp.variables.ECPay.merchantID = 3002607;
 		thisapp.variables.ECPay.merchantID_Production = 3333458;
 		thisapp.variables.ECPay.PublicKey = "8HVQ9CPrtTatKJvBrVXqOfa3y";
@@ -4551,7 +4553,8 @@
 		thisapp.variables.ECPay.ReturnURL_Production = "";
 		thisapp.variables.ECPay.ClientBackURL_Production = "";
 
-		thisapp.variables.OpenAI.OpenAI_API_Key = "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";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.OpenAI.OpenAI_API_Key = "<SET_IN_CREATOR_UI>";
 		thisapp.variables.OpenAI.OpenAI_API_URL = "https://api.openai.com/v1/chat/completions";
 		thisapp.variables.OpenAI.OpenAI_Assistant_ID = "asst_HBPtMUAYxX8Gxe17bUFL0m0W";
 		thisapp.variables.OpenAI.OpenAI_Model = "gpt-4";
@@ -4567,8 +4570,10 @@
 		// LINE Messaging API channel access token (set before launch)
 		thisapp.variables.System.LINE_ChannelAccessToken = "";
 		thisapp.variables.System.zoho_client_id = "1000.AF2I35WXIXZEMMT0MTKZMLEFNZCU5U";
-		thisapp.variables.System.zoho_client_secret = "08bded57ec6048610787145e9fc4ae0ab39a4c0a1f";
-		thisapp.variables.System.zoho_internal_api_refresh_token = "1000.776cd1024523fe1ae7573bf90f45e5dd.34f44c13d58e9c2f6de8168d6e8ebd0d";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.System.zoho_client_secret = "<SET_IN_CREATOR_UI>";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.System.zoho_internal_api_refresh_token = "<SET_IN_CREATOR_UI>";
 
 		thisapp.variables.ToneStyle.Tone_Prompts_Map = "村上春樹：請用村上的文風；莎士比亞：請用莎士比亞的風格，並帶有神性的高維度宇宙行者的個性、口吻等等";
 	}
@@ -4653,8 +4658,9 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  		highest_similarity = 0.0;
                  		for each  past_question in recent_questions
                  		{
-                 			// 只檢查成功的記錄
-                 			if(past_question.Status == "成功")
+                 			// 只檢查有效的記錄（狀態 picklist 以 DS 為準）
+                 			valid_status = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+                 			if(valid_status)
                  			{
                  				// 計算問題相似度
                  				similarity_result = thisapp.AIInterpreter.compareQuestionSimilarity(question_text,past_question.Original_Question);
@@ -4691,8 +4697,9 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  		recent_same_type_questions = 0;
                  		for each  past_question in recent_questions
                  		{
-                 			// 只檢查成功的記錄，且在6小時內，且類型相同
-                 			if(past_question.Status == "成功" && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
+                 			// 只檢查有效的記錄，且在6小時內，且類型相同
+                 			valid_status2 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+                 			if(valid_status2 && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
                  			{
                  				recent_same_type_questions = recent_same_type_questions + 1;
                  			}
@@ -4704,7 +4711,8 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  			last_same_type_time = null;
                  			for each  past_question in recent_questions
                  			{
-                 				if(past_question.Status == "成功" && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
+                 				valid_status3 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+				if(valid_status3 && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
                  				{
                  					if(last_same_type_time == null || past_question.Divination_Timestamp > last_same_type_time)
                  					{
@@ -4733,8 +4741,9 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  		question_types_in_24h = List();
                  		for each  past_question in recent_questions
                  		{
-                 			// 只檢查成功的記錄，且在24小時內
-                 			if(past_question.Status == "成功" && past_question.Divination_Timestamp >= twenty_four_hours_ago)
+                 			// 只檢查有效的記錄，且在24小時內
+                 			valid_status4 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+                 			if(valid_status4 && past_question.Divination_Timestamp >= twenty_four_hours_ago)
                  			{
                  				// 如果這個類型還沒記錄過，加入列表
                  				type_exists = false;
@@ -4769,7 +4778,8 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
                  			earliest_time_in_24h = null;
                  			for each  past_question in recent_questions
                  			{
-                 				if(past_question.Status == "成功" && past_question.Divination_Timestamp >= twenty_four_hours_ago)
+                 				valid_status5 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+				if(valid_status5 && past_question.Divination_Timestamp >= twenty_four_hours_ago)
                  				{
                  					if(earliest_time_in_24h == null || past_question.Divination_Timestamp < earliest_time_in_24h)
                  					{
@@ -7420,7 +7430,9 @@ map API.LINE_PushText(string lineUserId, string messageText)
                   		msg = Map();
                   		msg.put("type","text");
                   		msg.put("text",messageText);
-                  		payload.put("messages",{msg});
+                  		messages_list = List();
+                   		messages_list.add(msg);
+                   		payload.put("messages",messages_list);
 
                   		headers = Map();
                   		headers.put("Authorization","Bearer " + token);
@@ -7497,7 +7509,7 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   			birth_dt = null;
                   			try
                   			{
-                  				birth_dt = birthday.toDate();
+                  				birth_dt = birthday.toDate("yyyy-MM-dd");
                   			}
                   			catch (e0)
                   			{
@@ -7535,7 +7547,10 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   		}
                   		if(cooldown_check != null && cooldown_check.get("allowed") == false)
                   		{
-                  			api_result.put("success",false);
+                  			// 冷卻是正常結果，不應讓前端誤判為系統錯誤
+                  			api_result.put("success",true);
+                  			api_result.put("blocked",true);
+                  			api_result.put("cooldown",true);
                   			api_result.put("message",if(cooldown_check.get("message") != null,cooldown_check.get("message"),"冷卻中，請稍後再來"));
                   			return api_result;
                   		}
