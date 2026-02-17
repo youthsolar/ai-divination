@@ -4539,16 +4539,20 @@
 
 	variables
 	{
-		thisapp.variables.ECPay.hashIV = "EkRm7iFT261dpevs";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.ECPay.hashIV = "<SET_IN_CREATOR_UI>";
 		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
 		thisapp.variables.ECPay.hashIV_Production = "<SET_IN_CREATOR_UI>";
-		thisapp.variables.ECPay.hashKey = "pwFHCqoQZGmho4w6";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.ECPay.hashKey = "<SET_IN_CREATOR_UI>";
 		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
 		thisapp.variables.ECPay.hashKey_Production = "<SET_IN_CREATOR_UI>";
-		thisapp.variables.ECPay.merchantID = 3002607;
+		// IMPORTANT: do NOT commit account identifiers. Set in Creator UI only.
+		thisapp.variables.ECPay.merchantID = 0;
 		// IMPORTANT: do NOT commit account identifiers. Set in Creator UI only.
 		thisapp.variables.ECPay.merchantID_Production = 0;
-		thisapp.variables.ECPay.PublicKey = "8HVQ9CPrtTatKJvBrVXqOfa3y";
+		// IMPORTANT: do NOT commit real secrets. Set in Creator UI only.
+		thisapp.variables.ECPay.PublicKey = "<SET_IN_CREATOR_UI>";
 
 		// ECPay callback URLs (MVP placeholders; set to real public endpoints before launch)
 		thisapp.variables.ECPay.ReturnURL_Production = "";
