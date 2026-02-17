@@ -7403,11 +7403,26 @@ map API.CreateTalismanOrder_v2(string firstName, string lastName, string email, 
                   	return result;
                  }
 
+string API.jsonEscape(string s)
+                 {
+                  	// Minimal JSON string escaper (Deluge)
+                  	if(s == null)
+                  	{
+                  		return "";
+                  	}
+                  	out = s;
+                  	out = out.replaceAll("\\\\","\\\\\\\\");
+                  	out = out.replaceAll("\"","\\\\\"");
+                  	out = out.replaceAll("\r","\\n");
+                  	out = out.replaceAll("\n","\\n");
+                  	return out;
+                 }
+
 map API.LINE_PushText(string lineUserId, string messageText)
                  {
                   	// =============================================================================
                   	// Creator API：LINE Push Message（純文字）
-                  	// 依 thisapp.variables.System.LINE_ChannelAccessToken 呼叫 LINE Messaging API
+                  	// 以「手動組 JSON」方式，避免 Map.toString() 非標準 JSON 造成 LINE 400
                   	// =============================================================================
                   	res = Map();
                   	try
@@ -7425,26 +7440,14 @@ map API.LINE_PushText(string lineUserId, string messageText)
                   			res.put("message","lineUserId 為空");
                   			return res;
                   		}
-                  		payload = Map();
-                  		payload.put("to",lineUserId);
-                  		msg = Map();
-                  		msg.put("type","text");
-                  		msg.put("text",messageText);
-                  		messages_list = List();
-                   		messages_list.add(msg);
-                   		payload.put("messages",messages_list);
+                  		text_escaped = thisapp.API.jsonEscape(messageText);
+                  		json_body = "{\"to\":\"" + lineUserId + "\",\"messages\":[{\"type\":\"text\",\"text\":\"" + text_escaped + "\"}]}";
 
                   		headers = Map();
                   		headers.put("Authorization","Bearer " + token);
                   		headers.put("Content-Type","application/json");
 
-                  		api_response = invokeurl
-                  		[
-                  			url :"https://api.line.me/v2/bot/message/push"
-                  			type :POST
-                  			parameters:payload.toString()
-                  			headers:headers
-                  		];
+                  		api_response = postUrl("https://api.line.me/v2/bot/message/push",json_body,headers);
                   		res.put("success",true);
                   		res.put("api_response",api_response);
                   		return res;
@@ -7612,7 +7615,8 @@ map API.LIFF_Divination_MVP(string lineUserId, string birthday, string question)
                   		try
                   		{
                   			base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
-                  			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url + "?div=" + new_log_id.toString(), "（待設定 LIFF URL）"));
+                  			// Security: free summary link should NOT expose numeric div id. Link back to LIFF entry only.
+                   			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url, "（待設定 LIFF URL）"));
                   			line_text = "【免費摘要】\n" + summary_text + unlock_hint;
                   			ignore = thisapp.API.LINE_PushText(lineUserId,line_text);
                   		}
@@ -7815,7 +7819,8 @@ string API.ECPayReturn(map ecpay_params)
 									d.Status="已購買";
 								}
 								base_url2 = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
-								link_text = if(base_url2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?div=" + div_id, "");
+								delivery_token2 = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
+							link_text = if(base_url2 != "" && delivery_token2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?token=" + delivery_token2, "");
 								msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
 								ignore2 = thisapp.API.LINE_PushText(line_uid2,msg_text);
 								break;
