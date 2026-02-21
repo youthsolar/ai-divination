@@ -251,7 +251,7 @@
   <div class="winds-page">
     <div class="winds-header">
       <h1>占卜（MVP）</h1>
-      <p>只需要：生日（含時間）＋問題<br>送出後你會在此看到摘要，也會在 LINE 收到</p>
+      <p>只需要：生日＋問題<br>送出後你會在此看到摘要，也會在 LINE 收到</p>
     </div>
 
     <div id="status" class="winds-status"></div>
@@ -263,7 +263,7 @@
           <input id="birthDate" type="date" class="winds-input">
         </div>
         <div class="winds-field">
-          <label for="birthTime">出生時間<span class="winds-required">*</span></label>
+          <label for="birthTime">出生時間（選填）</label>
           <input id="birthTime" type="time" step="60" class="winds-input">
         </div>
       </div>
@@ -291,7 +291,7 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
     var LIFF_ID = "2009168674-G2KqF3Jv";
-    var API_URL = "https://liff-api-proxy.youthsun.workers.dev";
+    var API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/LINE_LIFF_Fetch_API?public_key=wqWnHTZqhSTFBNTARwwNjAERw";
 
     function $(id) { return document.getElementById(id); }
 
@@ -325,11 +325,10 @@
         hideStatus();
 
         var birthDate = $("birthDate").value;
-        var birthTime = $("birthTime").value;
         var question  = $("question").value.trim();
 
-        if (!birthDate || !birthTime || !question) {
-          showStatus("請填寫完整：出生日期、出生時間、問題", "err");
+        if (!birthDate || !question) {
+          showStatus("請填寫完整：出生日期、問題", "err");
           btn.disabled = false;
           btn.textContent = "送出占卜";
           return;
