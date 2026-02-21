@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>占卜（MVP）— 找風問幸福</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #faf8f6;
+      color: #474747;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @keyframes windsFadeInUp {
+      0%   { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .winds-page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    .winds-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .winds-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 6px 0;
+    }
+
+    .winds-header p {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    .winds-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 18px;
+      border: 0.5px solid #dcd2d2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+
+    .winds-field {
+      margin-bottom: 14px;
+    }
+
+    .winds-field:last-child {
+      margin-bottom: 0;
+    }
+
+    .winds-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #474747;
+    }
+
+    .winds-required {
+      color: #d9534f;
+      margin-left: 2px;
+    }
+
+    .winds-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #dcd2d2;
+      font-size: 14px;
+      outline: none;
+      color: #474747;
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .winds-input:focus {
+      border-color: #5a656b;
+      box-shadow: 0 0 0 2px rgba(90,101,107,0.12);
+    }
+
+    .winds-input::placeholder {
+      color: #999;
+      font-size: 13px;
+    }
+
+    .winds-textarea {
+      width: 100%;
+      min-height: 100px;
+      border-radius: 8px;
+      border: 1px solid #dcd2d2;
+      padding: 10px 12px;
+      font-size: 14px;
+      resize: vertical;
+      outline: none;
+      line-height: 1.6;
+      color: #474747;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .winds-textarea:focus {
+      border-color: #5a656b;
+      box-shadow: 0 0 0 2px rgba(90,101,107,0.12);
+    }
+
+    .winds-textarea::placeholder {
+      color: #999;
+      font-size: 13px;
+    }
+
+    .winds-birth-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .winds-birth-row .winds-field {
+      flex: 1;
+    }
+
+    .winds-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .winds-btn:active {
+      transform: scale(0.98);
+    }
+
+    .winds-btn-primary {
+      background: #3b262a;
+      color: #fff;
+    }
+
+    .winds-btn-primary:hover {
+      background: #4a333a;
+    }
+
+    .winds-btn-primary:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .winds-btn-outline {
+      background: #fff;
+      color: #3b262a;
+      border: 1px solid #5a656b;
+    }
+
+    .winds-btn-outline:hover {
+      background: #f0e6e6;
+    }
+
+    .winds-status {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      animation: windsFadeInUp 0.3s ease-out;
+    }
+
+    .winds-status.info {
+      background: #e7f1ff;
+      border: 1px solid #cfe2ff;
+      color: #1a4a7a;
+    }
+
+    .winds-status.warn {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      color: #664d03;
+    }
+
+    .winds-status.err {
+      background: #f8d7da;
+      border: 1px solid #f5c2c7;
+      color: #842029;
+    }
+
+    .winds-result {
+      display: none;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    .winds-result-label {
+      font-size: 12px;
+      color: #5a656b;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .winds-result-text {
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 14px;
+      color: #3b262a;
+      padding: 14px;
+      background: #faf8f6;
+      border-radius: 8px;
+      border: 1px solid #f0e6e6;
+      margin-bottom: 14px;
+    }
+
+    .winds-divider {
+      height: 1px;
+      background: #f0e6e6;
+      margin: 20px 0;
+    }
+
+    .winds-footer {
+      text-align: center;
+      color: #999;
+      font-size: 11px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 380px) {
+      .winds-birth-row {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="winds-page">
+    <div class="winds-header">
+      <h1>占卜（MVP）</h1>
+      <p>只需要：生日（含時間）＋問題<br>送出後你會在此看到摘要，也會在 LINE 收到</p>
+    </div>
+
+    <div id="status" class="winds-status"></div>
+
+    <div class="winds-card">
+      <div class="winds-birth-row">
+        <div class="winds-field">
+          <label for="birthDate">出生日期<span class="winds-required">*</span></label>
+          <input id="birthDate" type="date" class="winds-input">
+        </div>
+        <div class="winds-field">
+          <label for="birthTime">出生時間<span class="winds-required">*</span></label>
+          <input id="birthTime" type="time" step="60" class="winds-input">
+        </div>
+      </div>
+
+      <div class="winds-field" style="margin-top:14px;">
+        <label for="question">問題<span class="winds-required">*</span></label>
+        <textarea id="question" class="winds-textarea" placeholder="例如：我跟他還有機會嗎？/ 我該不該換工作？"></textarea>
+      </div>
+    </div>
+
+    <button id="submitBtn" class="winds-btn winds-btn-primary">送出占卜</button>
+
+    <div id="result" class="winds-result">
+      <div class="winds-divider"></div>
+      <div class="winds-card">
+        <div class="winds-result-label">免費摘要</div>
+        <div id="summaryText" class="winds-result-text"></div>
+        <button id="unlockBtn" class="winds-btn winds-btn-outline" disabled>解鎖完整版 / 購買符令（即將開放）</button>
+      </div>
+    </div>
+
+    <div class="winds-footer">找風問幸福 &copy; 宇風企管顧問有限公司</div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    var LIFF_ID = "2009168674-G2KqF3Jv";
+    var API_URL = "https://liff-api-proxy.youthsun.workers.dev";
+
+    function $(id) { return document.getElementById(id); }
+
+    function showStatus(msg, type) {
+      var el = $("status");
+      if (!el) return;
+      el.className = "winds-status " + (type || "info");
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    function hideStatus() {
+      var el = $("status");
+      if (el) el.style.display = "none";
+    }
+
+    function initLiff() {
+      return liff.init({ liffId: LIFF_ID }).then(function() {
+        if (!liff.isLoggedIn()) liff.login();
+      });
+    }
+
+    function submit() {
+      var btn = $("submitBtn");
+      if (btn.disabled) return;
+
+      try {
+        btn.disabled = true;
+        btn.textContent = "處理中…";
+        $("result").style.display = "none";
+        hideStatus();
+
+        var birthDate = $("birthDate").value;
+        var birthTime = $("birthTime").value;
+        var question  = $("question").value.trim();
+
+        if (!birthDate || !birthTime || !question) {
+          showStatus("請填寫完整：出生日期、出生時間、問題", "err");
+          btn.disabled = false;
+          btn.textContent = "送出占卜";
+          return;
+        }
+
+        var birthday = birthDate;
+
+        liff.getProfile().then(function(profile) {
+          showStatus("送出中…請稍候", "info");
+
+          return fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lineUserId: profile.userId,
+              birthday: birthday,
+              question: question
+            })
+          });
+        }).then(function(resp) {
+          if (!resp.ok) {
+            return resp.json().catch(function() { return {}; }).then(function(d) {
+              throw new Error("HTTP " + resp.status + "：" + (d.message || "伺服器錯誤"));
+            });
+          }
+          return resp.json();
+        }).then(function(data) {
+          if (data.success === false) {
+            showStatus(data.message || "發生錯誤", "err");
+            return;
+          }
+
+          if (data.blocked) {
+            showStatus(data.message || "冷卻中，請稍後再來", "warn");
+            return;
+          }
+
+          var summary = data.summary_text || "";
+          $("summaryText").textContent = summary;
+          $("result").style.display = "block";
+
+          if (data.line_pushed === false) {
+            showStatus("摘要已產生，但 LINE 推播未成功", "warn");
+          } else {
+            showStatus("完成！摘要已顯示，LINE 也會收到。", "info");
+          }
+        }).catch(function(e) {
+          showStatus("錯誤：" + e.toString(), "err");
+        }).then(function() {
+          btn.disabled = false;
+          btn.textContent = "送出占卜";
+        });
+
+      } catch (e) {
+        showStatus("錯誤：" + e.toString(), "err");
+        btn.disabled = false;
+        btn.textContent = "送出占卜";
+      }
+    }
+
+    $("submitBtn").addEventListener("click", function() { submit(); });
+
+    initLiff().catch(function(e) {
+      showStatus("LIFF 初始化失敗：" + e, "err");
+    });
+  </script>
+</body>
+</html>
