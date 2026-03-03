@@ -1,0 +1,182 @@
+list LunarAI.getLunarMonthStructure(int year)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getLunarMonthStructure
+	// 函數用途：取得指定年份的農曆大小月結構
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：回傳 1930-2049 年每年農曆各月的天數（大月 30 / 小月 29），
+	//           閏月年份會多一個元素。
+	// 參數說明：
+	//   - year (int): 農曆年份（1930-2049）
+	// 回傳格式：list - 該年各月天數的 List，查無資料回傳 {0}
+	// 相依性：無（純資料）
+	// 注意：此函數包含農曆曆法核心資料，所有數值不得修改！
+	// =============================================================================
+	lunar_month_structure_map = Map();
+	lunar_month_structure_map.put("1930",{30,29,30,29,30,29,29,29,30,29,30,29,30});
+	// 閏六月小
+	lunar_month_structure_map.put("1931",{29,30,29,30,29,30,29,29,30,29,30,30});
+	lunar_month_structure_map.put("1932",{29,30,29,30,29,30,29,29,30,29,30,30});
+	lunar_month_structure_map.put("1933",{29,30,29,30,29,30,30,29,30,29,30,29,30});
+	// 閏五月大
+	lunar_month_structure_map.put("1934",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1935",{30,29,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1936",{29,30,29,30,29,30,29,30,29,29,30,29,30});
+	// 閏三月大
+	lunar_month_structure_map.put("1937",{29,30,29,30,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1938",{30,29,30,29,30,30,29,30,30,29,30,29,30});
+	// 閏七月大
+	lunar_month_structure_map.put("1939",{29,30,29,30,29,30,30,29,30,29,30,30});
+	lunar_month_structure_map.put("1940",{29,30,29,30,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1941",{30,29,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏六月大
+	lunar_month_structure_map.put("1942",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1943",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1944",{30,29,30,30,29,29,30,29,30,29,30,29,30});
+	// 閏四月大
+	lunar_month_structure_map.put("1945",{29,30,29,30,29,30,29,30,30,29,30,29});
+	lunar_month_structure_map.put("1946",{30,29,30,29,30,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1947",{29,30,29,29,30,29,30,29,30,29,30,30,29});
+	// 閏二月小
+	lunar_month_structure_map.put("1948",{30,29,30,29,30,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("1949",{29,30,29,30,29,30,29,30,29,30,29,30,29});
+	// 閏七月小
+	lunar_month_structure_map.put("1950",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1951",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1952",{30,29,30,30,29,30,29,30,29,30,29,30,29});
+	// 閏五月大
+	lunar_month_structure_map.put("1953",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1954",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1955",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏三月大
+	lunar_month_structure_map.put("1956",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1957",{30,29,30,29,30,29,30,29,29,30,29,30,29});
+	// 閏八月小
+	lunar_month_structure_map.put("1958",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1959",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1960",{30,29,30,30,29,30,29,30,29,30,29,30,29});
+	// 閏六月小
+	lunar_month_structure_map.put("1961",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1962",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1963",{30,29,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏四月小
+	lunar_month_structure_map.put("1964",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1965",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1966",{30,29,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏三月小
+	lunar_month_structure_map.put("1967",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1968",{30,29,30,30,29,30,29,30,29,30,29,30,29});
+	// 閏七月小
+	lunar_month_structure_map.put("1969",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1970",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1971",{30,30,29,30,29,30,30,29,30,29,30,29,30});
+	// 閏五月小
+	lunar_month_structure_map.put("1972",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1973",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1974",{30,30,29,30,29,29,30,29,29,30,30,29,30});
+	// 閏四月小
+	lunar_month_structure_map.put("1975",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1976",{29,30,30,29,30,29,30,29,30,30,29,30,29});
+	// 閏八月小
+	lunar_month_structure_map.put("1977",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1978",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1979",{30,30,29,30,29,30,30,29,30,29,30,29,30});
+	// 閏六月大
+	lunar_month_structure_map.put("1980",{29,30,30,29,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1981",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1982",{30,29,30,29,29,30,29,30,29,30,29,30,29});
+	// 閏四月小
+	lunar_month_structure_map.put("1983",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1984",{29,30,30,29,30,29,30,29,30,29,29,29,30});
+	// 閏十月小
+	lunar_month_structure_map.put("1985",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1986",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1987",{30,30,29,30,29,30,29,30,29,30,29,30,29});
+	// 閏六月小
+	lunar_month_structure_map.put("1988",{29,30,30,29,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1989",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1990",{30,29,30,29,30,29,29,30,29,30,29,30,29});
+	// 閏五月小
+	lunar_month_structure_map.put("1991",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1992",{29,30,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1993",{29,30,29,29,30,29,30,29,30,29,30,29,30});
+	// 閏三月小
+	lunar_month_structure_map.put("1994",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1995",{30,30,29,30,29,30,29,30,29,30,29,30,29});
+	// 閏八月小
+	lunar_month_structure_map.put("1996",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1997",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1998",{30,29,30,29,30,29,29,30,29,30,29,30,29});
+	// 閏五月小
+	lunar_month_structure_map.put("1999",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2000",{29,30,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2001",{29,30,29,30,29,29,30,29,30,29,30,29,30});
+	// 閏四月小
+	lunar_month_structure_map.put("2002",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2003",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2004",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏二月小
+	lunar_month_structure_map.put("2005",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2006",{30,29,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏七月小
+	lunar_month_structure_map.put("2007",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2008",{29,30,30,29,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2009",{29,30,29,30,29,29,30,29,30,29,30,29,30});
+	// 閏五月小
+	lunar_month_structure_map.put("2010",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2011",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2012",{29,30,30,29,29,29,30,29,30,29,30,29,30});
+	// 閏四月小
+	lunar_month_structure_map.put("2013",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2014",{30,29,30,29,30,29,30,29,30,29,29,30,29});
+	// 閏九月小
+	lunar_month_structure_map.put("2015",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2016",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2017",{29,30,29,30,29,30,30,30,29,30,29,30,30});
+	// 閏六月大
+	lunar_month_structure_map.put("2018",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2019",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2020",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏四月小
+	lunar_month_structure_map.put("2021",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2022",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2023",{30,30,29,29,30,29,30,29,30,29,30,29,30});
+	// 閏二月小
+	lunar_month_structure_map.put("2024",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2025",{30,29,30,29,29,30,29,30,29,30,30,30,29});
+	// 閏六月小
+	lunar_month_structure_map.put("2026",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2027",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2028",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏五月小
+	lunar_month_structure_map.put("2029",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2030",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2031",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏三月小
+	lunar_month_structure_map.put("2032",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2033",{30,30,29,30,29,30,29,30,29,30,29,29,29});
+	// 閏十一月小
+	lunar_month_structure_map.put("2034",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2035",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2036",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	// 閏六月大
+	lunar_month_structure_map.put("2037",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2038",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2039",{30,30,29,30,29,29,29,30,29,30,29,30});
+	// 閏五月小
+	lunar_month_structure_map.put("2040",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2041",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2042",{30,30,29,29,30,29,30,29,30,29,30,29,30});
+	// 閏二月小
+	lunar_month_structure_map.put("2043",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2044",{30,29,30,30,29,30,29,29,29,30,29,30,29});
+	// 閏七月小
+	lunar_month_structure_map.put("2045",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2046",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2047",{30,30,29,30,29,30,29,30,29,30,29,30,30});
+	// 閏五月大
+	lunar_month_structure_map.put("2048",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2049",{30,29,30,29,30,29,30,29,30,29,30,29});
+	return ifnull(lunar_month_structure_map.get(year.toString()),{0});
+}

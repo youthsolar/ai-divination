@@ -1,0 +1,115 @@
+map Talisman.getTalismanRecommendation(int divination_log_id)
+{
+	// =============================================================================
+	// 函數名稱：Talisman.getTalismanRecommendation
+	// 函數用途：推薦下一張適合的數位符令
+	// 平台：Zoho Creator
+	// 命名空間：Talisman
+	// 功能描述：
+	//   - 根據傳入的占卜記錄 ID 查詢 Divination_Logs 表單
+	//   - 從 Current_Talisman_Index 計算下一張推薦符令序列（+1）
+	//   - 若超過 5 張則表示已推薦完畢
+	//   - 根據爻碼查詢 I_Ching_Form 表單取得符令五行屬性（symbol_1~5）
+	//   - 從卦符圖片 HTML 中解析提取圖片 URL
+	//   - 回傳完整推薦資料
+	// 參數說明：
+	//   - divination_log_id (int): 來自 "Divination_Logs" 表單的紀錄 ID
+	// 回傳格式：map - 包含推薦結果
+	//   - success (boolean): 操作是否成功
+	//   - recommendation_available (boolean): 是否還有可推薦的符令
+	//   - message (string): 操作結果的文字說明
+	//   - talisman_index (int): 推薦的符令序列號 (1-5)
+	//   - talisman_element (string): 推薦符令的五行屬性（金、木、水、火、土）
+	//   - hexagram_code (string): 對應的易經爻碼（例如 "111010"）
+	//   - hexagram_appearance (string): 卦象的中文名稱（例如 "天水訟"）
+	//   - hexagram_image_url (string): 卦象的本位卦符圖片 URL
+	//   - divination_log_id (int): 傳入的占卜記錄 ID
+	//   - error (string): 如果 success 為 false，則包含錯誤訊息
+	// 相依性：Divination_Logs 表單, I_Ching_Form 表單
+	// =============================================================================
+	final_response = Map();
+	final_response.put("success",false);
+	final_response.put("recommendation_available",false);
+	final_response.put("divination_log_id",divination_log_id);
+	try
+	{
+		// 步驟 1：根據傳入的 ID 查找占卜記錄
+		log_record = Divination_Logs[ID == divination_log_id.toLong()];
+		if(log_record == null)
+		{
+			final_response.put("error","找不到 ID 為 " + divination_log_id + " 的占卜記錄。");
+			return final_response;
+		}
+		// 步驟 2：從占卜記錄中獲取當前符令進度與對應的爻碼
+		// Current_Talisman_Index 記錄了「已購買」的符令數量，初始值為 0
+		current_index = ifnull(log_record.Current_Talisman_Index,0);
+		hexagram_code = log_record.Hexagram_Code;
+		// 步驟 3：計算下一張要推薦的符令序列
+		next_talisman_index = current_index + 1;
+		// 步驟 4：檢查是否所有符令都已推薦完畢
+		if(next_talisman_index > 5)
+		{
+			final_response.put("success",true);
+			final_response.put("recommendation_available",false);
+			final_response.put("message","此卦象的5張符令均已推薦完畢。");
+			return final_response;
+		}
+		// 步驟 5：根據爻碼查詢易經表單，獲取符令與卦象的詳細資料
+		// **型別轉換**：I_Ching_Form 的 'yao' (文字) vs log_record.Hexagram_Code (數字)
+		i_ching_record = I_Ching_Form[yao == hexagram_code.toString()];
+		if(i_ching_record == null)
+		{
+			final_response.put("error","在 I_Ching_Form 中找不到爻碼為 " + hexagram_code + " 的資料。");
+			return final_response;
+		}
+		// 步驟 6：根據推薦的序列號 (1-5)，動態獲取對應符令的五行屬性
+		talisman_element = "";
+		if(next_talisman_index == 1)
+		{
+			talisman_element = i_ching_record.symbol_1;
+		}
+		else if(next_talisman_index == 2)
+		{
+			talisman_element = i_ching_record.symbol_2;
+		}
+		else if(next_talisman_index == 3)
+		{
+			talisman_element = i_ching_record.symbol_3;
+		}
+		else if(next_talisman_index == 4)
+		{
+			talisman_element = i_ching_record.symbol_4;
+		}
+		else if(next_talisman_index == 5)
+		{
+			talisman_element = i_ching_record.symbol_5;
+		}
+		// 步驟 7：獲取並解析卦符圖片的 URL
+		// Zoho Creator 的圖片欄位會回傳一個 <img> HTML 標籤，我們需要從中提取 src 屬性
+		image_html = i_ching_record.Gua_symbol_Image;
+		image_url = "";
+		if(image_html != null && image_html.contains("src='"))
+		{
+			start_index = image_html.indexOf("'") + 1;
+			end_index = image_html.lastIndexOf("'");
+			if(start_index < end_index)
+			{
+				image_url = image_html.substring(start_index,end_index);
+			}
+		}
+		// 步驟 8：準備成功的回傳結果
+		final_response.put("success",true);
+		final_response.put("recommendation_available",true);
+		final_response.put("message","成功推薦第 " + next_talisman_index + " 張符令。");
+		final_response.put("talisman_index",next_talisman_index);
+		final_response.put("talisman_element",talisman_element);
+		final_response.put("hexagram_code",hexagram_code);
+		final_response.put("hexagram_appearance",i_ching_record.appearance);
+		final_response.put("hexagram_image_url",image_url);
+	}
+	catch (e)
+	{
+		final_response.put("error","在推薦符令時發生未知錯誤：" + e);
+	}
+	return final_response;
+}

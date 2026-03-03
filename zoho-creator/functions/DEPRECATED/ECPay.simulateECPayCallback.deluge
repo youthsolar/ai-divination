@@ -1,0 +1,33 @@
+void ECPay.simulateECPayCallback()
+{
+	// =============================================================================
+	// ⚠️ 已廢棄：此函數已標記為廢棄，不應在生產環境中使用。
+	// 原函數用途：測試工具 — 模擬綠界付款成功的回調
+	// 廢棄原因：呼叫了同樣已廢棄的 Webhook.handleECPayReturn，且無任何 caller
+	// 封存日期：2026-02-25
+	// =============================================================================
+	info "======= 模擬 ECPay 付款成功回調 =======";
+	// 模擬綠界付款成功後回傳的參數（基於真實的 ECPay 回調格式）
+	mockParams = Map();
+	mockParams.put("MerchantID","3002607");
+	mockParams.put("MerchantTradeNo","LAI20250805232706");
+	mockParams.put("RtnCode","1");
+	mockParams.put("RtnMsg","Succeeded");
+	mockParams.put("TradeNo","2408052327000123");
+	mockParams.put("TradeAmt","50");
+	mockParams.put("PaymentDate","2025/08/05 23:27:30");
+	mockParams.put("PaymentType","Credit_CreditCard");
+	mockParams.put("TradeDate","2025/08/05 23:27:06");
+	mockParams.put("CheckMacValue","MOCK_CHECK_MAC_VALUE_FOR_TEST");
+	info "模擬的回調參數：" + mockParams;
+	try
+	{
+		result = thisapp.Webhook.handleECPayReturn(mockParams);
+		info "Webhook 處理結果：" + result;
+	}
+	catch (e)
+	{
+		info "Webhook 執行失敗：" + e;
+	}
+	info "======= 模擬測試完成 =======";
+}

@@ -1,0 +1,64 @@
+map Hexagram.getHexagramByYaoCode(string yao_code)
+{
+	// =============================================================================
+	// 函數名稱：getHexagramByYaoCode
+	// 函數用途：根據爻碼（yao_code）查詢卦象的完整資料
+	// 平台：Zoho Creator
+	// 命名空間：Hexagram
+	//
+	// 功能描述：
+	// - 接收六位爻碼字串，查詢 I_Ching_Form 表單中對應的卦象
+	// - 找到時組裝完整的卦象資料 Map（核心文字、主題分析、符令圖示）
+	// - 找不到時回傳 code=4004 的錯誤 Map
+	//
+	// 參數說明：
+	// @param yao_code (string) - 六位數爻碼（例："110100"）
+	//
+	// 回傳格式：
+	// @return (map)
+	//   成功 → { code: 3000, status: "Success", yao_code: "...", yao: "...", appearance: "...", ... }
+	//   失敗 → { code: 4004, status: "Not Found", yao_code: "..." }
+	//
+	// 相依性：
+	// - I_Ching_Form 表單（yao 欄位查詢）
+	//
+	// 注意：
+	// - 此函數為底層查詢函數，被 IChing 模組的 getHexagramDetails 呼叫
+	// =============================================================================
+
+	result = I_Ching_Form[yao == yao_code];
+	if(result == null)
+	{
+		return {"code":4004,"status":"Not Found","yao_code":yao_code};
+	}
+	hex_data = Map();
+	// 卦象核心文字欄位
+	hex_data.put("yao",result.yao);
+	hex_data.put("up_yao",result.up_yao);
+	hex_data.put("down_yao",result.down_yao);
+	hex_data.put("up_appearance",result.up_appearance);
+	hex_data.put("down_appearance",result.down_appearance);
+	hex_data.put("appearance",result.appearance);
+	hex_data.put("five_elements",result.five_elements);
+	hex_data.put("life_and_death",result.life_and_death);
+	// 卦象內文與主題分析
+	hex_data.put("yao_article",result.yao_article);
+	hex_data.put("yao_comment",result.yao_comment);
+	hex_data.put("yao_wish",result.yao_wish);
+	hex_data.put("yao_love",result.yao_love);
+	hex_data.put("yao_work",result.yao_work);
+	hex_data.put("yao_business",result.yao_business);
+	hex_data.put("yao_study",result.yao_study);
+	hex_data.put("yao_travel",result.yao_travel);
+	// 符令與圖示
+	hex_data.put("symbol_1",result.symbol_1);
+	hex_data.put("symbol_2",result.symbol_2);
+	hex_data.put("symbol_3",result.symbol_3);
+	hex_data.put("symbol_4",result.symbol_4);
+	hex_data.put("symbol_5",result.symbol_5);
+	// 回傳成功代碼
+	hex_data.put("code",3000);
+	hex_data.put("status","Success");
+	hex_data.put("yao_code",yao_code);
+	return hex_data;
+}

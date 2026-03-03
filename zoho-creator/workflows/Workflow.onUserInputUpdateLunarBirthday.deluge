@@ -1,0 +1,79 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第6段)
+//
+// [重新命名] LunarAI.SolarToLunar → LunarAI.solarToLunar
+// [重新命名] Bazi.PreciseBaziCalculator → Bazi.preciseBaziCalculator
+//
+//
+// Workflow/Clients_Report/OnEdit_UpdateLunarBirthday.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 上觸發。
+//               當「生日」(Date_Of_Birth) 欄位被填寫或修改時，此腳本會結合
+//               國曆轉農曆以及八字計算的結果，生成一個包含干支年份和出生時辰的
+//               完整農曆生日字串，並更新到「農曆生日」欄位。
+//
+// @trigger_event: On User Input (使用者輸入時)
+// @trigger_form: Clients_Report (個案表單)
+// @trigger_field: Date_Of_Birth (生日)
+//
+// @dependencies:
+//   - thisapp.LunarAI.solarToLunar (函數)
+//   - thisapp.Bazi.preciseBaziCalculator (函數)
+//
+// @placement: 應設定於 Clients_Report 表單的 Date_Of_Birth 欄位的 "On User Input" 事件中。
+//
+// 1. 檢查生日欄位是否存在，若不存在則清空農曆生日欄位並結束。
+if(input.Date_Of_Birth != null)
+{
+	info "--- Workflow Start: Update Lunar Birthday for DOB = " + input.Date_Of_Birth + " ---";
+	// 2. 呼叫核心函數
+	solarToLunarResult = thisapp.LunarAI.solarToLunar(input.Date_Of_Birth);
+	info "1. solarToLunarResult: " + solarToLunarResult;
+	baziResult = thisapp.Bazi.preciseBaziCalculator(input.Date_Of_Birth);
+	info "2. baziResult: " + baziResult;
+	// 3. 從回傳的 Map 中，取出"生日"部分的子 Map。
+	birthdayMap = solarToLunarResult.get("生日");
+	// 4. 確認兩個函數都成功回傳且無錯誤，才進行後續處理。
+	if(birthdayMap != null && birthdayMap.get("error") == "" && baziResult != null && baziResult.get("success") == true)
+	{
+		originalLunarText = birthdayMap.get("中文日期");
+		if(originalLunarText != null && originalLunarText.contains(","))
+		{
+			// a. 從 baziResult 的巢狀 Map 中安全地取得年柱的干支
+			yearPillarDetails = baziResult.get("年柱詳情");
+			// b. 再次檢查巢狀 Map 是否存在
+			if(yearPillarDetails != null)
+			{
+				yearGanZhi = yearPillarDetails.get("stem") + yearPillarDetails.get("branch");
+				// c. 核心修正：直接替換，不再自行拼接時辰
+				// 將 "2023, 十月廿三日 丑時生" 替換成 "癸卯年 十月廿三日 丑時生"
+				finalString = originalLunarText.replaceAll(originalLunarText.toList(",").get(0) + ", ",yearGanZhi + "年 ");
+				// d. 更新欄位
+				input.Lunar_Birthday = finalString;
+			}
+			else
+			{
+				// 如果巢狀 Map 不存在，也視為錯誤
+				input.Lunar_Birthday = "";
+				info "八字計算結果缺少 '年柱詳情' 的巢狀 Map。";
+			}
+		}
+		else
+		{
+			// 如果農曆日期格式不符預期，直接寫入原始回傳文字。
+			input.Lunar_Birthday = originalLunarText;
+		}
+	}
+	else
+	{
+		// 如果任一轉換過程出錯，清空農曆生日欄位並記錄錯誤。
+		input.Lunar_Birthday = "";
+		info "農曆生日或八字轉換失敗：solarToLunar error: " + birthdayMap.get("error") + " / bazi success: " + baziResult.get("success");
+	}
+}
+else
+{
+	// 如果國曆生日欄位被清空，則同步清空農曆生日欄位。
+	input.Lunar_Birthday = "";
+}

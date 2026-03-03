@@ -1,0 +1,141 @@
+map Bazi.calculatePreciseYearPillar(date solar_datetime)
+{
+	// =============================================================================
+	// 函數名稱：Bazi.calculatePreciseYearPillar
+	// 函數用途：精確年柱計算引擎（基於立春）
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：根據國曆日期時間，與 SolarTerms 表中精確「立春」時間比較，
+	//           判斷最準確的八字年份並計算對應的年柱（天干地支）。
+	//           - 查詢立春資料（±60 天窗口優化，避免全表掃描）
+	//           - 套用子時換日（23:00-23:59 視為隔日）
+	//           - 若輸入時間早於立春，八字年份算作上一年
+	//           - 以 1900 年（庚子年）為基準計算干支
+	// 參數說明：
+	//   - solar_datetime (date): 需要計算的國曆日期時間
+	// 回傳格式：map - 包含年柱詳細資訊：
+	//   - "stem" (string): 天干
+	//   - "branch" (string): 地支
+	//   - "pillar" (string): 年柱干支
+	//   - "bazi_year" (long): 八字年份
+	//   - "lichun_datetime" (string): 立春精確時間
+	//   - "year_offset" (long): 除錯資訊
+	// 相依性：LunarAI.getBaziConstants,
+	//         Calendar.normalizeToTaipei, Calendar.applyZiHourDayRollover,
+	//         SolarTerms 表單
+	// 注意：已修正 Bug #3（catch 區塊加入 info 日誌）、
+	//       Bug #5（子時換日套用於立春邊界比較）
+	// =============================================================================
+	result = Map();
+	// 步驟 1: 呼叫中央常數函數，獲取天干地支列表。
+	bazi_constants = thisapp.LunarAI.getBaziConstants();
+	stemsList = bazi_constants.get("heavenly_stems");
+	branchesList = bazi_constants.get("earthly_branches");
+	solar_year = solar_datetime.getYear();
+	// 步驟 2: 查詢立春資料（效能優化）。
+	// 規則不變：仍以「立春的精確時間」作為年柱切換點。
+	// 作法：先用時間窗縮小查詢集合（約前後 60 天內），避免撈出全部年份的立春記錄。
+	lichun_datetime = null;
+	try
+	{
+		window_start = solar_datetime.addDay(-60);
+		window_end = solar_datetime.addDay(60);
+		lichun_window = SolarTerms[Solar_Term_Name == "立春" && Solar_Term_DateTime >= window_start && Solar_Term_DateTime <= window_end];
+		if(lichun_window != null && lichun_window.count() > 0)
+		{
+			for each  record in lichun_window
+			{
+				if(record.Solar_Term_DateTime != null)
+				{
+					// 取時間窗內最新的一筆（通常就 1 筆），避免排序依賴
+					if(lichun_datetime == null || record.Solar_Term_DateTime > lichun_datetime)
+					{
+						lichun_datetime = record.Solar_Term_DateTime;
+					}
+				}
+			}
+		}
+	}
+	catch(_e_lichun)
+	{
+		// Bug #3 修正：記錄立春查詢窗口失敗日誌
+		info "Bazi.calculatePreciseYearPillar: lichun window query failed - " + _e_lichun;
+		lichun_datetime = null;
+	}
+	// 保守回退：若時間窗查不到，仍使用原本的全表方式（向後相容）
+	if(lichun_datetime == null)
+	{
+		lichun_records = SolarTerms[Solar_Term_Name == "立春"];
+		if(lichun_records.count() == 0)
+		{
+			result.put("error","找不到" + solar_year + "年的立春資料");
+			return result;
+		}
+		for each  record in lichun_records
+		{
+			if(record.Solar_Term_DateTime != null)
+			{
+				if(record.Solar_Term_DateTime.getYear() == solar_year)
+				{
+					lichun_datetime = record.Solar_Term_DateTime;
+					break;
+				}
+			}
+		}
+		if(lichun_datetime == null)
+		{
+			result.put("error","找不到" + solar_year + "年的立春資料");
+			return result;
+		}
+	}
+	// 步驟 3: 判斷八字年份。
+	// 子時換日政策（Bug #5 修正）：23:00–23:59 視為隔日，避免立春前後邊界錯誤
+	effective_dt_for_year = solar_datetime;
+	try
+	{
+		norm_y = thisapp.Calendar.normalizeToTaipei(solar_datetime);
+		if(norm_y.get("success"))
+		{
+			zr_y = thisapp.Calendar.applyZiHourDayRollover(norm_y.get("value"));
+			if(zr_y.get("success"))
+			{
+				effective_dt_for_year = zr_y.get("value");
+			}
+		}
+	}
+	catch(_e_y)
+	{
+		// Bug #3 修正：記錄 Calendar fallback 日誌
+		info "Bazi.calculatePreciseYearPillar: Calendar fallback - " + _e_y;
+		effective_dt_for_year = solar_datetime;
+	}
+	bazi_year = solar_year;
+	if(effective_dt_for_year < lichun_datetime)
+	{
+		bazi_year = solar_year - 1;
+	}
+	// 步驟 4: 計算年干支，使用 1900 年（庚子年）作為基準點。
+	year_offset = bazi_year - 1900;
+	stem_index = (6 + year_offset) % 10;
+	// 庚 = 6
+	if(stem_index < 0)
+	{
+		stem_index = stem_index + 10;
+	}
+	branch_index = (0 + year_offset) % 12;
+	// 子 = 0
+	if(branch_index < 0)
+	{
+		branch_index = branch_index + 12;
+	}
+	year_stem = stemsList.get(stem_index);
+	year_branch = branchesList.get(branch_index);
+	// 步驟 5: 組合並回傳最終結果，包含詳細的除錯資訊。
+	result.put("stem",year_stem);
+	result.put("branch",year_branch);
+	result.put("pillar",year_stem + year_branch);
+	result.put("bazi_year",bazi_year);
+	result.put("lichun_datetime",lichun_datetime.toString("yyyy-MM-dd HH:mm:ss"));
+	result.put("year_offset",year_offset);
+	return result;
+}

@@ -1,0 +1,106 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第2段)
+//
+//
+// Workflow/Clients_Report/OnEdit_UpdateZodiacAndTaisui.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 上觸發。
+//               當「生日」(Date_Of_Birth) 欄位被填寫或修改時，此腳本會自動計算並
+//               填充星座、生肖、虛歲和犯太歲狀態等相關命理欄位。
+//               如果生日欄位被清空，此腳本會同步清空所有相關的衍生欄位。
+//
+// @trigger_event: On User Input (使用者輸入時)
+// @trigger_form: Clients_Report (個案表單)
+// @trigger_field: Date_Of_Birth (生日)
+//
+// @dependencies:
+//   - thisapp.Zodiac.getZodiacSign (函數)
+//   - thisapp.Zodiac.getChineseZodiacSign (函數)
+//   - thisapp.Zodiac.getTaisuiStatus (函數)
+//   - LunarData (表單)
+//
+// @placement: 應設定於 Clients_Report 表單的 Date_Of_Birth 欄位的 "On User Input" 事件中。
+//
+// 檢查生日欄位是否有值
+if(input.Date_Of_Birth != null)
+{
+	// ======================================================================
+	// 星座功能
+	// ======================================================================
+	zodiac_result = thisapp.Zodiac.getZodiacSign(input.Date_Of_Birth);
+	if(zodiac_result.get("success") == true)
+	{
+		input.Zodiac_Signs = zodiac_result.get("sign_id");
+	}
+	else
+	{
+		input.Zodiac_Signs = null;
+	}
+	// ======================================================================
+	// 生肖功能
+	// ======================================================================
+	chinese_zodiac_result = thisapp.Zodiac.getChineseZodiacSign(input.Date_Of_Birth);
+	if(chinese_zodiac_result.get("success") == true)
+	{
+		input.Chinese_Zodiac = chinese_zodiac_result.get("zodiac_id");
+		// ======================================================================
+		// 虛歲功能
+		// ======================================================================
+		birth_lunar_year = chinese_zodiac_result.get("zodiac_year");
+		current_year = zoho.currentdate.getYear();
+		current_lunar_year = current_year;
+		// 判斷當前日期是否已過農曆新年，以決定當前的農曆年份
+		current_lunar_data_record = LunarData[Solar_Year == current_year];
+		if(current_lunar_data_record.count() > 0)
+		{
+			current_lunar_new_year = current_lunar_data_record.Lunar_New_Year;
+			if(zoho.currentdate < current_lunar_new_year.toDate())
+			{
+				current_lunar_year = current_year - 1;
+			}
+			// 虛歲 = 當前農曆年份 - 出生農曆年份 + 1
+			nominal_age = current_lunar_year - birth_lunar_year + 1;
+			input.Nominal_Age = nominal_age;
+		}
+		else
+		{
+			input.Nominal_Age = null;
+		}
+	}
+	else
+	{
+		input.Chinese_Zodiac = null;
+		input.Nominal_Age = null;
+	}
+	// ======================================================================
+	// 犯太歲功能
+	// ======================================================================
+	current_year_for_taisui = zoho.currentdate.getYear();
+	taisui_result = thisapp.Zodiac.getTaisuiStatus(input.Date_Of_Birth,current_year_for_taisui);
+	if(taisui_result.get("success") == true)
+	{
+		// 更新「本命太歲」和「流年太歲」的 Lookup 欄位
+		input.Taisui_Deity_Name_Birth = taisui_result.get("birth_ganzhi_id");
+		input.Taisui_Deity_Name_Year = taisui_result.get("query_year_ganzhi_id");
+		// 更新「犯太歲狀態」下拉選單欄位
+		input.Taisui_Conflict_Status = taisui_result.get("conflict_type");
+	}
+	else
+	{
+		// 如果計算失敗，清空相關欄位
+		input.Taisui_Deity_Name_Birth = null;
+		input.Taisui_Deity_Name_Year = null;
+		input.Taisui_Conflict_Status = null;
+	}
+}
+else
+{
+	// 如果生日欄位被清空，則同步清空所有相關的衍生欄位
+	input.Zodiac_Signs = null;
+	input.Chinese_Zodiac = null;
+	input.Nominal_Age = null;
+	input.Taisui_Deity_Name_Birth = null;
+	input.Taisui_Deity_Name_Year = null;
+	input.Taisui_Conflict_Status = null;
+}

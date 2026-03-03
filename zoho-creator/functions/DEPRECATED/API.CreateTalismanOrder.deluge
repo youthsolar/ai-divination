@@ -1,0 +1,221 @@
+map API.CreateTalismanOrder(string firstName, string lastName, string email, string phoneNumber, string divinationId, string talismanName, string element, string price)
+{
+	// =============================================================================
+	// ⚠️ 已廢棄：此函數已標記為廢棄，不應在生產環境中使用。
+	// 原函數用途：建立符令購買訂單（v1，不含 LINE User ID）
+	// 廢棄原因：已與 CreateTalismanOrder_v2 合併為 API.createTalismanOrder
+	// 封存日期：2026-02-25
+	// =============================================================================
+	// 採用單一出口模式
+	api_result = Map();
+	try
+	{
+		info "=== 開始建立符令購買訂單 ===";
+		info "購買人：" + lastName + firstName;
+		info "符令名稱：" + talismanName;
+		info "價格：NT$ " + price;
+		info "占卜記錄 ID：" + divinationId;
+		// === 步驟 1：驗證參數 ===
+		if(firstName == null || firstName == "" || lastName == null || lastName == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","姓名資訊不完整");
+			return api_result;
+		}
+		if(email == null || email == "" || !email.contains("@"))
+		{
+			api_result.put("success",false);
+			api_result.put("message","電子郵件格式錯誤");
+			return api_result;
+		}
+		if(divinationId == null || divinationId == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","占卜記錄 ID 不能為空");
+			return api_result;
+		}
+		// === 步驟 2：查詢占卜記錄確認存在 ===
+		divination_records = Divination_Logs[ID == divinationId.toLong()];
+		if(divination_records.count() == 0)
+		{
+			api_result.put("success",false);
+			api_result.put("message","找不到對應的占卜記錄");
+			return api_result;
+		}
+		// === 步驟 3：建立訂單記錄 ===
+		// 生成唯一訂單號碼（ECPay 限制 20 字元）
+		current_time = zoho.currenttime;
+		// 使用 TAL + 時間戳記，確保不超過 20 字元
+		merchant_trade_no = "TAL" + current_time.toString("yyyyMMddHHmmss");
+		// 處理中文符令名稱（ECPay 需要英文）
+		item_name_english = "Digital_Talisman";
+		item_description = "AI_Tarot_Talisman_" + element + "_Element";
+		info "訂單號碼：" + merchant_trade_no;
+		info "商品名稱（英文）：" + item_name_english;
+		// === 步驟 2.5：查詢或建立客戶記錄 ===
+		// 先查詢是否已有此客戶記錄
+		existing_clients = Clients_Report[Email == email];
+		client_id = "";
+		if(existing_clients.count() > 0)
+		{
+			// 使用現有客戶記錄
+			for each  client in existing_clients
+			{
+				client_id = client.ID;
+				info "找到現有客戶記錄，ID：" + client_id.toString();
+				break;
+			}
+		}
+		else
+		{
+			// 建立新客戶記錄
+			new_client = insert into Clients_Report
+			[
+				Added_User=zoho.loginuser
+				Visitor_Name.first_name=firstName
+				Visitor_Name.last_name=lastName
+				Email=email
+				Phone_Number=phoneNumber
+				Client_Type="真實"
+			];
+			if(new_client != null)
+			{
+				client_id = new_client;
+				info "建立新客戶記錄，ID：" + client_id.toString();
+			}
+			else
+			{
+				api_result.put("success",false);
+				api_result.put("message","客戶記錄建立失敗");
+				return api_result;
+			}
+		}
+		// === 步驟 2.6：檢查是否為首次購買 ===
+		// 查詢該占卜記錄的現有購買記錄
+		existing_purchases = Talisman_Purchases[Divination_Log_Link == divinationId.toLong()];
+		is_first_purchase = existing_purchases.count() == 0;
+		// 計算符令序號（當前購買次數 + 1）
+		current_sequence = existing_purchases.count() + 1;
+		info "占卜記錄 " + divinationId + " 的購買狀況：";
+		info "現有購買次數：" + existing_purchases.count().toString();
+		info "是否首次購買：" + is_first_purchase.toString();
+		info "本次符令序號：" + current_sequence.toString();
+		// === 步驟 3：先驗證 ECPay 付款表單能否正常生成 ===
+		// 準備 ECPay 訂單資訊
+		ecpay_order_info = Map();
+		ecpay_order_info.put("merchantTradeNo",merchant_trade_no);
+		ecpay_order_info.put("totalAmount",price.toNumber());
+		ecpay_order_info.put("itemName",item_name_english);
+		ecpay_order_info.put("tradeDesc",item_description);
+		return_url = if(thisapp.variables.ECPay.ReturnURL_Production != null,thisapp.variables.ECPay.ReturnURL_Production.toString(),"");
+		ecpay_order_info.put("returnURL",return_url);
+		client_back_url = if(thisapp.variables.ECPay.ClientBackURL_Production != null,thisapp.variables.ECPay.ClientBackURL_Production.toString(),"");
+		ecpay_order_info.put("clientBackURL",client_back_url);
+		info "準備調用 ECPay 付款表單生成函數";
+		// 調用 ECPay 付款表單生成函數
+		payment_form_html = thisapp.ECPay.generateCheckoutForm_Production(ecpay_order_info);
+		if(payment_form_html != null && payment_form_html != "")
+		{
+			// ECPay 表單生成成功，現在可以安全建立訂單記錄
+			info "ECPay 付款表單生成成功，開始建立訂單記錄";
+			// === 步驟 4：建立訂單記錄（ECPay 驗證通過後才建立）===
+			new_order = insert into Talisman_Purchases
+			[
+				Added_User=zoho.loginuser
+				Client_Link=client_id
+				Divination_Log_Link=divinationId.toLong()
+				Talisman_Sequence=current_sequence.toString()
+				MerchantTradeNo=merchant_trade_no
+				Status="Pending"
+				Item_Name_Chinese=talismanName + "（" + element + "元素符令）"
+				Description_Chinese=lastName + firstName + " 的專屬" + element + "元素符令"
+				TradeAmt=price.toDecimal()
+				Purchase_Timestamp=current_time
+				Is_First_Purchase=is_first_purchase
+				Report_Included=is_first_purchase
+			];
+			if(new_order != null)
+			{
+				order_id = new_order;
+				info "訂單建立成功，ID：" + order_id.toString();
+				// === 步驟 4.1：更新占卜記錄狀態 ===
+				divination_records = Divination_Logs[ID == divinationId.toLong()];
+				if(divination_records.count() > 0)
+				{
+					for each  divination in divination_records
+					{
+						// 更新符令進度和狀態
+						new_talisman_index = current_sequence.toString();
+						new_status = "";
+						if(current_sequence == 1)
+						{
+							new_status = "已推薦";
+							// 首次購買：從已提問 → 已推薦
+							divination.First_Purchase_Date=current_time;
+						}
+						else if(current_sequence < 5)
+						{
+							new_status = "已購買";
+							// 2-4次購買：已購買
+						}
+						else
+						{
+							new_status = "已完成";
+							// 第5次購買：已完成
+						}
+						divination.Current_Talisman_Index=new_talisman_index;
+						divination.Status=new_status;
+						divination.Last_Purchase_Date=current_time;
+						info "更新占卜記錄狀態：" + new_status + "，符令進度：" + new_talisman_index;
+						break;
+					}
+				}
+				// === 步驟 4.2：更新訂單記錄，加入付款資訊 ===
+				// 設定付款 URL
+				payment_url = "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5";
+				order_records = Talisman_Purchases[ID == order_id];
+				if(order_records.count() > 0)
+				{
+					for each  order_record in order_records
+					{
+						order_record.Payment_URL=payment_url;
+						order_record.ECPay_Form_HTML=payment_form_html;
+						break;
+					}
+				}
+				// === 步驟 5：準備回傳資料 ===
+				order_data = Map();
+				order_data.put("order_id",order_id.toString());
+				order_data.put("merchant_trade_no",merchant_trade_no);
+				order_data.put("payment_url",payment_url);
+				order_data.put("payment_form",payment_form_html);
+				order_data.put("amount",price);
+				order_data.put("item_name",talismanName);
+				order_data.put("customer_name",lastName + firstName);
+				api_result.put("success",true);
+				api_result.put("message","訂單建立成功");
+				api_result.put("data",order_data);
+				info "API 回傳成功";
+			}
+			else
+			{
+				api_result.put("success",false);
+				api_result.put("message","訂單記錄建立失敗");
+				info "訂單記錄建立失敗";
+			}
+		}
+		else
+		{
+			api_result.put("success",false);
+			api_result.put("message","ECPay 付款表單生成失敗，訂單未建立");
+			info "ECPay 付款表單生成失敗，為避免孤兒記錄，不建立訂單";
+		}
+	}
+	catch (e)
+	{
+		api_result.put("success",false);
+		api_result.put("message","系統錯誤：" + e);
+		info "CreateTalismanOrder API 執行錯誤：" + e;
+	}
+	return api_result;
+}

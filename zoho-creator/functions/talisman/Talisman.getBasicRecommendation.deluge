@@ -1,0 +1,112 @@
+map Talisman.getBasicRecommendation(string divination_log_id)
+{
+	// =============================================================================
+	// 函數名稱：Talisman.getBasicRecommendation
+	// 函數用途：基礎符令推薦，根據占卜記錄 ID 查詢下一張推薦符令
+	// 平台：Zoho Creator
+	// 命名空間：Talisman
+	// 功能描述：
+	//   - 驗證輸入的占卜記錄 ID
+	//   - 查詢 Divination_Logs 表單取得占卜記錄
+	//   - 檢查當前推薦進度（Current_Talisman_Index），若超過 5 則表示已完成
+	//   - 查詢關聯的 I_Ching_Form 卦象資料
+	//   - 根據 index (1-5) 動態獲取對應的 symbol_N 五行屬性
+	//   - 回傳推薦符令資料與卦象資訊
+	// 參數說明：
+	//   - divination_log_id (string): 「占卜記錄」(Divination_Logs) 表單的紀錄 ID
+	// 回傳格式：map - 包含處理結果
+	//   - success (boolean): true 代表成功，false 代表失敗
+	//   - talisman_index (int): 推薦的符令編號 (1-5)
+	//   - talisman_element (string): 推薦符令的五行屬性（例如："金", "木", "水", "火", "土"）
+	//   - hexagram_image (image): 該卦象的本位卦符圖片 (Gua_symbol_Image)
+	//   - hexagram_info (map): 包含卦象的名稱(appearance)與生剋(life_and_death)
+	//   - message (string): 執行的結果訊息
+	//   - error (string): 如果 success 為 false，此欄位會包含錯誤原因
+	// 相依性：Divination_Logs 表單, I_Ching_Form 表單
+	// =============================================================================
+	// 初始化回傳值，預設為失敗
+	response_map = Map();
+	response_map.put("success",false);
+	try
+	{
+		// 1. 參數驗證
+		if(divination_log_id == null || divination_log_id.trim() == "")
+		{
+			response_map.put("error","輸入的占卜記錄 ID 為空。");
+			return response_map;
+		}
+		// 2. 查詢占卜記錄
+		divination_log = Divination_Logs[ID == divination_log_id.toLong()];
+		if(divination_log.count() == 0)
+		{
+			response_map.put("error","根據 ID [" + divination_log_id + "] 找不到對應的占卜記錄。");
+			return response_map;
+		}
+		// 3. 檢查當前推薦進度
+		current_talisman_index = divination_log.Current_Talisman_Index;
+		current_talisman_index_num = current_talisman_index.toLong();
+		if(current_talisman_index_num > 5)
+		{
+			response_map.put("success",true);
+			// 這是一個正常的業務流程，不算錯誤
+			response_map.put("message","此占卜的所有符令皆已推薦完畢，已達推薦上限。");
+			response_map.put("talisman_index",6);
+			// 使用 6 來表示已完成
+			return response_map;
+		}
+		// 4. 查詢關聯的易經卦象資料
+		hexagram_record_id = divination_log.Hexagram_Code;
+		if(hexagram_record_id == null)
+		{
+			response_map.put("error","此占卜記錄缺少關聯的卦象資訊。");
+			return response_map;
+		}
+		hexagram_record = I_Ching_Form[ID == hexagram_record_id];
+		if(hexagram_record.count() == 0)
+		{
+			response_map.put("error","根據卦象 ID [" + hexagram_record_id + "] 找不到對應的易經資料。");
+			return response_map;
+		}
+		// 5. 動態獲取對應的符令資料
+		// 由於 Deluge 的紀錄物件不支援動態 .get() 語法，我們使用 if/else if 來明確指定欄位。
+		talisman_element = null;
+		if(current_talisman_index_num == 1)
+		{
+			talisman_element = hexagram_record.symbol_1;
+		}
+		else if(current_talisman_index_num == 2)
+		{
+			talisman_element = hexagram_record.symbol_2;
+		}
+		else if(current_talisman_index_num == 3)
+		{
+			talisman_element = hexagram_record.symbol_3;
+		}
+		else if(current_talisman_index_num == 4)
+		{
+			talisman_element = hexagram_record.symbol_4;
+		}
+		else if(current_talisman_index_num == 5)
+		{
+			talisman_element = hexagram_record.symbol_5;
+		}
+		hexagram_image = hexagram_record.Gua_symbol_Image;
+		// 準備 AI 解說需要的額外資料
+		hexagram_info = Map();
+		hexagram_info.put("appearance",hexagram_record.appearance);
+		hexagram_info.put("life_and_death",hexagram_record.life_and_death);
+		// 6. 組合成功的回應
+		response_map.put("success",true);
+		response_map.put("message","成功獲取下一張推薦符令資料。");
+		response_map.put("talisman_index",current_talisman_index);
+		response_map.put("talisman_element",talisman_element);
+		response_map.put("hexagram_image",hexagram_image);
+		response_map.put("hexagram_info",hexagram_info);
+	}
+	catch (e)
+	{
+		// 捕獲所有未預期的錯誤
+		response_map.put("error","在處理過程中發生未預期錯誤：" + e);
+	}
+	return response_map;
+}

@@ -1,0 +1,83 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第7段)
+//
+// [重新命名] Bazi.PreciseBaziCalculator → Bazi.preciseBaziCalculator
+//
+//
+// Workflow/Clients_Report/OnSuccess_UpdateFourPillars.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 的紀錄成功儲存後觸發。
+//               此腳本會根據「生日」(Date_Of_Birth) 欄位，自動計算八字，並將
+//               代表年月日時的「四柱」干支組合，以 Lookup 形式回填到對應的四個欄位中。
+//               此腳本與 OnSuccess_UpdateBaziPillars.deluge 互為補充，用於更新不同的欄位。
+//
+// @trigger_event: On Add / On Edit -> On Success (新增/編輯 -> 成功時)
+// @trigger_form: Clients_Report (個案表單)
+//
+// @dependencies:
+//   - thisapp.Bazi.preciseBaziCalculator (函數)
+//   - Sixty_GanZhi_Table (表單)
+//
+// @placement: 應設定於 Clients_Report 表單的 "On Add / On Edit -> On Success" 事件中。
+//
+// 1. 檢查生日欄位是否有值
+if(input.Date_Of_Birth != null)
+{
+	info "生日欄位已更新，開始計算並更新四柱 Lookup 欄位...";
+	// 2. 呼叫核心的精確八字計算函數
+	bazi_result = thisapp.Bazi.preciseBaziCalculator(input.Date_Of_Birth);
+	// 3. 檢查計算是否成功
+	if(bazi_result.get("success") == true)
+	{
+		// 4. 從回傳的 Map 中獲取四柱的干支字串
+		year_pillar_str = bazi_result.get("年柱");
+		month_pillar_str = bazi_result.get("月柱");
+		day_pillar_str = bazi_result.get("日柱");
+		hour_pillar_str = bazi_result.get("時柱");
+		// 在 On Success 事件中，需先取得當前紀錄才能更新
+		client_record = Clients_Report[ID == input.ID];
+		// 5. 分別查詢 Sixty_GanZhi_Table 以獲取對應的記錄 ID
+		// 年柱
+		year_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == year_pillar_str];
+		if(year_ganzhi_record != null)
+		{
+			client_record.Year_Pillar=year_ganzhi_record.ID;
+		}
+		// 月柱
+		month_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == month_pillar_str];
+		if(month_ganzhi_record != null)
+		{
+			client_record.Month_Pillar=month_ganzhi_record.ID;
+		}
+		// 日柱
+		day_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == day_pillar_str];
+		if(day_ganzhi_record != null)
+		{
+			client_record.Day_Pillar=day_ganzhi_record.ID;
+		}
+		// 時柱
+		hour_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == hour_pillar_str];
+		if(hour_ganzhi_record != null)
+		{
+			client_record.Hour_Pillar=hour_ganzhi_record.ID;
+		}
+		info "四柱 Lookup 欄位更新成功！";
+	}
+	else
+	{
+		// 如果八字計算失敗，記錄錯誤訊息
+		error_message = "四柱 Lookup 更新失敗，八字計算錯誤：" + bazi_result.get("error");
+		info error_message;
+	}
+}
+else
+{
+	// 如果生日欄位被清空，則同步清空所有四柱欄位
+	client_record = Clients_Report[ID == input.ID];
+	client_record.Year_Pillar=null;
+	client_record.Month_Pillar=null;
+	client_record.Day_Pillar=null;
+	client_record.Hour_Pillar=null;
+	info "生日欄位為空，已清空四柱 Lookup 欄位。";
+}

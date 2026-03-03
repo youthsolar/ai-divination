@@ -1,0 +1,66 @@
+map AIInterpreter.classifyQuestionType(string question_text)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.classifyQuestionType
+	// 函數用途：AI 問題類型智能分類函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：接收客戶原始問題文字，透過 AI 模型智能分類：
+	//           - 支援 7 種問題類型：愛情、婚姻、工作、財運、健康、入煞、其他
+	//           - 使用低溫度(0.1)確保分類一致性
+	//           - 驗證 AI 回傳類型是否在預期範圍內
+	//           - 無效分類自動降級為「其他」
+	// 參數說明：
+	//   - question_text (string): 客戶輸入的原始問題文字
+	// 回傳格式：map - {"success": bool, "question_type": string, "confidence": string}
+	// 相依性：thisapp.LLM.callChat
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	final_response = Map();
+	try
+	{
+		// --- 步驟 1: 驗證輸入參數 ---
+		if(question_text == null || question_text.trim() == "")
+		{
+			final_response.put("success",false);
+			final_response.put("error","問題文字不能為空");
+			final_response.put("question_type","其他");
+			return final_response;
+		}
+		// --- 步驟 2: 建立 AI 分類的 Prompt ---
+		system_prompt = "你是一位專業的易經占卜分類專家。你的任務是將客戶的問題準確分類到以下七種類型之一：\n\n" + "1. 愛情 - 關於戀愛、感情、追求對象、情侶關係等\n" + "2. 婚姻 - 關於結婚、離婚、夫妻關係、家庭和諧等\n" + "3. 工作 - 關於求職、面試、職場、升遷、轉職、事業發展等\n" + "4. 財運 - 關於賺錢、投資、理財、生意、經濟狀況等\n" + "5. 健康 - 關於身體狀況、疾病、養生、醫療等\n" + "6. 入煞 - 關於風水、煞氣、靈異、超自然現象等\n" + "7. 其他 - 不屬於以上六種類型的問題\n\n" + "請仔細分析問題的核心關注點，然後回傳最適合的類型名稱。\n" + "重要：你的回應必須只包含一個類型名稱，不要有任何額外的文字或解釋。";
+		user_prompt = "請將以下問題分類：「" + question_text + "」";
+		// --- 步驟 3: 呼叫 AI API ---
+		opts = Map();
+		opts.put("max_tokens", 10);
+		opts.put("temperature", 0.1);
+		ai_classification = thisapp.LLM.callChat(system_prompt, user_prompt, opts).trim();
+		// --- 步驟 4: 驗證 AI 回應 ---
+		valid_types = {"愛情","婚姻","工作","財運","健康","入煞","其他"};
+		if(valid_types.contains(ai_classification))
+		{
+			// AI 分類成功且有效
+			final_response.put("success",true);
+			final_response.put("question_type",ai_classification);
+			final_response.put("confidence","高");
+			final_response.put("original_question",question_text);
+		}
+		else
+		{
+			// AI 回傳了無效的類型，使用預設值
+			final_response.put("success",true);
+			final_response.put("question_type","其他");
+			final_response.put("confidence","低");
+			final_response.put("error","AI 回傳了無效的分類：" + ai_classification);
+			final_response.put("original_question",question_text);
+		}
+	}
+	catch (e)
+	{
+		// 捕捉所有可能的錯誤
+		final_response.put("success",false);
+		final_response.put("error","AI 分類過程中發生錯誤：" + e);
+		final_response.put("question_type","其他");
+	}
+	return final_response;
+}

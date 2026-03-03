@@ -1,0 +1,94 @@
+map Talisman.generateTalismanExplanation(string question_type, map hexagram_info, string talisman_element, string client_name)
+{
+	// =============================================================================
+	// 函數名稱：Talisman.generateTalismanExplanation
+	// 函數用途：AI 符令說明生成，利用 LLM 生成個人化符令購買文案
+	// 平台：Zoho Creator
+	// 命名空間：Talisman
+	// 功能描述：
+	//   - 驗證輸入參數完整性
+	//   - 根據卦象生剋關係（相生/相剋/持之/弱生/弱剋/立破）設計對應的解釋框架
+	//   - 組合系統 Prompt 與使用者 Prompt，呼叫 LLM API 生成個人化文案
+	//   - 解析 API 回應，若 AI 回應異常則使用預設解釋框架作為備用
+	// 參數說明：
+	//   - question_type (string): 客戶問題的類型（例如："工作", "愛情", "財運"）
+	//   - hexagram_info (map): 包含卦象核心資訊的 Map，應有 "appearance" 和 "life_and_death" 兩個 key
+	//   - talisman_element (string): 當前推薦符令的五行屬性（例如："金", "木", "水", "火", "土"）
+	//   - client_name (string): 客戶的稱呼，用於生成更個人化的文案
+	// 回傳格式：map - 包含處理結果
+	//   - success (boolean): true 代表成功，false 代表失敗
+	//   - explanation (string): AI 生成的個人化符令說明文字
+	//   - error (string): 如果 success 為 false，此欄位會包含錯誤原因
+	// 相依性：thisapp.LLM.callChat
+	// =============================================================================
+	// 初始化回傳值
+	response_map = Map();
+	response_map.put("success",false);
+	try
+	{
+		// --- 步驟 1: 參數驗證 ---
+		if(question_type == null || question_type.trim() == "" || hexagram_info == null || talisman_element == null || talisman_element.trim() == "")
+		{
+			response_map.put("error","輸入參數不完整，無法生成符令說明。");
+			return response_map;
+		}
+		// --- 步驟 2: 設計 AI Prompt ---
+		appearance = hexagram_info.get("appearance");
+		life_and_death = hexagram_info.get("life_and_death");
+		// 系統 Prompt: 設定 AI 的角色和任務
+		system_prompt = "你是一位精通易經五行生剋哲學的靈學導師。你的語氣溫和、專業且充滿智慧。你的核心任務是解釋一張「五行符令」如何幫助客戶平衡他們當前的能量狀態。你的解釋必須基於卦象的「生剋關係」，並結合客戶關心的「問題類型」，讓說明聽起來既專業又有針對性。你的最終目標是增加客戶的信任感和購買意願。";
+		// 使用者 Prompt: 根據實際參數組合指令
+		explanation_framework = "";
+		if(life_and_death == "相生")
+		{
+			explanation_framework = "此卦象呈現「相生」的祥和之兆，代表能量流動順暢。這張「" + talisman_element + "」屬性的符令，作用在於「順勢增強」，如同為順行的舟船加上一把推力，能幫助您在「" + question_type + "」的道路上更加穩固、順利，放大目前的良好態勢，使其效果加倍。";
+		}
+		else if(life_and_death == "相剋")
+		{
+			explanation_framework = "此卦象呈現「相剋」的挑戰之象，代表能量間存在一些阻礙與不協調。這張「" + talisman_element + "」屬性的符令，作用在於「制衡化解」。它能引入一股新的能量來調和衝突，緩解您在「" + question_type + "」方面遇到的壓力與阻礙，避免情況惡化，並尋求突破的機會。";
+		}
+		else if(life_and_death == "持之")
+		{
+			explanation_framework = "此卦象呈現「持之」(比和)的穩定狀態，代表當前能量均衡但缺乏突破的動力。這張「" + talisman_element + "」屬性的符令，作用在於「鞏固強化」。它能為您注入一股純粹而集中的力量，幫助您在「" + question_type + "」的目標上更加專注，鞏固現有基礎，並積蓄下一步躍升的能量。";
+		}
+		else if(life_and_death == "弱生" || life_and_death == "弱剋")
+		{
+			explanation_framework = "此卦象呈現較為微妙的能量互動關係，需要溫和的調整。這張「" + talisman_element + "」屬性的符令，作用在於「扶助與微調」。它像一位溫柔的嚮導，能精準地補充您在「" + question_type + "」方面所需的那份細微能量，或化解潛在的小阻礙，讓整體運勢趨於和諧平順。";
+		}
+		else if(life_and_death == "立破")
+		{
+			explanation_framework = "此卦象呈現「立破」的轉變契機，代表舊有結構即將改變，是破舊立新的時刻。這張「" + talisman_element + "」屬性的符令，作用在於「重建根基」。它能提供強大的守護與支持力量，幫助您在「" + question_type + "」的重大轉變中站穩腳步，掃除障礙，為一個全新的、更美好的開始奠定穩固基礎。";
+		}
+		else
+		{
+			explanation_framework = "這張「" + talisman_element + "」屬性的符令，是根據您本次占卜的「" + appearance + "」卦象所特別推薦的。它能針對您在「" + question_type + "」方面所關心的問題，提供最核心的能量支持與平衡。";
+		}
+		user_prompt = "請根據以下框架，為客戶「" + client_name + "」生成一段約 80-100 字、有說服力的個人化符令購買說明。請直接輸出最終文案，不要包含任何前言或標題。\n\n解釋框架：" + explanation_framework;
+		// --- 步驟 3: 呼叫 LLM API ---
+		talisman_opts = Map();
+		talisman_opts.put("max_tokens", 400);
+		talisman_opts.put("temperature", 0.75);
+		ai_explanation = thisapp.LLM.callChat(system_prompt, user_prompt, talisman_opts);
+		// --- 步驟 4: 解析 API 回應 ---
+		if(ai_explanation != null && ai_explanation.trim() != "" && ai_explanation.trim().length() > 20)
+		{
+			response_map.put("success",true);
+			response_map.put("explanation",ai_explanation.trim());
+		}
+		else if(ai_explanation != null && ai_explanation.trim() != "")
+		{
+			response_map.put("success",true);
+			response_map.put("explanation",explanation_framework);
+			response_map.put("note","AI 回應異常，已使用預設解釋框架。");
+		}
+		else
+		{
+			response_map.put("error","LLM API 回應為空。");
+		}
+	}
+	catch (e)
+	{
+		response_map.put("error","在生成符令說明過程中發生未預期錯誤：" + e);
+	}
+	return response_map;
+}

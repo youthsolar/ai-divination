@@ -1,0 +1,164 @@
+map LunarAI.calculateLunarDetails(date current_solar_date, map lunar_constants)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.calculateLunarDetails
+	// 函數用途：通用農曆計算引擎
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI（內部使用）
+	// 功能描述：接收一個國曆日期和常數資料庫，回傳完整的農曆資訊。
+	//           這是所有農曆計算的核心，被上層的業務邏輯函數調用。
+	// 參數說明：
+	//   - current_solar_date (date): 需要計算的國曆日期
+	//   - lunar_constants (map): 由 LunarData.getConstants() 提供的資料庫
+	// 回傳格式：Map - 包含該日期的詳細農曆資訊（國曆、閏月、農曆、中文日期等）
+	// 相依性：LunarData.getConstants
+	// 注意：使用 daysBetween() 計算天數差，避免 epoch 除法誤差
+	// =============================================================================
+	// 1. 初始化回傳的 Map 和從常數庫中提取資料
+	result_map = Map();
+	new_year_map = lunar_constants.get("new_year_map");
+	lunar_month_structure_map = lunar_constants.get("lunar_month_structure_map");
+	leap_month_map = lunar_constants.get("leap_month_map");
+	month_name_map = lunar_constants.get("month_name_map");
+	day_name_map = lunar_constants.get("day_name_map");
+	keys = new_year_map.keys();
+	lunar_year_str = "";
+	// 2. 判斷國曆日期對應的農曆年份
+	current_gregorian_year = current_solar_date.getYear();
+	current_gregorian_year_str = current_gregorian_year.toString();
+	if(!keys.contains(current_gregorian_year_str))
+	{
+		result_map.put("error","年份超出計算範圍 (" + current_gregorian_year_str + ")");
+		return result_map;
+	}
+	this_year_new_year_dt = new_year_map.get(current_gregorian_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+	if(current_solar_date < this_year_new_year_dt)
+	{
+		lunar_year_numeric = current_gregorian_year - 1;
+		lunar_year_str = lunar_year_numeric.toString();
+		if(!keys.contains(lunar_year_str))
+		{
+			result_map.put("error","年份 (判斷農曆年後 " + lunar_year_str + ") 超出計算範圍");
+			return result_map;
+		}
+		this_year_new_year_dt = new_year_map.get(lunar_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+	}
+	else
+	{
+		lunar_year_str = current_gregorian_year_str;
+	}
+	// 3. 計算距離農曆新年的天數差
+	// [[BUG FIX]] 修正天數計算方法
+	// 舊方法：使用 epoch 秒數相減再除以一天的秒數，此方法容易因時區或微小誤差導致結果少一天。
+	// 新方法：改用 Deluge 內建的 daysBetween() 函數，此函數基於日曆計算，更穩定可靠。
+	days_passed_since_lunar_new_year = this_year_new_year_dt.daysBetween(current_solar_date);
+	// 4. 根據大小月 & 閏月資料計算農曆月和日
+	month_days_list = lunar_month_structure_map.get(lunar_year_str);
+	current_leap_month_num = ifnull(leap_month_map.get(lunar_year_str),0);
+	calculated_lunar_month = 1;
+	calculated_lunar_day = 0;
+	temp_days_passed = days_passed_since_lunar_new_year;
+	for each  num_days_in_month in month_days_list
+	{
+		if(temp_days_passed < num_days_in_month)
+		{
+			calculated_lunar_day = temp_days_passed + 1;
+			break;
+		}
+		temp_days_passed = temp_days_passed - num_days_in_month;
+		calculated_lunar_month = calculated_lunar_month + 1;
+	}
+	// 5. 處理閏月情況，得到最終顯示的月份
+	is_this_month_leap = false;
+	display_lunar_month = calculated_lunar_month;
+	if(current_leap_month_num != 0)
+	{
+		if(calculated_lunar_month == current_leap_month_num + 1)
+		{
+			is_this_month_leap = true;
+			display_lunar_month = current_leap_month_num;
+		}
+		else if(calculated_lunar_month > current_leap_month_num + 1)
+		{
+			display_lunar_month = calculated_lunar_month - 1;
+		}
+	}
+	// 6. 判斷時辰文字
+	hour_of_day = current_solar_date.getHour();
+	shichen_text = "";
+	if(hour_of_day >= 23 || hour_of_day < 1)
+	{
+		if(hour_of_day >= 23)
+		{
+			shichen_text = " 夜子時生";
+		}
+		else
+		{
+			shichen_text = " 早子時生";
+		}
+	}
+	else if(hour_of_day >= 1 && hour_of_day < 3)
+	{
+		shichen_text = " 丑時生";
+	}
+	else if(hour_of_day >= 3 && hour_of_day < 5)
+	{
+		shichen_text = " 寅時生";
+	}
+	else if(hour_of_day >= 5 && hour_of_day < 7)
+	{
+		shichen_text = " 卯時生";
+	}
+	else if(hour_of_day >= 7 && hour_of_day < 9)
+	{
+		shichen_text = " 辰時生";
+	}
+	else if(hour_of_day >= 9 && hour_of_day < 11)
+	{
+		shichen_text = " 巳時生";
+	}
+	else if(hour_of_day >= 11 && hour_of_day < 13)
+	{
+		shichen_text = " 午時生";
+	}
+	else if(hour_of_day >= 13 && hour_of_day < 15)
+	{
+		shichen_text = " 未時生";
+	}
+	else if(hour_of_day >= 15 && hour_of_day < 17)
+	{
+		shichen_text = " 申時生";
+	}
+	else if(hour_of_day >= 17 && hour_of_day < 19)
+	{
+		shichen_text = " 酉時生";
+	}
+	else if(hour_of_day >= 19 && hour_of_day < 21)
+	{
+		shichen_text = " 戌時生";
+	}
+	else if(hour_of_day >= 21 && hour_of_day < 23)
+	{
+		shichen_text = " 亥時生";
+	}
+	// 7. 組合最終的回傳 Map
+	is_leap_month_text_val = if(is_this_month_leap,"是","否");
+	lunar_month_with_leap_prefix = if(is_this_month_leap,"閏","") + display_lunar_month.toString();
+	chinese_month_name = if(is_this_month_leap,"閏","") + month_name_map.get(display_lunar_month) + "月";
+	chinese_day_name = day_name_map.get(calculated_lunar_day) + "日";
+	result_map.put("國曆",current_solar_date.toString("yyyy/MM/dd HH:mm:ss"));
+	result_map.put("閏月",is_leap_month_text_val);
+	result_map.put("農曆",lunar_year_str + "年" + lunar_month_with_leap_prefix + "月" + calculated_lunar_day.toString() + "日" + shichen_text);
+	result_map.put("中文日期",lunar_year_str + ", " + chinese_month_name + chinese_day_name + shichen_text);
+	result_map.put("lunar_month_numeric",display_lunar_month);
+	result_map.put("lunar_day_numeric",calculated_lunar_day);
+	// [BUG FIX] 補充 convertToBaZi 所需的標準化 key（原始 DS 缺少這些 key，導致
+	//           getSolarDateTimeBazi / getCurrentTimeBazi 呼叫 convertToBaZi 時因
+	//           lunar.get("lunar_year") 為 null 而 crash）
+	result_map.put("lunar_year",lunar_year_str.toLong());
+	result_map.put("lunar_month",display_lunar_month);
+	result_map.put("lunar_day",calculated_lunar_day);
+	result_map.put("is_leap_month",is_this_month_leap);
+	result_map.put("error","");
+	return result_map;
+}

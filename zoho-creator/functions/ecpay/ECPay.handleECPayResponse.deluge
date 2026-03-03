@@ -1,0 +1,49 @@
+map ECPay.handleECPayResponse(map requestParamsMap, string hashKey, string hashIV)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.handleECPayResponse
+	// 函數用途：處理綠界 ECPay 的前端/後端回調請求
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：處理綠界 ReturnURL 或 NotifyURL 回調：
+	//           - 呼叫 verifyECPayCheckMacValue 進行簽章驗證
+	//           - 驗證失敗回傳 "Invalid" 狀態
+	//           - 驗證成功解析 RtnCode 判斷付款狀態（1=成功）
+	//           - 將訂單號、狀態、原始參數打包成標準化 map
+	// 參數說明：
+	//   - requestParamsMap (map): 從綠界收到的所有參數
+	//   - hashKey (string): 綠界後台的 HashKey
+	//   - hashIV (string): 綠界後台的 HashIV
+	// 回傳格式：map - 包含處理結果：
+	//   - "status" (string): "Paid", "Failed", "Invalid"
+	//   - "orderNo" (string): 商家訂單編號
+	//   - "params" (map): 原始 requestParamsMap
+	// 相依性：ECPay.verifyECPayCheckMacValue
+	// 注意：呼叫此函式的外層邏輯，處理 NotifyURL 時必須 return "1|OK" 給綠界
+	// =============================================================================
+	responseMap = Map();
+	responseMap.put("params",requestParamsMap);
+	// 1. 驗證 CheckMacValue
+	isValid = thisapp.ECPay.verifyECPayCheckMacValue(requestParamsMap,hashKey,hashIV);
+	if(!isValid)
+	{
+		responseMap.put("status","Invalid");
+		responseMap.put("orderNo",null);
+		// 簽章驗證失敗，直接回傳
+		return responseMap;
+	}
+	// 2. 驗證成功，解析付款狀態
+	// RtnCode = 1 代表交易成功
+	rtnCode = requestParamsMap.get("RtnCode");
+	merchantTradeNo = requestParamsMap.get("MerchantTradeNo");
+	responseMap.put("orderNo",merchantTradeNo);
+	if(rtnCode == "1")
+	{
+		responseMap.put("status","Paid");
+	}
+	else
+	{
+		responseMap.put("status","Failed");
+	}
+	return responseMap;
+}

@@ -1,0 +1,62 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第1段)
+//
+//
+// Workflow/Clients_Report/OnEdit_SetGenderFromAIPrediction.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 上觸發。
+//               當「客戶性別」(Clients_Gender) 欄位為空，且「訪客姓名」(Visitor_Name) 存在時，
+//               此腳本會呼叫 LLM API，根據名字預測性別，並自動填入欄位。
+//
+// @trigger_event: On User Input / On Load (使用者輸入時 / 載入時)
+// @trigger_form: Clients_Report (個案表單)
+// @trigger_field: Visitor_Name (訪客姓名)
+//
+// @notes:
+//   - 這是第一階段的性別判斷。
+//   - API 呼叫失敗或回傳非預期結果時，性別預設為「男」。
+//
+// @dependencies:
+//   - thisapp.LLM.callChat (統一 LLM API 呼叫介面)
+//
+// @placement: 應設定於 Clients_Report 表單的 Workflow 中，
+//             例如在 Visitor_Name 欄位的 "On User Input" 事件，
+//             或表單的 "On Add -> On Load" / "On Edit -> On Load" 事件。
+//
+// 檢查是否需要執行性別預測
+if(input.Clients_Gender == null && input.Visitor_Name.first_name != null && input.Visitor_Name.first_name != "")
+{
+	// FUTURE_ENHANCEMENT: 此處為第一階段的性別判斷。
+	// 未來在占卜流程中，可加入第二階段判斷，根據個案的問題內容與語氣，再次驗證或修正性別。
+	// 屆時可在此 AI 初步判斷的基礎上，建立新的邏輯來覆寫 input.Clients_Gender 的值。
+	fname = input.Visitor_Name.first_name.trim();
+	// --- 使用 LLM.callChat 進行性別預測 ---
+	gender_system = "你是一個中文名字性別判斷專家。根據使用者提供的名字，判斷其最可能的性別。你的回答必須只能是「男」或「女」，不能包含任何其他標點符號、文字或解釋。\n\n範例：\n王大明 → 男\n陳淑芬 → 女\n林俊傑 → 男\n李玉蓮 → 女\n陳子晴 → 女\n黃宇翔 → 男";
+	gender_opts = Map();
+	gender_opts.put("max_tokens", 5);
+	gender_opts.put("temperature", 0.1);
+	try
+	{
+		reply = thisapp.LLM.callChat(gender_system, fname, gender_opts).trim();
+		// 根據 AI 回應設定性別
+		if(reply == "女")
+		{
+			input.Clients_Gender = "女";
+		}
+		else if(reply == "男")
+		{
+			input.Clients_Gender = "男";
+		}
+		else
+		{
+			// 如果 AI 回傳非預期內容，給予預設值
+			input.Clients_Gender = "男";
+		}
+	}
+	catch (e)
+	{
+		// 如果 API 呼叫失敗，給予預設值
+		input.Clients_Gender = "男";
+	}
+}

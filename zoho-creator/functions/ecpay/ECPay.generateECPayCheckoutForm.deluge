@@ -1,0 +1,54 @@
+string ECPay.generateECPayCheckoutForm(string merchantID, string hashKey, string hashIV, string checkoutUrl, map orderInfoMap)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.generateECPayCheckoutForm
+	// 函數用途：產生導向綠界付款頁面的自動提交 HTML 表單
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：準備所有綠界 API 參數，計算簽章，組合含自動提交 JavaScript 的 HTML form。
+	// 參數說明：
+	//   - merchantID (string): 綠界商店代號
+	//   - hashKey (string): 綠界後台的 HashKey
+	//   - hashIV (string): 綠界後台的 HashIV
+	//   - checkoutUrl (string): 綠界結帳 URL（測試或正式）
+	//   - orderInfoMap (map): 訂單詳細資訊（需符合綠界 API 規範）
+	//     - MerchantTradeNo, MerchantTradeDate, TotalAmount, TradeDesc,
+	//       ItemName, ReturnURL, ClientBackURL(可選), ChoosePayment(可選)
+	// 回傳格式：string - 含自動提交表單的完整 HTML
+	// 相依性：ECPay.generateCheckMacValue
+	// 注意：內部呼叫已更新（generateCheckMacValue_private → generateCheckMacValue）
+	// =============================================================================
+	// 1. 準備所有必要參數
+	params = Map();
+	params.put("MerchantID",merchantID);
+	params.put("MerchantTradeNo",orderInfoMap.get("MerchantTradeNo"));
+	params.put("MerchantTradeDate",orderInfoMap.get("MerchantTradeDate"));
+	params.put("PaymentType","aio");
+	params.put("TotalAmount",orderInfoMap.get("TotalAmount"));
+	params.put("TradeDesc",orderInfoMap.get("TradeDesc"));
+	params.put("ItemName",orderInfoMap.get("ItemName"));
+	params.put("ReturnURL",orderInfoMap.get("ReturnURL"));
+	// 設定預設付款方式為 ALL，但可被 orderInfoMap 覆寫
+	params.put("ChoosePayment",if(orderInfoMap.containKey("ChoosePayment"),orderInfoMap.get("ChoosePayment"),"ALL"));
+	params.put("EncryptType",1);
+	// 根據 ECPay 文件，固定為 1（SHA256）
+	if(orderInfoMap.containKey("ClientBackURL"))
+	{
+		params.put("ClientBackURL",orderInfoMap.get("ClientBackURL"));
+	}
+	// 2. 產生 CheckMacValue（官方文件 v5 版指定用 SHA256）
+	checkMacValue = thisapp.ECPay.generateCheckMacValue(params,hashKey,hashIV);
+	params.put("CheckMacValue",checkMacValue);
+	// 3. 組合 HTML 表單
+	htmlForm = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>";
+	htmlForm = htmlForm + "<h1 style=\"text-align:center;\">頁面載入中，請稍候...</h1>";
+	htmlForm = htmlForm + "<form id=\"ecpay-form\" method=\"post\" action=\"" + checkoutUrl + "\" style=\"display:none;\">";
+	for each  key in params.keys()
+	{
+		htmlForm = htmlForm + "<input type=\"hidden\" name=\"" + key + "\" value=\"" + params.get(key) + "\">";
+	}
+	htmlForm = htmlForm + "</form>";
+	htmlForm = htmlForm + "<script>document.getElementById('ecpay-form').submit();</script>";
+	htmlForm = htmlForm + "</body></html>";
+	return htmlForm;
+}

@@ -1,0 +1,272 @@
+map API.predictFromLine(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.predictFromLine
+	// 函數用途：LINE 占卜入口 API（MVP Wrapper）
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收 n8n 轉發的 LINE 使用者訊息，執行占卜並回傳結果
+	// - 「兩個都出」策略：易經（主）+ 塔羅（補充），依問題類型決定主次
+	//   - 愛情/婚姻/人際 → 塔羅為主解讀，易經為補充視角
+	//   - 其他題型       → 易經為主解讀，塔羅為補充視角
+	// - 冷卻機制：在最前方一次性檢查，觸發則直接 return，不呼叫任何 OpenAI
+	// - LINE 訊息上限 5000 字，超過 4300 字時截斷並提示購買符令
+	//
+	// 參數說明：
+	// @param payload (map) - n8n 傳入的 HTTP POST body（JSON）
+	//   - lineUserId : string，LINE 使用者 ID
+	//   - text       : string，使用者輸入的問題文字
+	//   - timestamp  : string，訊息時間戳
+	//
+	// 回傳格式：
+	// @return (map)
+	//   { ok: true/false, blocked: true/false, message: string, meta: map }
+	//   blocked 原因（meta.reason）：
+	//     missing_client_binding → 尚未綁定生日（回傳 LIFF 連結）
+	//     cooldown               → 冷卻中（安撫但不占卜）
+	//
+	// 相依性：
+	//   - Clients_Report（查 clientId by Line_User_ID）
+	//   - thisapp.Calendar.normalizeToTaipei（時區正規化）
+	//   - thisapp.AIInterpreter.checkCooldownStatus（冷卻檢查）
+	//   - thisapp.AIInterpreter.classifyQuestionType（問題分類）
+	//   - thisapp.AIInterpreter.getPredictionByQuestionAndBirthday（易經）
+	//   - thisapp.Tarot.tarotDivinationFunction（塔羅）
+	//   - Divination_Logs（取塔羅 AI_Interpretation）
+	//
+	// 注意：
+	//   - 呼叫順序：易經先（內建冷卻，因 Step 4 已確認通過必然成功）→ 塔羅後（無內建冷卻）
+	//   - 時區口徑：Asia/Taipei（台北時間）
+	//   - 冷卻觸發時不呼叫 OpenAI，節省 token
+	//   - 若 LIFFBinding 頁面 URL 變更，需同步更新 missing_client_binding 的 liffBindingUrl
+	// =============================================================================
+
+	resp = Map();
+	meta = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：解析 payload
+		//   三個必要欄位：lineUserId（識別使用者）、text（問題）、timestamp（時間戳）
+		// ────────────────────────────────────────────────────────────────────
+		lineUserId = "";
+		text = "";
+		ts = "";
+		if(payload != null)
+		{
+			lineUserId = if(payload.get("lineUserId") != null, payload.get("lineUserId").toString().trim(), "");
+			text       = if(payload.get("text")       != null, payload.get("text").toString().trim(),       "");
+			ts         = if(payload.get("timestamp")  != null, payload.get("timestamp").toString(),         "");
+		}
+
+		if(lineUserId == "" || text == "")
+		{
+			resp.put("ok",false);
+			resp.put("blocked",false);
+			resp.put("message","請輸入要占卜的問題（文字）即可。");
+			resp.put("meta",meta);
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：查詢 clientId（by LINE userId）
+		//   Clients_Report 需有 Line_User_ID 欄位與生日資料
+		//   若查無記錄 → blocked，引導完成 LIFF 生日綁定
+		// ────────────────────────────────────────────────────────────────────
+		clientId = "";
+		try
+		{
+			clients = Clients_Report[Line_User_ID == lineUserId];
+			for each  c in clients
+			{
+				clientId = c.ID.toString();
+				break;
+			}
+		}
+		catch (eClient)
+		{
+			// 查詢失敗 → clientId 維持空字串，後續統一處理
+		}
+
+		if(clientId == "")
+		{
+			// ────────────────────────────────────────────────────────────────
+			// 尚未綁定生日 → 回覆 LIFF 連結，引導使用者完成 30 秒設定
+			// 若 LIFFBinding 頁面 URL 變更，請同步更新此處的 liffBindingUrl
+			// ────────────────────────────────────────────────────────────────
+			liffBindingUrl = "https://creatorapp.zoho.com/uneedwind/ai/page/LIFFBinding";
+			bindingMsg = "歡迎來到找風問幸福 🔮\n\n"
+				+ "占卜前需要先認識你一下，這樣解讀才準確。\n\n"
+				+ "👉 點此完成生日設定（約 30 秒）：\n"
+				+ liffBindingUrl
+				+ "\n\n設定完成後，直接回來輸入你的問題就好 ✨";
+			resp.put("ok",true);
+			resp.put("blocked",true);
+			resp.put("message",bindingMsg);
+			meta.put("reason","missing_client_binding");
+			meta.put("liff_binding_url",liffBindingUrl);
+			resp.put("meta",meta);
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：取得台北時間（Asia/Taipei）
+		//   normalizeToTaipei 失敗時 fallback 為 server time（不中斷流程）
+		// ────────────────────────────────────────────────────────────────────
+		solarDateTime = zoho.currenttime;
+		try
+		{
+			solarDateTime = thisapp.Calendar.normalizeToTaipei(zoho.currenttime);
+		}
+		catch (eTz)
+		{
+			// fallback to server time
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：冷卻檢查（先擋，直接 return，不呼叫任何 AI）
+		//   冷卻規則：同問題 3 天、同類型 6 小時、每日上限 2 類型
+		//   觸發時：回覆安撫文案，不呼叫 OpenAI，節省 token
+		// ────────────────────────────────────────────────────────────────────
+		cooldownResult = thisapp.AIInterpreter.checkCooldownStatus(clientId, text, solarDateTime);
+		if(cooldownResult != null && cooldownResult.get("allowed") == false)
+		{
+			cooldownMsg = "這個問題你最近已經問過了，能量正在作用中 🌙 讓結果先沉澱一下，7 天後我們再深問。";
+			if(cooldownResult.get("message") != null && cooldownResult.get("message").toString().trim() != "")
+			{
+				cooldownMsg = cooldownResult.get("message").toString();
+			}
+			resp.put("ok",true);
+			resp.put("blocked",true);
+			resp.put("message",cooldownMsg);
+			meta.put("reason","cooldown");
+			meta.put("cooldownRule", if(cooldownResult.get("rule") != null, cooldownResult.get("rule").toString(), ""));
+			resp.put("meta",meta);
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：分類問題，決定主次占卜方法
+		//   愛情/婚姻/人際 → 塔羅為主；其餘 → 易經為主
+		//   分類失敗時 fallback 為「其他」（易經為主）
+		// ────────────────────────────────────────────────────────────────────
+		questionType = "其他";
+		try
+		{
+			classifyResult = thisapp.AIInterpreter.classifyQuestionType(text);
+			if(classifyResult != null && classifyResult.get("success") == true && classifyResult.get("question_type") != null)
+			{
+				questionType = classifyResult.get("question_type").toString();
+			}
+		}
+		catch (eClassify)
+		{
+			// 分類失敗 → fallback 其他
+		}
+
+		primaryMethod   = "易經";
+		secondaryMethod = "塔羅";
+		primaryLabel    = "☯️ 【易經 · 主解讀】";
+		secondaryLabel  = "🔮 【塔羅 · 補充視角】";
+		if(questionType == "愛情" || questionType == "婚姻" || questionType == "人際")
+		{
+			primaryMethod   = "塔羅";
+			secondaryMethod = "易經";
+			primaryLabel    = "🔮 【塔羅 · 主解讀】";
+			secondaryLabel  = "☯️ 【易經 · 補充視角】";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6-A：易經占卜（先呼叫）
+		//   getPredictionByQuestionAndBirthday 有自身冷卻二次確認
+		//   因步驟 4 已確認 allowed，此處必然通過，不會相互阻斷
+		// ────────────────────────────────────────────────────────────────────
+		ichingText = "";
+		try
+		{
+			ichingText = thisapp.AIInterpreter.getPredictionByQuestionAndBirthday(text, solarDateTime, clientId);
+			if(ichingText == null) { ichingText = ""; }
+		}
+		catch (eIching)
+		{
+			ichingText = "（易經暫時無法解讀，請稍後再試）";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6-B：塔羅占卜（後呼叫）
+		//   tarotDivinationFunction 無內建冷卻，直接執行
+		//   回傳 divination_id → 查 Divination_Logs.AI_Interpretation
+		// ────────────────────────────────────────────────────────────────────
+		tarotText = "";
+		try
+		{
+			tarotResult = thisapp.Tarot.tarotDivinationFunction(clientId, text);
+			if(tarotResult != null && tarotResult.get("success") == true && tarotResult.get("divination_id") != null)
+			{
+				divId = tarotResult.get("divination_id");
+				divLogs = Divination_Logs[ID == divId.toLong()];
+				for each  d in divLogs
+				{
+					if(d.AI_Interpretation != null && d.AI_Interpretation.trim() != "")
+					{
+						tarotText = d.AI_Interpretation;
+					}
+					break;
+				}
+			}
+			if(tarotText == null || tarotText.trim() == "")
+			{
+				tarotText = "（塔羅暫時無法解讀，請稍後再試）";
+			}
+		}
+		catch (eTarot)
+		{
+			tarotText = "（塔羅暫時無法解讀，請稍後再試）";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 7：組合訊息（主解讀 + 補充視角 + CTA）
+		//   LINE 訊息上限 5000 字，保留 700 字給 CTA
+		//   超過 4300 字時截斷並提示購買符令查看完整版
+		// ────────────────────────────────────────────────────────────────────
+		if(primaryMethod == "塔羅")
+		{
+			combined = primaryLabel + "\n" + tarotText + "\n\n" + secondaryLabel + "\n" + ichingText;
+		}
+		else
+		{
+			combined = primaryLabel + "\n" + ichingText + "\n\n" + secondaryLabel + "\n" + tarotText;
+		}
+
+		if(combined.length() > 4300)
+		{
+			combined = combined.subString(0, 4300) + "...\n（完整解讀請購買符令查看）";
+		}
+
+		// CTA：引導購買符令（固定 NT$360）
+		ctaLine = "\n\n✨ 加強能量守護 → 購買符令 NT$360\n👉 （連結將在付款完成後透過 LINE 推播給你）";
+		finalMsg = combined + ctaLine;
+
+		resp.put("ok",true);
+		resp.put("blocked",false);
+		resp.put("message",finalMsg);
+		meta.put("clientId",clientId);
+		meta.put("divinationType",primaryMethod + "+" + secondaryMethod);
+		meta.put("questionType",questionType);
+		meta.put("timestamp",ts);
+		resp.put("meta",meta);
+		return resp;
+	}
+	catch (e)
+	{
+		// 系統層例外
+		resp.put("ok",false);
+		resp.put("blocked",false);
+		resp.put("message","目前系統忙碌中，請稍後再試。（錯誤代碼：" + e + ")");
+		resp.put("meta",meta);
+		return resp;
+	}
+	return resp;
+}

@@ -1,16 +1,22 @@
-// =============================================================================
-// 功能：交付推播回寫（Ops / Phase 2）
-// 名稱：API.DeliveryPushCallback_v1
-// 呼叫者：n8n（LINE push 成功/失敗後回寫 Creator，確保 SSOT 可對帳）
-// 輸入（payload JSON）：{ merchantTradeNo, ok, error, lineMessageId }
-// 輸出：{ ok, message }
-// 注意：
-// - n8n CE execution logs 只留 1 天；交付結果必須回寫 Creator 才能追溯。
-// - 本 function 為建議項（MVP 可先不啟用），但「每日 100 單」營運建議要做。
-// =============================================================================
-
-map API.DeliveryPushCallback_v1(map payload)
+map API.deliveryPushCallback(map payload)
 {
+	// =============================================================================
+	// 函數名稱：API.deliveryPushCallback
+	// 函數用途：交付推播回寫 API（Ops Phase 2）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：n8n LINE push 成功/失敗後回寫 Creator，確保 SSOT 可對帳：
+	//           - 接收 merchantTradeNo、成功/失敗狀態、錯誤訊息、LINE 訊息 ID
+	//           - 查詢 Talisman_Purchases 訂單記錄
+	//           - 更新交付推播狀態欄位
+	// 參數說明：
+	//   - payload (map): HTTP POST body（JSON）
+	//     包含: merchantTradeNo, ok, error, lineMessageId
+	// 回傳格式：map - {ok, message}
+	// 相依性：Talisman_Purchases
+	// 注意：此為建議項（MVP 可先不啟用），「每日 100 單」營運建議要做
+	// =============================================================================
+
 	resp = Map();
 	try
 	{
@@ -54,4 +60,5 @@ map API.DeliveryPushCallback_v1(map payload)
 		resp.put("message","error: " + e);
 		return resp;
 	}
+	return resp;
 }

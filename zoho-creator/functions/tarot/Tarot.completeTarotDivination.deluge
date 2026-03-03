@@ -1,0 +1,186 @@
+map Tarot.completeTarotDivination(string firstName, string lastName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string userQuestion)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.completeTarotDivination
+	// 函數用途：完整塔羅占卜流程（含個案建檔與占卜執行）
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：整合個案建檔與塔羅占卜的完整流程函數：
+	//           - 驗證必要參數（姓名與問題）
+	//           - 組合出生日期時間（預設 12:00:00）
+	//           - 依手機/Email 查找現有個案或新建個案記錄
+	//           - 呼叫 tarotDivinationFunction 執行占卜
+	//           - 取得占卜記錄並組裝完整的回傳訊息
+	// 參數說明：
+	//   - firstName (string): 名
+	//   - lastName (string): 姓
+	//   - phoneNumber (string): 手機號碼（可選）
+	//   - email (string): Email（可選）
+	//   - dateOfBirth (string): 出生日期，格式 YYYY-MM-DD（可選）
+	//   - timeOfBirth (string): 出生時間，格式 HH:MM（可選）
+	//   - userQuestion (string): 占卜問題
+	// 回傳格式：map - 包含 success, message, clientId, divinationId 等
+	// 相依性：Tarot.tarotDivinationFunction, Clients_Report 表單, Divination_Logs 表單
+	// 注意：Bug #2 修正 — insert 後加入驗證與 info 日誌
+	// =============================================================================
+	finalResponse = Map();
+	try
+	{
+		if(firstName == null || firstName.trim() == "" || lastName == null || lastName.trim() == "" || userQuestion == null || userQuestion.trim() == "")
+		{
+			finalResponse.put("success",false);
+			finalResponse.put("error","必要參數不完整：姓名和問題為必填項目");
+			return finalResponse;
+		}
+		fullBirthDatetime = "";
+		if(dateOfBirth != null && dateOfBirth.trim() != "")
+		{
+			if(timeOfBirth != null && timeOfBirth.trim() != "")
+			{
+				fullBirthDatetime = dateOfBirth + " " + timeOfBirth + ":00";
+			}
+			else
+			{
+				fullBirthDatetime = dateOfBirth + " 12:00:00";
+			}
+		}
+		else
+		{
+			fullBirthDatetime = "1990-01-01 12:00:00";
+		}
+		clientId = "";
+		existingClients = List();
+		if(phoneNumber != null && phoneNumber.trim() != "")
+		{
+			existingClients = Clients_Report[Phone_Number == phoneNumber];
+		}
+		else if(email != null && email.trim() != "")
+		{
+			existingClients = Clients_Report[Email == email];
+		}
+		if(existingClients.count() > 0)
+		{
+			for each  existingClient in existingClients
+			{
+				clientId = existingClient.ID;
+				// 直接使用現有客戶，不進行更新（避免複雜的 Name field 更新問題）
+				break;
+			}
+		}
+		else
+		{
+			clientInsertResponse = insert into Clients_Report
+			[
+				Added_User=zoho.loginuser
+				Visitor_Name.first_name=firstName
+				Visitor_Name.last_name=lastName
+				Client_Type="真實"
+				Phone_Number=if(phoneNumber != null && phoneNumber.trim() != "",phoneNumber,null)
+				Email=if(email != null && email.trim() != "",email,null)
+				Date_Of_Birth=fullBirthDatetime.toDateTime()
+				Timezone_Of_Birth="(UTC+08:00) 台北 (Asia/Taipei)"
+			];
+			clientId = clientInsertResponse;
+			// Bug #2 修正：insert 後驗證 + info 日誌
+			info "Tarot.completeTarotDivination: 新建個案記錄，ID = " + clientId;
+			if(clientId == null || clientId == "0")
+			{
+				finalResponse.put("success",false);
+				finalResponse.put("error","建立個案記錄失敗");
+				return finalResponse;
+			}
+		}
+		// 調用塔羅占卜函數（2個參數：client_id, user_question）
+		tarotResult = thisapp.Tarot.tarotDivinationFunction(clientId.toString(),userQuestion);
+		if(tarotResult.get("success") == true)
+		{
+			divinationId = tarotResult.get("divination_id");
+			primaryPolarity = tarotResult.get("primary_polarity");
+			primaryCardId = tarotResult.get("primary_card_id");
+			fullName = lastName + firstName;
+			// 取得完整的占卜記錄以提供詳細資訊
+			completeDivinationInfo = "";
+			try
+			{
+				divinationRecords = Divination_Logs[ID == divinationId.toLong()];
+				for each  divinationRecord in divinationRecords
+				{
+					// 建立完整的占卜資訊
+					completeDivinationInfo = "? **" + fullName + " 的塔羅占卜完成！**\n\n";
+					completeDivinationInfo = completeDivinationInfo + "? **你的問題：** " + userQuestion + "\n";
+					completeDivinationInfo = completeDivinationInfo + "? **主卦趨勢：** " + primaryPolarity + "\n";
+					completeDivinationInfo = completeDivinationInfo + "? **占卜編號：** " + divinationId + "\n\n";
+					// 加入五張牌的詳細資訊
+					completeDivinationInfo = completeDivinationInfo + "? **詳細牌陣解讀：**\n\n";
+					// 牌卡 1
+					if(divinationRecord.Position_a_Meaning != null && divinationRecord.Position_a_Meaning != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "**牌位 1** - " + divinationRecord.Position_a_Meaning + "\n\n";
+					}
+					// 牌卡 2
+					if(divinationRecord.Position_b_Meaning != null && divinationRecord.Position_b_Meaning != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "**牌位 2** - " + divinationRecord.Position_b_Meaning + "\n\n";
+					}
+					// 牌卡 3
+					if(divinationRecord.Position_c_Meaning != null && divinationRecord.Position_c_Meaning != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "**牌位 3** - " + divinationRecord.Position_c_Meaning + "\n\n";
+					}
+					// 牌卡 4
+					if(divinationRecord.Position_d_Meaning != null && divinationRecord.Position_d_Meaning != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "**牌位 4** - " + divinationRecord.Position_d_Meaning + "\n\n";
+					}
+					// 牌卡 5
+					if(divinationRecord.Position_e_Meaning != null && divinationRecord.Position_e_Meaning != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "**牌位 5** - " + divinationRecord.Position_e_Meaning + "\n\n";
+					}
+					// 加入 AI 解讀
+					if(divinationRecord.AI_Interpretation != null && divinationRecord.AI_Interpretation != "")
+					{
+						completeDivinationInfo = completeDivinationInfo + "? **AI 個人化解讀：**\n\n";
+						completeDivinationInfo = completeDivinationInfo + divinationRecord.AI_Interpretation + "\n\n";
+					}
+					completeDivinationInfo = completeDivinationInfo + "✨ 想了解你的專屬符令推薦嗎？請回覆「符令」來查看！";
+					break;
+				}
+			}
+			catch (detailError)
+			{
+				// 如果取得詳細資訊失敗，使用簡化版本
+				completeDivinationInfo = "? " + fullName + " 的塔羅占卜完成！\n\n";
+				completeDivinationInfo = completeDivinationInfo + "? 你的問題：" + userQuestion + "\n\n";
+				completeDivinationInfo = completeDivinationInfo + "? 主卦趨勢：" + primaryPolarity + "\n";
+				completeDivinationInfo = completeDivinationInfo + "? 占卜記錄：" + divinationId + "\n\n";
+				completeDivinationInfo = completeDivinationInfo + "? 詳細解讀正在準備中，請稍候片刻...";
+				completeDivinationInfo = completeDivinationInfo + "\n\n錯誤：" + detailError;
+			}
+			finalResponse.put("success",true);
+			finalResponse.put("message",completeDivinationInfo);
+			finalResponse.put("clientId",clientId);
+			finalResponse.put("divinationId",divinationId);
+			finalResponse.put("primaryPolarity",primaryPolarity);
+			finalResponse.put("primaryCardId",primaryCardId);
+			finalResponse.put("fullName",fullName);
+		}
+		else
+		{
+			errorMessage = "很抱歉，占卜過程中遇到了一些靈性干擾。請稍後再試，或調整你的問題重新占卜。";
+			if(tarotResult.get("message") != null)
+			{
+				errorMessage = errorMessage + "\n\n技術訊息：" + tarotResult.get("message");
+			}
+			finalResponse.put("success",false);
+			finalResponse.put("error",errorMessage);
+			finalResponse.put("clientId",clientId);
+		}
+	}
+	catch (e)
+	{
+		finalResponse.put("success",false);
+		finalResponse.put("error","系統發生意外錯誤：" + e);
+	}
+	return finalResponse;
+}

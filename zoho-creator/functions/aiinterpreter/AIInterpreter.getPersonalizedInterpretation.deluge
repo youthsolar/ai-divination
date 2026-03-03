@@ -1,0 +1,108 @@
+map AIInterpreter.getPersonalizedInterpretation(string question_text, string question_type, map hexagram_details)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.getPersonalizedInterpretation
+	// 函數用途：AI 個人化解讀函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：將卦象資料與客戶具體問題結合，生成個人化占卜解讀：
+	//           - 根據問題類型選取相關卦象內容（工作→yao_work, 愛情→yao_love 等）
+	//           - 透過 AI 生成 220-250 字溫暖專業的解讀
+	//           - AI 回應長度異常時自動降級為備用回應
+	//           - 支援 7 種問題類型的差異化解讀
+	// 參數說明：
+	//   - question_text (string): 客戶的原始問題文字
+	//   - question_type (string): AI 判斷的問題類型（愛情、工作、財運等）
+	//   - hexagram_details (map): 從 IChing.getHexagramDetails 取得的完整卦象資料
+	// 回傳格式：map - {"success": bool, "interpretation": string, "word_count": int, "hexagram_name": string}
+	// 相依性：thisapp.LLM.callChat
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	final_response = Map();
+	try
+	{
+		// --- 步驟 1: 驗證輸入參數 ---
+		if(question_text == null || question_text.trim() == "" || question_type == null || question_type.trim() == "" || hexagram_details == null || hexagram_details.get("success") != true)
+		{
+			final_response.put("success",false);
+			final_response.put("error","輸入參數不完整或卦象資料無效");
+			final_response.put("interpretation","很抱歉，目前無法為您提供占卜解讀，請稍後再試。");
+			return final_response;
+		}
+		// --- 步驟 2: 根據問題類型選取相關的卦象內容 ---
+		relevant_content = "";
+		appearance = hexagram_details.get("appearance");
+		// 根據問題類型，選擇最相關的卦象解釋
+		if(question_type == "工作")
+		{
+			relevant_content = hexagram_details.get("yao_work");
+		}
+		else if(question_type == "愛情")
+		{
+			relevant_content = hexagram_details.get("yao_love");
+		}
+		else if(question_type == "婚姻")
+		{
+			relevant_content = hexagram_details.get("yao_love");
+			// 婚姻也使用愛情解釋
+		}
+		else if(question_type == "財運")
+		{
+			relevant_content = hexagram_details.get("yao_business");
+		}
+		else if(question_type == "健康" || question_type == "入煞")
+		{
+			relevant_content = hexagram_details.get("yao_comment");
+			// 使用通用註解
+		}
+		else
+		{
+			relevant_content = hexagram_details.get("yao_article");
+			// 其他類型使用總體爻辭
+		}
+		// 如果選定的內容為空，使用通用爻辭作為備用
+		if(relevant_content == null || relevant_content.trim() == "")
+		{
+			relevant_content = hexagram_details.get("yao_article");
+		}
+		// --- 步驟 3: 建立個人化的 AI Prompt ---
+		system_prompt = "你是一位溫暖、有同理心的易經解籤大師，擅長將古老的易經智慧轉化為現代人能理解的實用建議。\n\n" + "你的任務是根據客戶的具體問題和卦象，提供一段個人化、有溫度的解讀。\n\n" + "寫作風格要求：\n" + "1. 用「您」稱呼客戶，展現尊重\n" + "2. 語氣溫暖、有同理心，像是關心的朋友\n" + "3. 內容要有針對性，不能只是重複標準答案\n" + "4. 長度控制在 220-250 字\n" + "5. 結尾要有正面的鼓勵或建議\n" + "6. 不要提到「卦象顯示」等占卜術語，要自然融入\n\n" + "請避免：\n" + "- 過於籠統的建議\n" + "- 重複客戶的問題\n" + "- 使用艱澀的古文或術語";
+		user_prompt = "客戶問題：「" + question_text + "」\n" + "問題類型：" + question_type + "\n" + "占卜結果：" + appearance + "卦\n" + "相關解釋：" + relevant_content + "\n\n" + "請為這位客戶寫一段個人化的解讀，重點回應他們關於「" + question_type + "」的關切。";
+		// --- 步驟 4: 呼叫 AI API ---
+		opts = Map();
+		opts.put("max_tokens", 300);
+		opts.put("temperature", 0.9);
+		ai_interpretation = thisapp.LLM.callChat(system_prompt, user_prompt, opts).trim();
+		// --- 步驟 5: 驗證 AI 回應 ---
+		// 簡單檢查回應是否合理
+		if(ai_interpretation.length() > 50 && ai_interpretation.length() < 300)
+		{
+			final_response.put("success",true);
+			final_response.put("interpretation",ai_interpretation);
+			final_response.put("word_count",ai_interpretation.length());
+			final_response.put("hexagram_name",appearance);
+			final_response.put("question_type",question_type);
+		}
+		else
+		{
+			// AI 回應長度異常，使用備用回應
+			fallback_response = "親愛的朋友，根據您的占卜結果，" + appearance + "卦為您帶來重要的指引。" + "在" + question_type + "方面，建議您保持開放的心態，仔細觀察周遭的變化。" + "記住，每個挑戰都是成長的機會，相信自己的判斷，您一定能找到最適合的道路。";
+			final_response.put("success",true);
+			final_response.put("interpretation",fallback_response);
+			final_response.put("word_count",fallback_response.length());
+			final_response.put("hexagram_name",appearance);
+			final_response.put("question_type",question_type);
+			final_response.put("note","使用備用回應");
+		}
+	}
+	catch (e)
+	{
+		// 發生錯誤時的緊急備用回應
+		emergency_response = "感謝您的占卜諮詢。目前系統正在處理中，請您稍候片刻，" + "或者您可以嘗試重新提問。我們會盡快為您提供詳細的解讀。";
+		final_response.put("success",false);
+		final_response.put("error","個人化解讀過程中發生錯誤：" + e);
+		final_response.put("interpretation",emergency_response);
+		final_response.put("word_count",emergency_response.length());
+	}
+	return final_response;
+}

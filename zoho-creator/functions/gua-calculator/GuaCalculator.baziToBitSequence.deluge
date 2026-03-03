@@ -1,0 +1,70 @@
+string GuaCalculator.baziToBitSequence(string bazi)
+{
+	// =============================================================================
+	// 函數名稱：GuaCalculator.baziToBitSequence
+	// 函數用途：八字四柱 → 天干地支編號序列
+	// 平台：Zoho Creator
+	// 命名空間：GuaCalculator
+	// 功能描述：將八字字串（如「甲子 丙寅 戊辰 庚午」）拆成四柱，
+	//           逐柱取天干序號（甲=1...癸=10）與地支序號（子=1...亥=12），
+	//           組成逗號分隔的編號序列字串。
+	// 參數說明：
+	//   - bazi (string): 八字字串，四柱以空格分隔（如「甲子 丙寅 戊辰 庚午」）
+	// 回傳格式：string - 逗號分隔的編號序列（如「1,1,3,3,5,5,7,7」）
+	// 相依性：無
+	// 注意：原函數名為 BaziToBitSequence，已改為 camelCase；
+	//       已修正：加入 pillar 長度前置檢查，避免 subString 越界
+	// =============================================================================
+	// 1. 定義天干、地支順序列表
+	stems = List();
+	stems.add("甲");
+	stems.add("乙");
+	stems.add("丙");
+	stems.add("丁");
+	stems.add("戊");
+	stems.add("己");
+	stems.add("庚");
+	stems.add("辛");
+	stems.add("壬");
+	stems.add("癸");
+	branches = List();
+	branches.add("子");
+	branches.add("丑");
+	branches.add("寅");
+	branches.add("卯");
+	branches.add("辰");
+	branches.add("巳");
+	branches.add("午");
+	branches.add("未");
+	branches.add("申");
+	branches.add("酉");
+	branches.add("戌");
+	branches.add("亥");
+	// 2. 拆成四柱
+	pillars = bazi.toList(" ");
+	// 期望 size=4
+	// 3. 逐柱計算編號並組字串
+	seq = "";
+	for each  pillar in pillars
+	{
+		// Bug #1 修正：加入長度前置檢查，避免空字串或異常值導致 subString 越界
+		if(pillar.length() >= 2)
+		{
+			stem = pillar.subString(0,1);
+			// 取天干
+			branch = pillar.subString(1);
+			// 取地支（從第2個字到結尾）
+			stemIdx = stems.indexOf(stem) + 1;
+			// 甲為1，乙為2，…，癸為10
+			branchIdx = branches.indexOf(branch) + 1;
+			// 子為1，丑為2，…，亥為12
+			seq = seq + stemIdx.toString() + "," + branchIdx.toString() + ",";
+		}
+	}
+	// 4. 去掉最後多餘的逗號
+	if(seq.length() > 0)
+	{
+		seq = seq.subString(0,seq.length() - 1);
+	}
+	return seq;
+}

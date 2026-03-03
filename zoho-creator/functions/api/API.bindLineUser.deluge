@@ -1,0 +1,242 @@
+map API.bindLineUser(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.bindLineUser
+	// 函數用途：LINE LIFF 生日綁定後端函數
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收 LIFF 頁面傳入的 LINE 使用者 ID、生日及個人資料
+	// - 查詢 Clients_Report 是否已有此 Line_User_ID 的記錄
+	//   - 有 → 更新 Date_Of_Birth（及出生時間、姓名、手機、Email），觸發命理推算
+	//   - 無 → 新建「虛擬客戶」記錄（Client_Type="虛擬"），觸發命理推算
+	// - 回傳綁定結果（ok, updated, clientId, message）
+	//
+	// 參數說明：
+	// @param payload (map) - HTTP POST body（JSON）
+	//   必填：
+	//   - lineUserId : string，LINE 使用者 ID（由 LIFF SDK liff.getProfile() 取得，不可偽造）
+	//   - birthday   : string，國曆生日，格式 YYYY-MM-DD（例：1996-08-15）
+	//   選填（向後相容，缺省時不覆蓋既有欄位）：
+	//   - birthTime  : string，出生時間，格式 HH:MM（例：12:30）
+	//   - lastName   : string，姓氏（例：陳）
+	//   - firstName  : string，名字（例：雅婷）
+	//   - phone      : string，手機 E.164 格式（例：+886912345678）
+	//   - email      : string，電子郵件地址
+	//   - topicKey   : string，卡片第一層 key（例：love/career/health/teacher），供 CRM 分析
+	//   - thirdKey   : string，卡片第三層 code（例：1.1.1），供 CRM 分析
+	//
+	// 回傳格式：
+	// @return (map)
+	//   成功（新建）→ { ok: true, updated: false, clientId: "123", message: "..." }
+	//   成功（更新）→ { ok: true, updated: true,  clientId: "123", message: "..." }
+	//   失敗         → { ok: false, reason: "...", message: "..." }
+	//   失敗 reason 代碼：
+	//     missing_line_user_id    → lineUserId 為空（不應發生，LIFF 必帶）
+	//     missing_birthday        → 未填生日
+	//     invalid_birthday_format → 生日格式錯誤
+	//     error                   → 系統例外
+	//
+	// 相依性：
+	//   - Clients_Report（查詢、新增、更新）
+	//   - thisapp.Zodiac.*、thisapp.LunarAI.*、thisapp.Star.*、thisapp.Bazi.*（命理推算，try/catch 包裹）
+	//
+	// 注意：
+	//   - lineUserId 由 LINE 平台授權的 LIFF SDK 取得，無法偽造
+	//   - 此函數對應 Microservices Custom API endpoint：line_binding
+	//   - 建立 endpoint 後取得 public_key，填入 LIFFBinding.htmlpage 的 __LINE_BINDING_PUBLIC_KEY__
+	//   - 回傳不含個資，僅含 clientId
+	//   - 新增欄位（lastName、firstName、phone、email、topicKey、thirdKey）皆為選填，向後相容
+	//   - 更新路徑：僅在傳入值非空時才覆蓋既有欄位（避免清空已有完整資料）
+	// =============================================================================
+
+	resp = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：解析輸入參數
+		//   payload 來自 HTTP POST body（JSON），字串欄位皆為選填（除 lineUserId、birthday）
+		// ────────────────────────────────────────────────────────────────────
+		lineUserId = "";
+		birthday   = "";
+		birthTime  = "";
+		lastName   = "";
+		firstName  = "";
+		phone      = "";
+		email      = "";
+		topicKey   = "";
+		thirdKey   = "";
+
+		if(payload != null)
+		{
+			lineUserId = if(payload.get("lineUserId") != null, payload.get("lineUserId").toString().trim(), "");
+			birthday   = if(payload.get("birthday")   != null, payload.get("birthday").toString().trim(),   "");
+			birthTime  = if(payload.get("birthTime")  != null, payload.get("birthTime").toString().trim(),  "");
+			lastName   = if(payload.get("lastName")   != null, payload.get("lastName").toString().trim(),   "");
+			firstName  = if(payload.get("firstName")  != null, payload.get("firstName").toString().trim(),  "");
+			phone      = if(payload.get("phone")      != null, payload.get("phone").toString().trim(),      "");
+			email      = if(payload.get("email")      != null, payload.get("email").toString().trim(),      "");
+			topicKey   = if(payload.get("topicKey")   != null, payload.get("topicKey").toString().trim(),   "");
+			thirdKey   = if(payload.get("thirdKey")   != null, payload.get("thirdKey").toString().trim(),   "");
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：驗證必填欄位
+		//   lineUserId → LIFF SDK 一定會帶，缺表示非 LIFF 呼叫
+		//   birthday   → 前端已有必填驗證，此為後端二次確認
+		// ────────────────────────────────────────────────────────────────────
+		if(lineUserId == "")
+		{
+			resp.put("ok",false);
+			resp.put("reason","missing_line_user_id");
+			resp.put("message","LINE 使用者 ID 缺失，請透過 LINE 開啟此頁面後再試。");
+			return resp;
+		}
+
+		if(birthday == "")
+		{
+			resp.put("ok",false);
+			resp.put("reason","missing_birthday");
+			resp.put("message","請填入你的國曆出生日期。");
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：解析生日字串 → datetime
+		//   格式：YYYY-MM-DD（前端 <input type="date"> 的標準輸出格式）
+		//   Date_Of_Birth 欄位型態為 datetime，故需轉型
+		// ────────────────────────────────────────────────────────────────────
+		birthdayDt = null;
+		try
+		{
+			birthdayDt = todate(birthday, "yyyy-MM-dd");
+		}
+		catch (eDateParse)
+		{
+			resp.put("ok",false);
+			resp.put("reason","invalid_birthday_format");
+			resp.put("message","生日格式不正確，請使用 YYYY-MM-DD 格式（例：1996-08-15）。");
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3-B：若使用者有填出生時間，合併進日期時間
+		//   birthTime 格式：HH:MM（例：12:30）
+		//   解析失敗時降級為僅日期，不中斷主流程（命理精度略降但不影響使用）
+		// ────────────────────────────────────────────────────────────────────
+		birthdayWithTime = birthdayDt;
+		if(birthTime != "" && birthTime.contains(":"))
+		{
+			try
+			{
+				birthdayWithTime = todate(birthday + " " + birthTime + ":00", "yyyy-MM-dd HH:mm:ss");
+			}
+			catch (eTimeParse)
+			{
+				birthdayWithTime = birthdayDt;
+			}
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：查詢 Clients_Report 是否已有此 Line_User_ID 的記錄
+		//   找到 → 走更新路徑（Step 5）；沒找到 → 走新建路徑（Step 6）
+		// ────────────────────────────────────────────────────────────────────
+		existingClients = Clients_Report[Line_User_ID == lineUserId];
+
+		for each  c in existingClients
+		{
+			// ────────────────────────────────────────────────────────────────
+			// 步驟 5：找到既有記錄 → 更新欄位
+			//   必更新：Date_Of_Birth
+			//   條件更新：姓名、手機、Email（僅在傳入值非空時覆蓋，保護已有完整資料）
+			// ────────────────────────────────────────────────────────────────
+			// 必更新：Date_Of_Birth
+			c.Date_Of_Birth = birthdayWithTime;
+
+			// 條件更新：姓氏（non-empty 才覆蓋）
+			if(lastName != "")
+			{
+				c.Visitor_Name.last_name = lastName;
+			}
+
+			// 條件更新：名字（non-empty 才覆蓋）
+			if(firstName != "")
+			{
+				c.Visitor_Name.first_name = firstName;
+			}
+
+			// 條件更新：手機（non-empty 才覆蓋）
+			if(phone != "")
+			{
+				c.Phone_Number = phone;
+			}
+
+			// 條件更新：Email（non-empty 才覆蓋）
+			if(email != "")
+			{
+				c.Email = email;
+			}
+
+			// 觸發命理推算（各自包在 try/catch，單一失敗不中斷整體）
+			try { thisapp.Zodiac.getZodiacSign(birthdayWithTime); }        catch (ec1) {}
+			try { thisapp.Zodiac.getChineseZodiacSign(birthdayWithTime); } catch (ec2) {}
+			try { thisapp.LunarAI.solarToLunar(birthdayWithTime); }        catch (ec3) {}
+			try { thisapp.Star.getLunarMansion(birthdayWithTime); }        catch (ec4) {}
+			try { thisapp.Bazi.preciseBaziCalculator(birthdayWithTime); }  catch (ec5) {}
+
+			resp.put("ok",true);
+			resp.put("updated",true);
+			resp.put("clientId",c.ID.toString());
+			resp.put("message","生日資料已更新！現在可以回 LINE 輸入你的問題了 ✨");
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：未找到既有記錄 → 新建「虛擬客戶」
+		//   Client_Type = "虛擬"：由 LINE LIFF 自助建立
+		//   Visitor_Name：使用傳入的 lastName/firstName；若未填則預設「(LINE) 使用者」
+		//   Line_User_ID：綁定此使用者，供 API.predictFromLine 查詢
+		//   Timezone_Of_Birth：預設台北時區
+		// ────────────────────────────────────────────────────────────────────
+		insertLastName  = if(lastName  != "", lastName,  "(LINE)");
+		insertFirstName = if(firstName != "", firstName, "使用者");
+
+		new_client = insert into Clients_Report
+		[
+			Added_User=zoho.loginuser
+			Client_Type="虛擬"
+			Visitor_Name.last_name=insertLastName
+			Visitor_Name.first_name=insertFirstName
+			Line_User_ID=lineUserId
+			Date_Of_Birth=birthdayWithTime
+			Timezone_Of_Birth="(UTC+08:00) 台北 (Asia/Taipei)"
+			Phone_Number=phone
+			Email=email
+		];
+
+		newClientId = new_client.toString();
+
+		// 觸發命理推算（各自包在 try/catch）
+		try { thisapp.Zodiac.getZodiacSign(birthdayWithTime); }        catch (en1) {}
+		try { thisapp.Zodiac.getChineseZodiacSign(birthdayWithTime); } catch (en2) {}
+		try { thisapp.LunarAI.solarToLunar(birthdayWithTime); }        catch (en3) {}
+		try { thisapp.Star.getLunarMansion(birthdayWithTime); }        catch (en4) {}
+		try { thisapp.Bazi.preciseBaziCalculator(birthdayWithTime); }  catch (en5) {}
+
+		resp.put("ok",true);
+		resp.put("updated",false);
+		resp.put("clientId",newClientId);
+		resp.put("message","生日綁定成功！現在可以回 LINE 輸入你的問題了 ✨");
+		return resp;
+	}
+	catch (e)
+	{
+		// 系統層例外（資料庫連線失敗、超時等）
+		resp.put("ok",false);
+		resp.put("reason","error");
+		resp.put("message","系統暫時無法完成綁定，請稍後再試。（錯誤：" + e + ")");
+		return resp;
+	}
+	return resp;
+}

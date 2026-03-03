@@ -1,0 +1,45 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > GPTAutoReply (Divination_Logs)
+// 觸發事件: on add or edit > on validate
+// 狀態: inactive
+//
+// 輸入問題取得答案（目前有錯誤）
+// A. 檢查問題是否填寫
+if(input.Original_Question == null || input.Original_Question.trim() == "")
+{
+	alert "請輸入占卜問題";
+	cancel submit;
+}
+// Log 輸入資料
+info "▶ 使用者輸入的問題：" + input.Original_Question;
+info "▶ 選擇的爻碼 ID：" + input.Hexagram_Code.ID.toString();
+info "▶ 選擇的語氣：" + input.Tone_Style;
+try
+{
+	// B. 取得卦象資料：改用 Hexagram.getHexagramByYaoCode
+	rec = I_Ching_Form[ID == input.Hexagram_Code.ID];
+	// 請將 "Yao_Code" 換成你表單中爻碼欄位的 API 名稱
+	yaoCode = rec.get("Yao_Code");
+	info "▶ 讀取到的爻碼字串：" + yaoCode;
+	hex_data = thisapp.Hexagram.getHexagramByYaoCode(yaoCode);
+	info "▶ 卦象資料內容如下：" + hex_data.toString();
+	if(hex_data.isEmpty())
+	{
+		alert "找不到對應的卦象資料，請確認選擇的爻碼";
+		cancel submit;
+	}
+	// C. 組 Prompt
+	prompt = thisapp.LLM.combineDivinationPrompt(input.Original_Question,hex_data,input.Tone_Style);
+	info "▶ 組合後的 Prompt：" + prompt;
+	// D. 呼叫 LLM
+	response = thisapp.LLM.callChat("", prompt, Map());
+	info "▶ LLM 回應內容：" + response;
+	// E. 存入結果欄位
+	input.AI_Interpretation = response;
+}
+catch (err)
+{
+	info "❌ 發生錯誤：" + err.toString();
+	alert "處理過程發生錯誤，請稍後再試或聯絡管理員。";
+	cancel submit;
+}

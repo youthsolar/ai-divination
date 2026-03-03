@@ -1,0 +1,125 @@
+map Bazi.calculatePreciseHourPillar(date solar_datetime)
+{
+	// =============================================================================
+	// 函數名稱：Bazi.calculatePreciseHourPillar
+	// 函數用途：精確時柱計算引擎
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：根據使用者輸入的日期時間，確定所屬「時辰地支」，
+	//           再結合「日柱天干」使用「五鼠遁時」規則推導「時柱天干」。
+	//           - 處理「夜子時」：23:00-23:59 計算時柱天干所依據的日干為下一天
+	//           - 24 小時制 → 十二地支時辰對應
+	//           - 五鼠遁時查表推算時干
+	// 參數說明：
+	//   - solar_datetime (date): 需要計算的國曆日期時間
+	// 回傳格式：map - 包含時柱詳細資訊：
+	//   - "stem" (string): 天干
+	//   - "branch" (string): 地支
+	//   - "pillar" (string): 時柱干支
+	//   - "hour", "hour_branch_index", "time_period": 時辰資訊
+	//   - "day_stem_for_reference", "hour_stem_start_for_reference": 除錯資訊
+	// 相依性：LunarAI.getBaziConstants, Bazi.calculatePreciseDayPillar
+	// 注意：夜子時（23:00-23:59）的日干必須用下一天的日干來推算時干
+	// =============================================================================
+	result = Map();
+	// 步驟 1: 呼叫中央常數函數，獲取所需常數。
+	bazi_constants = thisapp.LunarAI.getBaziConstants();
+	stemsList = bazi_constants.get("heavenly_stems");
+	branchesList = bazi_constants.get("earthly_branches");
+	hour_stem_map = bazi_constants.get("hour_stem_map");
+	hour = solar_datetime.getHour();
+	// 步驟 2: 處理「夜子時」換日干的特殊規則。
+	// 如果出生時間是 23 點（夜子時），則計算時柱天干所依據的日干，必須是下一天的日干。
+	date_for_hour_calc = solar_datetime;
+	if(hour >= 23)
+	{
+		date_for_hour_calc = solar_datetime.addDay(1);
+	}
+	// 步驟 3: 呼叫日柱函數，取得計算時柱所需要的正確「日干」。
+	day_result = thisapp.Bazi.calculatePreciseDayPillar(date_for_hour_calc);
+	if(day_result.containKey("error"))
+	{
+		result.put("error","日柱計算失敗：" + day_result.get("error"));
+		return result;
+	}
+	day_stem = day_result.get("stem");
+	// 步驟 4: 根據小時數，確定時辰地支及其索引。
+	hour_branch_index = 0;
+	time_period = "";
+	if(hour >= 23 || hour < 1)
+	{
+		hour_branch_index = 0;
+		time_period = "子時(23-01)";
+	}
+	else if(hour >= 1 && hour < 3)
+	{
+		hour_branch_index = 1;
+		time_period = "丑時(01-03)";
+	}
+	else if(hour >= 3 && hour < 5)
+	{
+		hour_branch_index = 2;
+		time_period = "寅時(03-05)";
+	}
+	else if(hour >= 5 && hour < 7)
+	{
+		hour_branch_index = 3;
+		time_period = "卯時(05-07)";
+	}
+	else if(hour >= 7 && hour < 9)
+	{
+		hour_branch_index = 4;
+		time_period = "辰時(07-09)";
+	}
+	else if(hour >= 9 && hour < 11)
+	{
+		hour_branch_index = 5;
+		time_period = "巳時(09-11)";
+	}
+	else if(hour >= 11 && hour < 13)
+	{
+		hour_branch_index = 6;
+		time_period = "午時(11-13)";
+	}
+	else if(hour >= 13 && hour < 15)
+	{
+		hour_branch_index = 7;
+		time_period = "未時(13-15)";
+	}
+	else if(hour >= 15 && hour < 17)
+	{
+		hour_branch_index = 8;
+		time_period = "申時(15-17)";
+	}
+	else if(hour >= 17 && hour < 19)
+	{
+		hour_branch_index = 9;
+		time_period = "酉時(17-19)";
+	}
+	else if(hour >= 19 && hour < 21)
+	{
+		hour_branch_index = 10;
+		time_period = "戌時(19-21)";
+	}
+	else if(hour >= 21 && hour < 23)
+	{
+		hour_branch_index = 11;
+		time_period = "亥時(21-23)";
+	}
+	hour_branch = branchesList.get(hour_branch_index);
+	// 步驟 5: 使用「五鼠遁時」規則，根據日干和時支，計算時干。
+	hour_stem_start = hour_stem_map.get(day_stem);
+	hour_stem_start_index = stemsList.indexOf(hour_stem_start);
+	hour_stem_index = (hour_stem_start_index + hour_branch_index) % 10;
+	hour_stem = stemsList.get(hour_stem_index);
+	// 步驟 6: 組合並回傳最終結果。
+	result.put("stem",hour_stem);
+	result.put("branch",hour_branch);
+	result.put("pillar",hour_stem + hour_branch);
+	result.put("hour",hour);
+	result.put("hour_branch_index",hour_branch_index);
+	result.put("time_period",time_period);
+	result.put("day_stem_for_reference",day_stem);
+	result.put("hour_stem_start_for_reference",hour_stem_start);
+	return result;
+}

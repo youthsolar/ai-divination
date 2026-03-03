@@ -1,0 +1,78 @@
+string Talisman.getRecommendationReason(string life_death, string element, string question_type)
+{
+	// =============================================================================
+	// 函數名稱：Talisman.getRecommendationReason
+	// 函數用途：根據生剋性質和五行生成推薦理由
+	// 平台：Zoho Creator
+	// 命名空間：Talisman
+	// 功能描述：
+	//   - 根據生剋性質（持之/相生/相剋/弱生/弱剋/立破）產生基礎推薦理由
+	//   - 根據問題類型（工作/感情/財運/健康/學業/家庭/事業）附加具體建議
+	//   - 回傳組合後的推薦理由字串
+	// 參數說明：
+	//   - life_death (string): 生剋性質
+	//   - element (string): 符令五行
+	//   - question_type (string): 問題類型
+	// 回傳格式：string - 推薦理由字串
+	// 相依性：無
+	// =============================================================================
+	reason = "";
+	if(life_death == "持之")
+	{
+		reason = "保持穩定，持續發展。";
+	}
+	else if(life_death == "相生")
+	{
+		reason = "增強運勢，促進發展。";
+	}
+	else if(life_death == "相剋")
+	{
+		reason = "化解衝突，平衡能量。";
+	}
+	else if(life_death == "弱生")
+	{
+		reason = "溫和提升，漸進改善。";
+	}
+	else if(life_death == "弱剋")
+	{
+		reason = "緩解壓力，減輕阻礙。";
+	}
+	else if(life_death == "立破")
+	{
+		reason = "突破困境，開創新局。";
+	}
+	else
+	{
+		reason = "平衡能量，改善運勢。";
+	}
+	// 根據問題類型加入具體建議
+	if(question_type == "工作")
+	{
+		reason = reason + "特別適合提升工作運勢和職場發展。";
+	}
+	else if(question_type == "感情")
+	{
+		reason = reason + "有助於改善感情關係和人際互動。";
+	}
+	else if(question_type == "財運")
+	{
+		reason = reason + "能夠增強財運和投資機會。";
+	}
+	else if(question_type == "健康")
+	{
+		reason = reason + "有助於身體健康和心靈平衡。";
+	}
+	else if(question_type == "學業")
+	{
+		reason = reason + "適合提升學習效果和考試運勢。";
+	}
+	else if(question_type == "家庭")
+	{
+		reason = reason + "有助於家庭和諧和親子關係。";
+	}
+	else if(question_type == "事業")
+	{
+		reason = reason + "能夠促進事業發展和創業成功。";
+	}
+	return reason;
+}

@@ -1,0 +1,69 @@
+map LunarAI.getDayPillar(date solar_date)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getDayPillar
+	// 函數用途：計算八字日柱
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：根據輸入的國曆日期，計算其對應的八字「日柱」。
+	//           利用 LunarData 表中的農曆新年日及其干支作為基準點進行計算。
+	// 參數說明：
+	//   - solar_date (date): 國曆日期
+	// 回傳格式：Map - { stem, branch, pillar_string }
+	// 相依性：LunarAI.getBaziConstants, LunarData 表單
+	// 注意：八字的一天從前一晚 23 點（子時）開始，需校正日期
+	// =============================================================================
+	// 取得常數
+	bazi_constants = thisapp.LunarAI.getBaziConstants();
+	heavenly_stems = bazi_constants.get("heavenly_stems");
+	earthly_branches = bazi_constants.get("earthly_branches");
+	// 1. 校正日期：八字的一天從前一晚23點(子時)開始
+	date_to_calculate = solar_date;
+	if(solar_date.getHour() >= 23)
+	{
+		date_to_calculate = solar_date.addDay(1);
+	}
+	// 2. 確定基準年份
+	solar_year = date_to_calculate.getYear();
+	lunar_data_record = LunarData[Solar_Year == solar_year];
+	// 如果生日在當年農曆新年之前，應參考前一年的資料
+	if(date_to_calculate < lunar_data_record.Lunar_New_Year)
+	{
+		solar_year = solar_year - 1;
+		lunar_data_record = LunarData[Solar_Year == solar_year];
+	}
+	// 3. 設定基準日和基準干支 (從 LunarData 表中讀取)
+	reference_date = lunar_data_record.Lunar_New_Year;
+	reference_stem_str = lunar_data_record.New_Year_Day_Heavenly_Stem;
+	reference_branch_str = lunar_data_record.New_Year_Day_Earthly_Branch;
+	// 4. 將基準干支轉換為索引
+	reference_stem_index = heavenly_stems.indexOf(reference_stem_str);
+	reference_branch_index = earthly_branches.indexOf(reference_branch_str);
+	// 檢查索引是否有效
+	if(reference_stem_index == -1 || reference_branch_index == -1)
+	{
+		return Map();
+	}
+	// 5. 計算天數差
+	days_diff = date_to_calculate.daysBetween(reference_date);
+	// 6. 計算目標日期的干支索引
+	current_stem_index = (reference_stem_index + days_diff) % 10;
+	if(current_stem_index < 0)
+	{
+		current_stem_index = current_stem_index + 10;
+	}
+	current_branch_index = (reference_branch_index + days_diff) % 12;
+	if(current_branch_index < 0)
+	{
+		current_branch_index = current_branch_index + 12;
+	}
+	// 7. 獲取干支字串
+	day_stem = heavenly_stems.get(current_stem_index);
+	day_branch = earthly_branches.get(current_branch_index);
+	// 8. 組合結果
+	pillar_map = Map();
+	pillar_map.put("stem",day_stem);
+	pillar_map.put("branch",day_branch);
+	pillar_map.put("pillar_string",day_stem + day_branch);
+	return pillar_map;
+}

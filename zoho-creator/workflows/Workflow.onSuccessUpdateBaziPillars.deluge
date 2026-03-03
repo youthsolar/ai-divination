@@ -1,0 +1,110 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第5段)
+//
+// [重新命名] Bazi.PreciseBaziCalculator → Bazi.preciseBaziCalculator
+//
+//
+// Workflow/Clients_Report/OnSuccess_UpdateBaziPillars.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 的紀錄成功儲存後觸發。
+//               此腳本會根據「生日」(Date_Of_Birth) 欄位，自動呼叫八字計算函數，
+//               並將計算出的年、月、日、時四柱（共八個干支）的 Lookup 欄位，
+//               以及一個完整的八字命盤字串，回填到目前的個案紀錄中。
+//
+// @trigger_event: On Add / On Edit -> On Success (新增/編輯 -> 成功時)
+// @trigger_form: Clients_Report (個案表單)
+//
+// @dependencies:
+//   - thisapp.Bazi.preciseBaziCalculator (函數)
+//   - Heavenly_Stems (表單)
+//   - Earthly_Branches (表單)
+//
+// @placement: 應設定於 Clients_Report 表單的 "On Add / On Edit -> On Success" 事件中。
+//
+// 1. 從 input 物件中獲取生日。
+dob = input.Date_Of_Birth;
+// 檢查生日欄位是否有值，以避免執行錯誤。
+if(dob != null)
+{
+	// 2. 呼叫主要的八字計算函數，獲取完整的八字命盤 map。
+	bazi_map = thisapp.Bazi.preciseBaziCalculator(dob);
+	// 檢查計算是否成功。
+	if(bazi_map.get("success") == true)
+	{
+		// 3. 從回傳結果中，提取四柱各自的詳細 map。
+		year_pillar_details = bazi_map.get("年柱詳情");
+		month_pillar_details = bazi_map.get("月柱詳情");
+		day_pillar_details = bazi_map.get("日柱詳情");
+		hour_pillar_details = bazi_map.get("時柱詳情");
+		// 4. 從各柱的詳情中，取得天干與地支的名稱。
+		year_stem_name = year_pillar_details.get("stem");
+		year_branch_name = year_pillar_details.get("branch");
+		month_stem_name = month_pillar_details.get("stem");
+		month_branch_name = month_pillar_details.get("branch");
+		day_stem_name = day_pillar_details.get("stem");
+		day_branch_name = day_pillar_details.get("branch");
+		hour_stem_name = hour_pillar_details.get("stem");
+		hour_branch_name = hour_pillar_details.get("branch");
+		// 5. 將干支名稱組合成一個格式化的完整八字字串。
+		full_bazi_string = (year_stem_name + year_branch_name) + " " + (month_stem_name + month_branch_name) + " " + (day_stem_name + day_branch_name) + " " + (hour_stem_name + hour_branch_name);
+		// 6. 從 Lookup 表單中查詢對應干支的紀錄 ID。
+		// 查詢天干
+		year_stem_record = Heavenly_Stems[Stem_Name == year_stem_name];
+		month_stem_record = Heavenly_Stems[Stem_Name == month_stem_name];
+		day_stem_record = Heavenly_Stems[Stem_Name == day_stem_name];
+		hour_stem_record = Heavenly_Stems[Stem_Name == hour_stem_name];
+		// 查詢地支
+		year_branch_record = Earthly_Branches[Branch_Name == year_branch_name];
+		month_branch_record = Earthly_Branches[Branch_Name == month_branch_name];
+		day_branch_record = Earthly_Branches[Branch_Name == day_branch_name];
+		hour_branch_record = Earthly_Branches[Branch_Name == hour_branch_name];
+		// 7. 直接更新當前的個案紀錄。
+		// 包含 8 個 Lookup 欄位和一個新建的組合字串欄位。
+		client_record = Clients_Report[ID == input.ID];
+		client_record.Year_Heavenly_Stem=year_stem_record.ID;
+		client_record.Year_Earthly_Branch=year_branch_record.ID;
+		client_record.Month_Heavenly_Stem=month_stem_record.ID;
+		client_record.Month_Earthly_Branch=month_branch_record.ID;
+		client_record.Day_Heavenly_Stem=day_stem_record.ID;
+		client_record.Day_Earthly_Branch=day_branch_record.ID;
+		client_record.Hour_Heavenly_Stem=hour_stem_record.ID;
+		client_record.Hour_Earthly_Branch=hour_branch_record.ID;
+		// 更新新建的文字欄位 "Full_Bazi"。
+		client_record.Full_Bazi=full_bazi_string;
+		info "成功更新八字欄位！";
+	}
+	else
+	{
+		// 如果八字計算失敗，紀錄錯誤訊息並清空相關欄位。
+		error_message = bazi_map.get("error");
+		info "八字計算失敗：" + error_message;
+		client_record = Clients_Report[ID == input.ID];
+		client_record.Full_Bazi="";
+		// 清空所有 Lookup 欄位
+		client_record.Year_Heavenly_Stem=null;
+		client_record.Year_Earthly_Branch=null;
+		client_record.Month_Heavenly_Stem=null;
+		client_record.Month_Earthly_Branch=null;
+		client_record.Day_Heavenly_Stem=null;
+		client_record.Day_Earthly_Branch=null;
+		client_record.Hour_Heavenly_Stem=null;
+		client_record.Hour_Earthly_Branch=null;
+	}
+}
+else
+{
+	// 如果生日欄位被清空，也一併清空所有八字相關欄位。
+	info "出生日期為空，略過八字計算。";
+	client_record = Clients_Report[ID == input.ID];
+	client_record.Full_Bazi="";
+	// 清空所有 Lookup 欄位
+	client_record.Year_Heavenly_Stem=null;
+	client_record.Year_Earthly_Branch=null;
+	client_record.Month_Heavenly_Stem=null;
+	client_record.Month_Earthly_Branch=null;
+	client_record.Day_Heavenly_Stem=null;
+	client_record.Day_Earthly_Branch=null;
+	client_record.Hour_Heavenly_Stem=null;
+	client_record.Hour_Earthly_Branch=null;
+}

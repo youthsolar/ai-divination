@@ -1,0 +1,216 @@
+map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data, string clientId)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.getTarotInterpretation
+	// 函數用途：塔羅牌 AI 解讀函數（穩定版，使用 LLM 同步 API）
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：使用 LLM 同步 API 進行塔羅牌解讀，避開 Zoho Creator 超時限制：
+	//           - 驗證問題文字與類型參數
+	//           - 收集個案天生個性資料（若 clientId 有效則注入個人化線索）
+	//           - 建立個人化 Prompt（含命理個性線索，包括個性側寫摘要）
+	//           - 透過 LLM.callChat 同步呼叫
+	//           - 回傳解讀結果與 API 方法資訊
+	// 參數說明：
+	//   - question_text (string): 客戶的原始問題文字
+	//   - question_type (string): AI 判斷的問題類型
+	//   - tarot_spread_data (map): 塔羅牌陣資料（五張牌的牌位意義 + 正逆位，已融入 prompt）
+	//   - clientId (string): 個案 ID（可選，傳空字串時降級為通用解讀）
+	// 回傳格式：map - {"success": bool, "interpretation": string, "api_method": string, "word_count": int}
+	// 相依性：thisapp.LLM.callChat, Clients_Report, Zodiac_Signs, Earthly_Branches, Twenty_Eight_Lunar_Mansions
+	// 注意：原名 getTarotInterpretation_v2，已重命名（去除 _v2，v1 已廢棄）
+	// =============================================================================
+	final_response = Map();
+	try
+	{
+		// 驗證參數
+		if(question_text == null || question_text.trim() == "" || question_type == null || question_type.trim() == "")
+		{
+			final_response.put("success",false);
+			final_response.put("error","輸入參數不完整");
+			return final_response;
+		}
+		info "開始塔羅AI解讀 - 問題類型：" + question_type;
+		// 收集個案天生個性資料（若 clientId 有效則注入個人化線索）
+		persona_text = "";
+		if(clientId != null && clientId != "")
+		{
+			client_records = Clients_Report[ID == clientId.toLong()];
+			if(client_records.count() > 0)
+			{
+				client_info = null;
+				for each  c in client_records
+				{
+					client_info = c;
+					break;
+				}
+				if(client_info != null)
+				{
+					raw_persona = "";
+					raw_persona = raw_persona + "- 八字：" + if(client_info.Full_Bazi != null,client_info.Full_Bazi,"") + "\n";
+					zodiac_name = "";
+					if(client_info.Zodiac_Signs != null)
+					{
+						zodiac_records = Zodiac_Signs[ID == client_info.Zodiac_Signs];
+						for each  z in zodiac_records
+						{
+							zodiac_name = z.Sign_Name;
+							break;
+						}
+					}
+					raw_persona = raw_persona + "- 星座：" + zodiac_name + "\n";
+					chinese_zodiac_name = "";
+					if(client_info.Chinese_Zodiac != null)
+					{
+						cz_records = Earthly_Branches[ID == client_info.Chinese_Zodiac];
+						for each  cz in cz_records
+						{
+							chinese_zodiac_name = cz.Chinese_Zodiac;
+							break;
+						}
+					}
+					raw_persona = raw_persona + "- 生肖：" + chinese_zodiac_name + "\n";
+					lunar_mansion_name = "";
+					if(client_info.Twenty_Eight_Lunar_Mansions != null)
+					{
+						mansion_records = Twenty_Eight_Lunar_Mansions[ID == client_info.Twenty_Eight_Lunar_Mansions];
+						for each  m in mansion_records
+						{
+							lunar_mansion_name = m.Full_Name;
+							break;
+						}
+					}
+					raw_persona = raw_persona + "- 星宿：" + lunar_mansion_name + "\n";
+					raw_persona = raw_persona + "- 太歲：" + if(client_info.Taisui_Conflict_Status != null,client_info.Taisui_Conflict_Status,"") + "\n";
+					// 若已有個性側寫文字，優先引用前 200 字作為摘要（濃縮個性精華）
+					personality_profile_text = client_info.Personality_Profile.toString();
+					if(personality_profile_text != null && personality_profile_text.length() > 50)
+					{
+						persona_text = "【個性側寫摘要（優先參考）】\n" + personality_profile_text.subString(0,200) + "\n\n" + raw_persona;
+					}
+					else
+					{
+						persona_text = raw_persona;
+					}
+				}
+			}
+		}
+		// 建立 Prompt（個人化版本或通用版本）
+		system_prompt = "你是專業塔羅占卜師，精通無視論主副卦分析法，請用繁體中文回答，語調溫暖專業。避免使用簡體字（使用「個」不用「个」、「裡」不用「里」）。";
+		user_prompt = "";
+		if(persona_text != null && persona_text.trim() != "")
+		{
+			user_prompt = user_prompt + "【個性線索（請將這些特質自然融入解讀中，讓個案感受到量身打造，但不要原封不動列出此清單）】\n" + persona_text + "\n\n";
+		}
+		// 組裝牌陣資料（從 tarot_spread_data 提取五張牌的牌位意義與正逆位）
+		spread_text = "";
+		if(tarot_spread_data != null)
+		{
+			position_labels = {"牌位1（過去根源）","牌位2（現在狀況）","牌位3（核心問題）","牌位4（外在因素）","牌位5（未來指引）"};
+			meaning_keys = {"Position_1_Meaning","Position_2_Meaning","Position_3_Meaning","Position_4_Meaning","Position_5_Meaning"};
+			reversed_keys = {"Card_1_Reversed","Card_2_Reversed","Card_3_Reversed","Card_4_Reversed","Card_5_Reversed"};
+			card_idx = 0;
+			for each  label in position_labels
+			{
+				meaning_val = tarot_spread_data.get(meaning_keys.get(card_idx));
+				reversed_val = tarot_spread_data.get(reversed_keys.get(card_idx));
+				if(meaning_val != null && meaning_val != "")
+				{
+					trend_mark = if(reversed_val == true,"【逆位】","【正位】");
+					spread_text = spread_text + label + trend_mark + "：\n" + meaning_val + "\n\n";
+				}
+				card_idx = card_idx + 1;
+			}
+		}
+		// 主副卦分析（無視論：少數為主，多數為輔）
+		reversed_count = 0;
+		upright_count = 0;
+		if(tarot_spread_data != null)
+		{
+			rv_keys = {"Card_1_Reversed","Card_2_Reversed","Card_3_Reversed","Card_4_Reversed","Card_5_Reversed"};
+			for each  rv_key in rv_keys
+			{
+				rv_val = tarot_spread_data.get(rv_key);
+				if(rv_val == true)
+				{
+					reversed_count = reversed_count + 1;
+				}
+				else
+				{
+					upright_count = upright_count + 1;
+				}
+			}
+		}
+		primary_trend = "";
+		secondary_trend = "";
+		primary_description = "";
+		secondary_description = "";
+		if(reversed_count < upright_count)
+		{
+			primary_trend = "逆位";
+			secondary_trend = "正位";
+			primary_description = "少數逆位牌主導整體運勢走向，顯示需要深度轉化的核心議題";
+			secondary_description = "多數正位牌提供穩定的支持能量，形成變革的基礎";
+		}
+		else if(reversed_count > upright_count)
+		{
+			primary_trend = "正位";
+			secondary_trend = "逆位";
+			primary_description = "少數正位牌主導整體運勢走向，代表突破困境的關鍵力量";
+			secondary_description = "多數逆位牌揭示需要面對的挑戰，但已有明確的解決方向";
+		}
+		else
+		{
+			primary_trend = "平衡";
+			secondary_trend = "平衡";
+			primary_description = "正逆位完美平衡的和諧狀態，顯示內在力量的均衡發展";
+			secondary_description = "各種能量相互制衡，需要智慧地維持現狀並尋求突破點";
+		}
+		// 組裝主副卦分析文字
+		gua_analysis_text = "";
+		gua_analysis_text = gua_analysis_text + "=== 主副卦運勢分析（無視論）===\n";
+		gua_analysis_text = gua_analysis_text + "主卦趨勢：" + primary_trend + "（共" + if(primary_trend == "逆位",reversed_count,if(primary_trend == "正位",upright_count,5)) + "張牌）\n";
+		gua_analysis_text = gua_analysis_text + "主卦描述：" + primary_description + "\n";
+		gua_analysis_text = gua_analysis_text + "副卦能量：" + secondary_trend + "（共" + if(secondary_trend == "逆位",reversed_count,if(secondary_trend == "正位",upright_count,0)) + "張牌）\n";
+		gua_analysis_text = gua_analysis_text + "副卦描述：" + secondary_description + "\n\n";
+		// 組裝完整 prompt
+		user_prompt = user_prompt + "請根據以下塔羅牌陣為客戶提供約300字的解讀：\n\n";
+		user_prompt = user_prompt + "【占卜問題】\n" + question_text + "\n" + "【問題類型】" + question_type + "\n\n";
+		if(spread_text != null && spread_text.trim() != "")
+		{
+			user_prompt = user_prompt + "【牌陣詳情】\n" + spread_text + "\n";
+		}
+		user_prompt = user_prompt + gua_analysis_text;
+		user_prompt = user_prompt + "請特別著重分析主卦（" + primary_trend + "）的深層含義，說明為何這些牌主導整體運勢。副卦（" + secondary_trend + "）說明其如何平衡主卦。\n\n";
+		user_prompt = user_prompt + "請按以下結構回答：\n" + "1. 開場感受（50字）：對問題的理解和整體牌陣能量感受\n" + "2. 主卦深度分析（100字）：主導趨勢的牌為何決定運勢走向\n" + "3. 副卦輔助說明（50字）：輔助能量如何平衡或支持主卦\n" + "4. 綜合建議和指引（80字）：實際可行的建議\n" + "5. 正面展望（20字）：溫暖鼓勵和指引";
+		info "準備調用 AI API，Prompt長度：" + user_prompt.length();
+		// 使用同步 LLM API
+		opts = Map();
+		opts.put("max_tokens", 2000);
+		opts.put("temperature", 0.7);
+		ai_interpretation = thisapp.LLM.callChat(system_prompt, user_prompt, opts);
+		if(ai_interpretation != null && ai_interpretation.trim() != "" && !ai_interpretation.contains("系統錯誤：") && !ai_interpretation.contains("AI 服務錯誤"))
+		{
+			final_response.put("success",true);
+			final_response.put("interpretation",ai_interpretation.trim());
+			final_response.put("api_method","LLM.callChat (穩定版)");
+			final_response.put("prompt_length",user_prompt.length());
+			final_response.put("word_count",ai_interpretation.length());
+			info "塔羅AI解讀成功，字數：" + ai_interpretation.length();
+		}
+		else
+		{
+			final_response.put("success",false);
+			final_response.put("error","AI API 調用失敗：" + ai_interpretation);
+			final_response.put("interpretation","很抱歉，AI解讀暫時無法使用，請稍後再試。");
+		}
+	}
+	catch (e)
+	{
+		final_response.put("success",false);
+		final_response.put("error","處理過程發生錯誤：" + e.toString());
+		final_response.put("interpretation","很抱歉，占卜過程中發生系統錯誤，請稍後再試。");
+		info "getTarotInterpretation 執行錯誤：" + e.toString();
+	}
+	return final_response;
+}

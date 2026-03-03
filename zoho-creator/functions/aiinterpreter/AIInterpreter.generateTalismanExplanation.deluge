@@ -1,0 +1,190 @@
+map AIInterpreter.generateTalismanExplanation(string hexagram_code, int talisman_number, string talisman_element, string question_type, string original_question)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.generateTalismanExplanation
+	// 函數用途：AI 符令購買理由生成函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：根據卦象生剋性質和符令五行屬性，生成個人化購買理由：
+	//           - 查詢卦象資料（appearance、life_and_death）
+	//           - 建立五行相生相剋對應表（金木水火土）
+	//           - 建立問題類型對應的五行需求
+	//           - 根據卦象性質（相生/相剋/弱生/弱剋/持之/立破）調整說明策略
+	//           - 調用 AI 生成 150-200 字的符令說明
+	// 參數說明：
+	//   - hexagram_code (string): 卦象代碼（6位數字）
+	//   - talisman_number (int): 符令編號（1-5）
+	//   - talisman_element (string): 符令五行屬性（金木水火土）
+	//   - question_type (string): 問題類型（工作、愛情、財運等）
+	//   - original_question (string): 原始問題
+	// 回傳格式：map - {"success": bool, "explanation": string, "word_count": int, ...}
+	// 相依性：I_Ching_Form 表單, thisapp.LLM.callChat
+	// =============================================================================
+	result = Map();
+	// 查詢卦象資料
+	hexagram_records = I_Ching_Form[yao == hexagram_code];
+	if(hexagram_records.count() > 0)
+	{
+		hexagram_data = hexagram_records.get(0);
+		if(hexagram_data != null)
+		{
+			// 取得卦象資料
+			appearance_value = hexagram_data.get("appearance");
+			life_death_value = hexagram_data.get("life_and_death");
+			if(appearance_value != null)
+			{
+				hexagram_appearance = appearance_value.toString();
+			}
+			if(life_death_value != null)
+			{
+				hexagram_life_death = life_death_value.toString();
+			}
+		}
+	}
+	// 如果查詢失敗，使用預設值
+	if(hexagram_appearance == null)
+	{
+		hexagram_appearance = "未知卦象";
+	}
+	if(hexagram_life_death == null)
+	{
+		hexagram_life_death = "持之";
+	}
+	if(hexagram_appearance == null || hexagram_life_death == null)
+	{
+		result.put("success",false);
+		result.put("error","無法取得卦象資料欄位");
+		return result;
+	}
+	// 建立五行相生相剋對應表
+	element_relations = Map();
+	// 金
+	gold_map = Map();
+	gold_map.put("生","水");
+	gold_map.put("剋","木");
+	gold_map.put("被生","土");
+	gold_map.put("被剋","火");
+	element_relations.put("金",gold_map);
+	// 木
+	wood_map = Map();
+	wood_map.put("生","火");
+	wood_map.put("剋","土");
+	wood_map.put("被生","水");
+	wood_map.put("被剋","金");
+	element_relations.put("木",wood_map);
+	// 水
+	water_map = Map();
+	water_map.put("生","木");
+	water_map.put("剋","火");
+	water_map.put("被生","金");
+	water_map.put("被剋","土");
+	element_relations.put("水",water_map);
+	// 火
+	fire_map = Map();
+	fire_map.put("生","土");
+	fire_map.put("剋","金");
+	fire_map.put("被生","木");
+	fire_map.put("被剋","水");
+	element_relations.put("火",fire_map);
+	// 土
+	earth_map = Map();
+	earth_map.put("生","金");
+	earth_map.put("剋","水");
+	earth_map.put("被生","火");
+	earth_map.put("被剋","木");
+	element_relations.put("土",earth_map);
+	// 建立問題類型對應的五行需求
+	type_element_needs = Map();
+	type_element_needs.put("工作","金");
+	type_element_needs.put("愛情","火");
+	type_element_needs.put("財運","土");
+	type_element_needs.put("健康","木");
+	type_element_needs.put("婚姻","水");
+	type_element_needs.put("其他","土");
+	// 取得問題類型對應的五行
+	question_element = type_element_needs.get(question_type);
+	if(question_element == null)
+	{
+		question_element = "土";
+	}
+	// 分析符令與問題的五行關係
+	talisman_relations = element_relations.get(talisman_element);
+	generates = talisman_relations.get("生");
+	restrains = talisman_relations.get("剋");
+	generated_by = talisman_relations.get("被生");
+	restrained_by = talisman_relations.get("被剋");
+	// 根據卦象性質（life_and_death）調整說明策略
+	hexagram_nature = hexagram_life_death.toString();
+	strategy_explanation = "";
+	if(hexagram_nature == "相生")
+	{
+		strategy_explanation = "您的卦象呈現相生之勢，表示運勢正在上升。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠強化這種相生能量，讓您的" + question_type + "運勢更加順暢。";
+	}
+	else if(hexagram_nature == "相剋")
+	{
+		strategy_explanation = "您的卦象呈現相剋之勢，表示需要調和五行能量。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠緩解相剋的緊張關係，為您的" + question_type + "問題帶來平衡。";
+	}
+	else if(hexagram_nature == "弱生")
+	{
+		strategy_explanation = "您的卦象呈現弱生之勢，表示相生能量不足。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠增強相生能量，幫助您的" + question_type + "運勢逐漸好轉。";
+	}
+	else if(hexagram_nature == "弱剋")
+	{
+		strategy_explanation = "您的卦象呈現弱剋之勢，表示相剋能量較弱。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠進一步緩解相剋，讓您的" + question_type + "問題得到改善。";
+	}
+	else if(hexagram_nature == "持之")
+	{
+		strategy_explanation = "您的卦象呈現持之之勢，表示需要保持穩定。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠幫助您維持良好的" + question_type + "運勢，避免波動。";
+	}
+	else if(hexagram_nature == "立破")
+	{
+		strategy_explanation = "您的卦象呈現立破之勢，表示需要突破現狀。第" + talisman_number.toString() + "張" + talisman_element + "符令能夠幫助您突破" + question_type + "的困境，開創新局面。";
+	}
+	else
+	{
+		strategy_explanation = "第" + talisman_number.toString() + "張" + talisman_element + "符令能夠幫助您改善" + question_type + "運勢，為您帶來正面能量。";
+	}
+	// 建立 AI 提示詞
+	system_prompt = "你是一位專業的易經符令專家，專門為客戶解釋符令的功效和購買理由。請根據以下資訊，生成一段溫暖、專業且具有說服力的符令說明：";
+	// 分步驟建立 user prompt
+	user_prompt_part1 = "卦象：" + hexagram_appearance.toString() + "（" + hexagram_code + "）\n";
+	user_prompt_part1 = user_prompt_part1 + "卦象性質：" + hexagram_life_death.toString() + "\n";
+	user_prompt_part1 = user_prompt_part1 + "符令編號：第" + talisman_number.toString() + "張\n";
+	user_prompt_part1 = user_prompt_part1 + "符令五行：" + talisman_element + "\n";
+	user_prompt_part1 = user_prompt_part1 + "問題類型：" + question_type + "\n";
+	user_prompt_part1 = user_prompt_part1 + "客戶問題：" + original_question + "\n\n";
+	user_prompt_part2 = "五行關係：\n";
+	user_prompt_part2 = user_prompt_part2 + "- " + talisman_element + "生" + generates + "\n";
+	user_prompt_part2 = user_prompt_part2 + "- " + talisman_element + "剋" + restrains + "\n";
+	user_prompt_part2 = user_prompt_part2 + "- " + talisman_element + "被" + generated_by + "生\n";
+	user_prompt_part2 = user_prompt_part2 + "- " + talisman_element + "被" + restrained_by + "剋\n\n";
+	user_prompt_part3 = "策略說明：" + strategy_explanation + "\n\n";
+	user_prompt_part3 = user_prompt_part3 + "請根據卦象的" + hexagram_life_death.toString() + "性質，以及" + talisman_element + "符令的五行特性，說明這張符令如何幫助客戶解決" + question_type + "問題。重點說明：\n";
+	user_prompt_part3 = user_prompt_part3 + "1. 符令如何平衡卦象的五行\n";
+	user_prompt_part3 = user_prompt_part3 + "2. 對客戶" + question_type + "問題的具體幫助\n";
+	user_prompt_part3 = user_prompt_part3 + "3. 使用建議和注意事項\n\n";
+	user_prompt_part3 = user_prompt_part3 + "請用溫暖、專業的語氣，字數控制在150-200字之間。";
+	user_prompt = user_prompt_part1 + user_prompt_part2 + user_prompt_part3;
+	// 呼叫 AI API
+	opts = Map();
+	opts.put("max_tokens", 300);
+	opts.put("temperature", 0.7);
+	explanation = thisapp.LLM.callChat(system_prompt, user_prompt, opts);
+	if(explanation == null || explanation.trim() == "")
+	{
+		result.put("success",false);
+		result.put("error","AI 說明內容為空");
+		return result;
+	}
+	// 計算字數
+	word_count = explanation.length();
+	// 回傳結果
+	result.put("success",true);
+	result.put("explanation",explanation);
+	result.put("word_count",word_count);
+	result.put("hexagram_name",hexagram_appearance.toString());
+	result.put("hexagram_nature",hexagram_life_death.toString());
+	result.put("talisman_element",talisman_element);
+	result.put("question_type",question_type);
+	return result;
+}

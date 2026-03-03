@@ -1,0 +1,76 @@
+void LunarAI.debugSolarToLunar()
+{
+	// =============================================================================
+	// 函數名稱：debugSolarToLunar
+	// 函數用途：偵錯專用 — 調用 solarToLunar 並詳細印出每個欄位
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	//
+	// 功能描述：
+	// - 修改 test_birthday 變數為要測試的日期
+	// - 執行此函數後，在 info 日誌中查看完整的農曆轉換結果
+	// - 適用於排查農曆計算異常
+	//
+	// 參數說明：
+	// 無參數（測試日期寫在函數體內）
+	//
+	// 回傳格式：
+	// 無回傳（void），結果透過 info 日誌輸出
+	//
+	// 相依性：
+	// - thisapp.LunarAI.solarToLunar
+	// =============================================================================
+
+	// 請將此處的日期修改為要測試的實際生日日期
+	test_birthday = "1979/06/20 00:25:00".toDate();
+	info "--- 開始偵錯 ---";
+	info "輸入的國曆生日為：" + test_birthday;
+	info " ";
+	// 呼叫要測試的函數
+	result_map = thisapp.LunarAI.solarToLunar(test_birthday);
+	// 解析並印出回傳結果
+	info "--- 函數回傳結果解析 ---";
+	if(result_map == null)
+	{
+		info "錯誤：solarToLunar 函數回傳了 null！";
+	}
+	else
+	{
+		// 解析「生日」部分
+		birthday_map = result_map.get("生日");
+		info "【生日】部分的回傳內容：";
+		if(birthday_map == null)
+		{
+			info "  -> 錯誤：找不到「生日」的 Map！";
+		}
+		else
+		{
+			info "  -> 國曆 (字串): " + birthday_map.get("國曆");
+			info "  -> 農曆 (字串): " + birthday_map.get("農曆");
+			info "  -> 中文日期 (字串): " + birthday_map.get("中文日期");
+			info "  -> 閏月 (字串): " + birthday_map.get("閏月");
+			info "  -> 農曆月份 (數字): " + birthday_map.get("lunar_month_numeric");
+			info "  -> 農曆日期 (數字): " + birthday_map.get("lunar_day_numeric");
+			info "  -> 錯誤訊息 (字串): " + birthday_map.get("error");
+		}
+		info " ";
+		// 解析「占卜日」部分
+		divination_map = result_map.get("占卜日");
+		info "【占卜日】部分的回傳內容：";
+		if(divination_map == null)
+		{
+			info "  -> 錯誤：找不到「占卜日」的 Map！";
+		}
+		else
+		{
+			info "  -> 國曆 (字串): " + divination_map.get("國曆");
+			info "  -> 農曆 (字串): " + divination_map.get("農曆");
+			info "  -> 中文日期 (字串): " + divination_map.get("中文日期");
+			info "  -> 閏月 (字串): " + divination_map.get("閏月");
+			info "  -> 農曆月份 (數字): " + divination_map.get("lunar_month_numeric");
+			info "  -> 農曆日期 (數字): " + divination_map.get("lunar_day_numeric");
+			info "  -> 錯誤訊息 (字串): " + divination_map.get("error");
+		}
+	}
+	info "--- 偵錯結束 ---";
+}

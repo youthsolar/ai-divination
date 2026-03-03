@@ -1,0 +1,171 @@
+string LLM.callChat(string systemPrompt, string userPrompt, map options)
+{
+	// =============================================================================
+	// 函數名稱：LLM.callChat
+	// 函數用途：統一的 AI 語言模型呼叫介面（使用 Anthropic Claude Messages API）
+	// 平台：Zoho Creator
+	// 命名空間：LLM
+	//
+	// 功能描述：
+	// - 統一替代舊版 OpenAI.callChatGPT 與 OpenAI.callAssistant
+	// - 使用 Anthropic Claude Messages API（同步呼叫，無需輪詢）
+	// - 支援透過 options Map 自訂 model、temperature、max_tokens
+	// - 系統提示詞 (system) 與使用者訊息 (user) 分離（Anthropic API 要求）
+	//
+	// 參數說明：
+	// @param systemPrompt (string) - 系統角色提示詞（可為空字串，空字串時不傳 system 欄位）
+	// @param userPrompt (string) - 使用者訊息內容
+	// @param options (map) - 可選參數
+	//   - max_tokens (int): 最大回應 token 數，預設 1024
+	//   - temperature (float): 創意度 0-1，預設 0.7
+	//   - model (string): 模型覆寫（例如使用 claude-haiku-4-20250514 降低成本）
+	//
+	// 回傳格式：
+	// @return (string) - AI 回應文字，錯誤時回傳錯誤提示字串（不拋出例外）
+	//
+	// 相依性：
+	// - thisapp.variables.LLM.LLM_API_Key（組織變數，Anthropic API Key）
+	// - thisapp.variables.LLM.LLM_API_URL（組織變數，https://api.anthropic.com/v1/messages）
+	// - thisapp.variables.LLM.LLM_Model（組織變數，claude-sonnet-4-20250514）
+	// - thisapp.variables.LLM.LLM_API_Version（組織變數，2023-06-01）
+	//
+	// 注意：
+	// - Anthropic API 的 system 訊息為頂層欄位（非 messages 陣列內），與 OpenAI 不同
+	// - 回應格式為 content[0].text（非 OpenAI 的 choices[0].message.content）
+	// - 認證 Header 使用 x-api-key（非 OpenAI 的 Authorization: Bearer）
+	// - 此函數取代 OpenAI.callChatGPT 與 OpenAI.callAssistant（已棄用）
+	// =============================================================================
+
+	responseText = "尚未取得回應";
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：取得組織變數
+		// ────────────────────────────────────────────────────────────────────
+		api_key = thisapp.variables.LLM.LLM_API_Key;
+		api_url = thisapp.variables.LLM.LLM_API_URL;
+		default_model = thisapp.variables.LLM.LLM_Model;
+		// 注意：anthropic-version 硬編碼為字串，避免 Creator 將 "2023-06-01" 自動解析為 Date 型別
+		api_version = "2023-06-01";
+
+		if(api_key == null || api_key == "")
+		{
+			responseText = "LLM API Key 未設定，請檢查組織變數 LLM.LLM_API_Key。";
+			info "LLM.callChat: " + responseText;
+			return responseText;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：從 options 取得可選參數（使用預設值）
+		// ────────────────────────────────────────────────────────────────────
+		model = default_model;
+		max_tokens = 1024;
+		temperature = 0.7;
+
+		if(options != null)
+		{
+			if(options.containKey("model") && options.get("model") != null && options.get("model").toString().trim() != "")
+			{
+				model = options.get("model").toString().trim();
+			}
+			if(options.containKey("max_tokens") && options.get("max_tokens") != null)
+			{
+				max_tokens = options.get("max_tokens").toLong();
+			}
+			if(options.containKey("temperature") && options.get("temperature") != null)
+			{
+				temperature = options.get("temperature").toDecimal();
+			}
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：設定 Anthropic 專用 Headers
+		//   - x-api-key: API 認證（非 Bearer token）
+		//   - anthropic-version: API 版本號（必填）
+		// ────────────────────────────────────────────────────────────────────
+		headers = Map();
+		headers.put("x-api-key", api_key);
+		headers.put("anthropic-version", api_version);
+		headers.put("Content-Type", "application/json");
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：組裝 Payload
+		//   - Anthropic API 的 system 訊息為頂層欄位
+		//   - messages 陣列僅含 user / assistant 角色
+		// ────────────────────────────────────────────────────────────────────
+		payload = Map();
+		payload.put("model", model);
+		payload.put("max_tokens", max_tokens);
+		payload.put("temperature", temperature);
+
+		// 系統提示詞（頂層 system 欄位，空字串時不傳）
+		if(systemPrompt != null && systemPrompt.trim() != "")
+		{
+			payload.put("system", systemPrompt.trim());
+		}
+
+		// 使用者訊息
+		messages = List();
+		user_msg = Map();
+		user_msg.put("role", "user");
+		user_msg.put("content", userPrompt);
+		messages.add(user_msg);
+		payload.put("messages", messages);
+
+		info "LLM.callChat: 已組裝 Payload（model=" + model + ", max_tokens=" + max_tokens + "），開始送出請求";
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：發送 POST 請求至 Anthropic Claude Messages API
+		// ────────────────────────────────────────────────────────────────────
+		response = invokeurl
+		[
+			url :api_url
+			type :POST
+			parameters:payload.toString()
+			headers:headers
+		];
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：解析回應
+		//   成功：{ "content": [{ "type": "text", "text": "..." }], ... }
+		//   錯誤：{ "type": "error", "error": { "type": "...", "message": "..." } }
+		// ────────────────────────────────────────────────────────────────────
+		response_map = response.toMap();
+
+		if(response_map.get("content") != null && response_map.get("content").size() > 0)
+		{
+			// 成功取得回應
+			first_content = response_map.get("content").get(0);
+			if(first_content.get("text") != null)
+			{
+				responseText = first_content.get("text").toString().trim();
+				info "LLM.callChat: 成功取得回應（" + responseText.length() + " 字元）";
+			}
+			else
+			{
+				responseText = "AI 回應格式錯誤：content 區塊缺少 text 欄位";
+				info "LLM.callChat: " + responseText;
+			}
+		}
+		else if(response_map.get("type") == "error" && response_map.get("error") != null)
+		{
+			// Anthropic API 錯誤回應
+			error_detail = response_map.get("error");
+			error_type = if(error_detail.get("type") != null, error_detail.get("type").toString(), "unknown");
+			error_msg = if(error_detail.get("message") != null, error_detail.get("message").toString(), "無錯誤訊息");
+			responseText = "AI 服務錯誤（" + error_type + "）：" + error_msg;
+			info "LLM.callChat: API 錯誤 - " + error_type + ": " + error_msg;
+		}
+		else
+		{
+			responseText = "AI 未提供任何回應內容";
+			info "LLM.callChat: 未知回應格式 - " + response.toString().subString(0, if(response.toString().length() > 500, 500, response.toString().length()));
+		}
+	}
+	catch (e)
+	{
+		responseText = "系統錯誤：" + e.toString();
+		info "LLM.callChat: 執行錯誤 - " + e.toString();
+	}
+	return responseText;
+}

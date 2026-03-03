@@ -1,0 +1,92 @@
+map LunarAI.getYearPillar(date solarDate)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getYearPillar
+	// 函數用途：計算八字年柱
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：根據國曆日期，依立春節氣判斷生效農曆年份，再計算年柱干支。
+	//           基準：1900 年立春後為庚子年（天干索引 6，地支索引 0）。
+	// 參數說明：
+	//   - solarDate (date): 國曆日期
+	// 回傳格式：Map - { yearPillar, effectiveLunarYear, error }
+	// 相依性：LunarAI.getSolarTermsDataMap
+	// 注意：立春前的日期歸屬上一年；需完整 1900-2050 節氣資料
+	// =============================================================================
+	// 最終返回的 Map
+	result_map = Map();
+	result_map.put("yearPillar","");
+	result_map.put("error","");
+	result_map.put("effectiveLunarYear",null);
+	// 天干 (Heavenly Stems)
+	heavenlyStems = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
+	// 地支 (Earthly Branches)
+	earthlyBranches = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	// 取得完整節氣資料
+	all_solar_terms_data_map = thisapp.LunarAI.getSolarTermsDataMap();
+	inputYear = solarDate.getYear();
+	inputMonth = solarDate.getMonth();
+	inputDay = solarDate.getDay();
+	inputYearStr = inputYear.toString();
+	// 檢查輸入公曆年份的節氣資料是否存在
+	if(!all_solar_terms_data_map.containKey(inputYearStr))
+	{
+		result_map.put("error","輸入公曆年份 " + inputYearStr + " 的節氣資料不存在。請確保 all_solar_terms_data_map 包含 1900-2050 年的完整資料。");
+		return result_map;
+	}
+	yearSolarTerms = all_solar_terms_data_map.get(inputYearStr);
+	if(yearSolarTerms == null || !yearSolarTerms.containKey("立春"))
+	{
+		result_map.put("error","找不到年份 " + inputYearStr + " 的立春資料。");
+		return result_map;
+	}
+	lichunDateStr = yearSolarTerms.get("立春");
+	lichunParts = lichunDateStr.toList("-");
+	if(lichunParts.size() != 2)
+	{
+		result_map.put("error","年份 " + inputYearStr + " 的立春資料格式不正確：" + lichunDateStr);
+		return result_map;
+	}
+	lichunMonth = null;
+	lichunDay = null;
+	try
+	{
+		lichunMonth = lichunParts.get(0).toLong();
+		lichunDay = lichunParts.get(1).toLong();
+	}
+	catch (e)
+	{
+		result_map.put("error","解析年份 " + inputYearStr + " 的立春月或日失敗：" + lichunDateStr + ". 錯誤: " + e);
+		return result_map;
+	}
+	if(lichunMonth == null || lichunDay == null)
+	{
+		result_map.put("error","未能解析年份 " + inputYearStr + " 的立春月或日：" + lichunDateStr);
+		return result_map;
+	}
+	// 判斷輸入日期是否在當年立春之前
+	isBeforeLichun = false;
+	if(inputMonth < lichunMonth)
+	{
+		isBeforeLichun = true;
+	}
+	else if(inputMonth == lichunMonth && inputDay < lichunDay)
+	{
+		isBeforeLichun = true;
+	}
+	effectiveLunarYearValue = inputYear;
+	if(isBeforeLichun)
+	{
+		effectiveLunarYearValue = inputYear - 1;
+	}
+	result_map.put("effectiveLunarYear",effectiveLunarYearValue);
+	// 基準：1900年立春後是庚子年
+	// 庚是天干中的第7位（索引為6）；子是地支中的第1位（索引為0）
+	heavenlyStemIndex = ((effectiveLunarYearValue - 1900 + 6) % 10 + 10) % 10;
+	earthlyBranchIndex = ((effectiveLunarYearValue - 1900 + 0) % 12 + 12) % 12;
+	heavenlyStemChar = heavenlyStems.get(heavenlyStemIndex);
+	earthlyBranchChar = earthlyBranches.get(earthlyBranchIndex);
+	yearPillarStr = heavenlyStemChar + earthlyBranchChar;
+	result_map.put("yearPillar",yearPillarStr);
+	return result_map;
+}

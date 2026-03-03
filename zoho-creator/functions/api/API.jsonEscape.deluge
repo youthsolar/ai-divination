@@ -1,0 +1,29 @@
+string API.jsonEscape(string s)
+{
+	// =============================================================================
+	// 函數名稱：API.jsonEscape
+	// 函數用途：最小 JSON 字串跳脫工具
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：將字串中的特殊字元進行 JSON 跳脫處理：
+	//           - 反斜線 → 雙反斜線
+	//           - 雙引號 → 跳脫雙引號
+	//           - 換行符號(\r, \n) → 跳脫換行
+	//           - Tab → 跳脫 Tab
+	// 參數說明：
+	//   - s (string): 待跳脫的原始字串
+	// 回傳格式：string - 跳脫處理後的字串
+	// 相依性：無
+	// =============================================================================
+	if(s == null)
+	{
+		return "";
+	}
+	out = s;
+	out = out.replaceAll("\\\\","\\\\\\\\");
+	out = out.replaceAll("\"","\\\\\"");
+	out = out.replaceAll("\r","\\n");
+	out = out.replaceAll("\n","\\n");
+	out = out.replaceAll("\t","\\t");
+	return out;
+}

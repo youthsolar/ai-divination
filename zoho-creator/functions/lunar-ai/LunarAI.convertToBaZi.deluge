@@ -1,0 +1,73 @@
+map LunarAI.convertToBaZi(date solar_date, map lunar)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.convertToBaZi
+	// 函數用途：國曆 + 農曆資訊 → 四柱八字
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：根據國曆日期和農曆 Map，計算年柱、月柱、日柱、時柱。
+	// 參數說明：
+	//   - solar_date (date): 國曆日期（含時分秒）
+	//   - lunar (map): 農曆資訊，包含 lunar_year, lunar_month, lunar_day, is_leap_month
+	// 回傳格式：Map - { year_pillar, month_pillar, day_pillar, hour_pillar }
+	// 相依性：無（純計算）
+	// 注意：甲子年對應西元 4 年；日柱基準日為 1900-01-01
+	// =============================================================================
+	// 1. 先拿到農曆資訊
+	y = lunar.get("lunar_year").toLong();
+	m = lunar.get("lunar_month").toLong();
+	d = lunar.get("lunar_day").toLong();
+	isLeap = ifnull(lunar.get("is_leap_month"),false);
+	h = solar_date.getHour();
+	// 0–23
+	// 2. 天干、地支陣列
+	stems = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
+	branches = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	// 3. 年柱（甲子年對應西元4年）
+	offset = (y - 4) % 60;
+	if(offset < 0)
+	{
+		offset = offset + 60;
+	}
+	year_stem = stems.get(offset % 10);
+	year_branch = branches.get(offset % 12);
+	// 4. 月柱：先算出月干起點，再加上 (m-2)，保證不為負
+	y_stem_idx = stems.indexOf(year_stem);
+	month_stem_start = (y_stem_idx * 2 + 2) % 10;
+	month_stem_idx = (month_stem_start + m - 2 + 10) % 10;
+	month_stem = stems.get(month_stem_idx);
+	month_branch_idx = (m + 1) % 12;
+	month_branch = branches.get(month_branch_idx);
+	// 5. 日柱：基準日用固定字串轉 Date；days_diff 取模後正規化
+	base_date = "1900-01-01".toDate("yyyy-MM-dd");
+	days_diff = ((solar_date.toLong() - base_date.toLong()) / (1000 * 60 * 60 * 24)).toLong();
+	idx_day = days_diff % 60;
+	if(idx_day < 0)
+	{
+		idx_day = idx_day + 60;
+	}
+	day_stem_idx = idx_day % 10;
+	day_branch_idx = idx_day % 12;
+	day_stem = stems.get(day_stem_idx);
+	day_branch = branches.get(day_branch_idx);
+	// 6. 時柱：半點制 + 正規化
+	hour_idx = ((h + 1) / 2).toLong() % 12;
+	if(hour_idx < 0)
+	{
+		hour_idx = hour_idx + 12;
+	}
+	hour_branch = branches.get(hour_idx);
+	hour_stem_idx = (day_stem_idx * 2 + hour_idx) % 10;
+	if(hour_stem_idx < 0)
+	{
+		hour_stem_idx = hour_stem_idx + 10;
+	}
+	hour_stem = stems.get(hour_stem_idx);
+	// 7. 組回傳 Map
+	bazi = Map();
+	bazi.put("year_pillar",year_stem + year_branch);
+	bazi.put("month_pillar",month_stem + month_branch);
+	bazi.put("day_pillar",day_stem + day_branch);
+	bazi.put("hour_pillar",hour_stem + hour_branch);
+	return bazi;
+}

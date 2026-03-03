@@ -1,0 +1,556 @@
+map LunarAI.testConvertSolarToLunar(date solarBirthday, date solarDivinationDate)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.testConvertSolarToLunar
+	// 函數用途：驗證農曆轉換計算（可自訂占卜時間）
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：輸入生日和占卜日期，分別計算兩者的農曆資訊。
+	//           用於驗證計算參數及測試占卜準確度。
+	// 參數說明：
+	//   - solarBirthday (date): 國曆生日
+	//   - solarDivinationDate (date): 國曆占卜日期
+	// 回傳格式：Map - { "生日": {農曆資訊}, "占卜日": {農曆資訊} }
+	// 相依性：無（內建完整農曆資料庫）
+	// 注意：原函數名為 TestConvertSolarToLunar，已改為 camelCase；
+	//       此函數包含完整的農曆新年、大小月、閏月資料（1930-2049），
+	//       所有數值不得修改！
+	// =============================================================================
+	// 整體回傳結果 Map
+	overall_result_map = Map();
+	// 農曆新年資料 Map
+	new_year_map = Map();
+	new_year_map.put("1930","1930-01-30 00:00:00");
+	new_year_map.put("1931","1931-02-17 00:00:00");
+	new_year_map.put("1932","1932-02-06 00:00:00");
+	new_year_map.put("1933","1933-01-26 00:00:00");
+	new_year_map.put("1934","1934-02-14 00:00:00");
+	new_year_map.put("1935","1935-02-04 00:00:00");
+	new_year_map.put("1936","1936-01-24 00:00:00");
+	new_year_map.put("1937","1937-02-11 00:00:00");
+	new_year_map.put("1938","1938-01-31 00:00:00");
+	new_year_map.put("1939","1939-02-19 00:00:00");
+	new_year_map.put("1940","1940-02-08 00:00:00");
+	new_year_map.put("1941","1941-01-27 00:00:00");
+	new_year_map.put("1942","1942-02-15 00:00:00");
+	new_year_map.put("1943","1943-02-05 00:00:00");
+	new_year_map.put("1944","1944-01-25 00:00:00");
+	new_year_map.put("1945","1945-02-13 00:00:00");
+	new_year_map.put("1946","1946-02-02 00:00:00");
+	new_year_map.put("1947","1947-01-22 00:00:00");
+	new_year_map.put("1948","1948-02-10 00:00:00");
+	new_year_map.put("1949","1949-01-29 00:00:00");
+	new_year_map.put("1950","1950-02-17 00:00:00");
+	new_year_map.put("1951","1951-02-06 00:00:00");
+	new_year_map.put("1952","1952-01-27 00:00:00");
+	new_year_map.put("1953","1953-02-14 00:00:00");
+	new_year_map.put("1954","1954-02-03 00:00:00");
+	new_year_map.put("1955","1955-01-24 00:00:00");
+	new_year_map.put("1956","1956-02-12 00:00:00");
+	new_year_map.put("1957","1957-01-31 00:00:00");
+	new_year_map.put("1958","1958-02-18 00:00:00");
+	new_year_map.put("1959","1959-02-08 00:00:00");
+	new_year_map.put("1960","1960-01-28 00:00:00");
+	new_year_map.put("1961","1961-02-15 00:00:00");
+	new_year_map.put("1962","1962-02-05 00:00:00");
+	new_year_map.put("1963","1963-01-25 00:00:00");
+	new_year_map.put("1964","1964-02-13 00:00:00");
+	new_year_map.put("1965","1965-02-02 00:00:00");
+	new_year_map.put("1966","1966-01-21 00:00:00");
+	new_year_map.put("1967","1967-02-09 00:00:00");
+	new_year_map.put("1968","1968-01-30 00:00:00");
+	new_year_map.put("1969","1969-02-17 00:00:00");
+	new_year_map.put("1970","1970-02-06 00:00:00");
+	new_year_map.put("1971","1971-01-27 00:00:00");
+	new_year_map.put("1972","1972-02-15 00:00:00");
+	new_year_map.put("1973","1973-02-03 00:00:00");
+	new_year_map.put("1974","1974-01-23 00:00:00");
+	new_year_map.put("1975","1975-02-11 00:00:00");
+	new_year_map.put("1976","1976-01-31 00:00:00");
+	new_year_map.put("1977","1977-02-18 00:00:00");
+	new_year_map.put("1978","1978-02-07 00:00:00");
+	new_year_map.put("1979","1979-01-28 00:00:00");
+	new_year_map.put("1980","1980-02-16 00:00:00");
+	new_year_map.put("1981","1981-02-05 00:00:00");
+	new_year_map.put("1982","1982-01-25 00:00:00");
+	new_year_map.put("1983","1983-02-13 00:00:00");
+	new_year_map.put("1984","1984-02-02 00:00:00");
+	new_year_map.put("1985","1985-02-20 00:00:00");
+	new_year_map.put("1986","1986-02-09 00:00:00");
+	new_year_map.put("1987","1987-01-29 00:00:00");
+	new_year_map.put("1988","1988-02-17 00:00:00");
+	new_year_map.put("1989","1989-02-06 00:00:00");
+	new_year_map.put("1990","1990-01-27 00:00:00");
+	new_year_map.put("1991","1991-02-15 00:00:00");
+	new_year_map.put("1992","1992-02-04 00:00:00");
+	new_year_map.put("1993","1993-01-23 00:00:00");
+	new_year_map.put("1994","1994-02-10 00:00:00");
+	new_year_map.put("1995","1995-01-31 00:00:00");
+	new_year_map.put("1996","1996-02-19 00:00:00");
+	new_year_map.put("1997","1997-02-07 00:00:00");
+	new_year_map.put("1998","1998-01-28 00:00:00");
+	new_year_map.put("1999","1999-02-16 00:00:00");
+	new_year_map.put("2000","2000-02-05 00:00:00");
+	new_year_map.put("2001","2001-01-24 00:00:00");
+	new_year_map.put("2002","2002-02-12 00:00:00");
+	new_year_map.put("2003","2003-02-01 00:00:00");
+	new_year_map.put("2004","2004-01-22 00:00:00");
+	new_year_map.put("2005","2005-02-09 00:00:00");
+	new_year_map.put("2006","2006-01-29 00:00:00");
+	new_year_map.put("2007","2007-02-18 00:00:00");
+	new_year_map.put("2008","2008-02-07 00:00:00");
+	new_year_map.put("2009","2009-01-26 00:00:00");
+	new_year_map.put("2010","2010-02-14 00:00:00");
+	new_year_map.put("2011","2011-02-03 00:00:00");
+	new_year_map.put("2012","2012-01-23 00:00:00");
+	new_year_map.put("2013","2013-02-10 00:00:00");
+	new_year_map.put("2014","2014-01-31 00:00:00");
+	new_year_map.put("2015","2015-02-19 00:00:00");
+	new_year_map.put("2016","2016-02-08 00:00:00");
+	new_year_map.put("2017","2017-01-28 00:00:00");
+	new_year_map.put("2018","2018-02-16 00:00:00");
+	new_year_map.put("2019","2019-02-05 00:00:00");
+	new_year_map.put("2020","2020-01-25 00:00:00");
+	new_year_map.put("2021","2021-02-12 00:00:00");
+	new_year_map.put("2022","2022-02-01 00:00:00");
+	new_year_map.put("2023","2023-01-22 00:00:00");
+	new_year_map.put("2024","2024-02-10 00:00:00");
+	new_year_map.put("2025","2025-01-29 00:00:00");
+	new_year_map.put("2026","2026-02-17 00:00:00");
+	new_year_map.put("2027","2027-02-06 00:00:00");
+	new_year_map.put("2028","2028-01-26 00:00:00");
+	new_year_map.put("2029","2029-02-13 00:00:00");
+	new_year_map.put("2030","2030-02-03 00:00:00");
+	new_year_map.put("2031","2031-01-23 00:00:00");
+	new_year_map.put("2032","2032-02-11 00:00:00");
+	new_year_map.put("2033","2033-01-31 00:00:00");
+	new_year_map.put("2034","2034-02-19 00:00:00");
+	new_year_map.put("2035","2035-02-08 00:00:00");
+	new_year_map.put("2036","2036-01-28 00:00:00");
+	new_year_map.put("2037","2037-02-15 00:00:00");
+	new_year_map.put("2038","2038-02-04 00:00:00");
+	new_year_map.put("2039","2039-01-24 00:00:00");
+	new_year_map.put("2040","2040-02-12 00:00:00");
+	new_year_map.put("2041","2041-01-31 00:00:00");
+	new_year_map.put("2042","2042-02-19 00:00:00");
+	new_year_map.put("2043","2043-02-08 00:00:00");
+	new_year_map.put("2044","2044-01-28 00:00:00");
+	new_year_map.put("2045","2045-02-15 00:00:00");
+	new_year_map.put("2046","2046-02-05 00:00:00");
+	new_year_map.put("2047","2047-01-25 00:00:00");
+	new_year_map.put("2048","2048-02-13 00:00:00");
+	new_year_map.put("2049","2049-02-01 00:00:00");
+	// 每年農曆大小月結構
+	lunar_month_structure_map = Map();
+	lunar_month_structure_map.put("1930",{29,30,30,29,29,30,29,29,30,29,30,30,29});
+	lunar_month_structure_map.put("1931",{30,30,29,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("1932",{30,30,30,29,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1933",{29,30,30,29,30,30,29,30,29,30,29,29,30});
+	lunar_month_structure_map.put("1934",{29,30,29,30,30,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1935",{29,29,30,29,30,29,30,30,29,30,30,29});
+	lunar_month_structure_map.put("1936",{30,29,29,30,29,29,30,30,29,30,30,30,29});
+	lunar_month_structure_map.put("1937",{30,29,29,30,29,29,30,29,30,30,30,29});
+	lunar_month_structure_map.put("1938",{30,30,29,29,30,29,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1939",{30,30,29,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1940",{30,30,29,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("1941",{30,30,29,30,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("1942",{30,29,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1943",{29,30,29,30,29,30,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1944",{30,29,30,29,30,29,30,29,30,30,29,30,30});
+	lunar_month_structure_map.put("1945",{29,29,30,29,29,30,29,30,30,30,29,30});
+	lunar_month_structure_map.put("1946",{30,29,29,30,29,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1947",{30,30,29,29,30,29,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("1948",{30,29,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1949",{30,29,30,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1950",{29,30,30,29,30,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("1951",{30,29,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1952",{29,30,29,30,29,30,29,30,30,29,30,29,30});
+	lunar_month_structure_map.put("1953",{29,30,29,29,30,30,29,30,30,29,30,29});
+	lunar_month_structure_map.put("1954",{30,29,30,29,29,30,29,30,30,29,30,30});
+	lunar_month_structure_map.put("1955",{29,30,29,30,29,29,30,29,30,29,30,30,30});
+	lunar_month_structure_map.put("1956",{29,30,29,30,29,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("1957",{30,29,30,29,30,29,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1958",{30,30,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1959",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1960",{30,29,30,29,30,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1961",{30,29,30,29,30,29,30,30,29,30,29,30});
+	lunar_month_structure_map.put("1962",{29,30,29,29,30,29,30,30,29,30,30,29});
+	lunar_month_structure_map.put("1963",{30,29,30,29,29,30,29,30,29,30,30,30,29});
+	lunar_month_structure_map.put("1964",{30,29,30,29,29,30,29,30,29,30,30,30});
+	lunar_month_structure_map.put("1965",{29,30,29,30,29,29,30,29,29,30,30,29});
+	lunar_month_structure_map.put("1966",{30,30,30,29,30,29,29,30,29,29,30,30,29});
+	lunar_month_structure_map.put("1967",{30,30,29,30,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1968",{29,30,29,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("1969",{29,30,29,30,29,30,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1970",{30,29,29,30,29,30,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1971",{29,30,29,29,30,29,30,29,30,30,30,29,30});
+	lunar_month_structure_map.put("1972",{29,30,29,29,30,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1973",{30,29,30,29,29,30,29,29,30,30,29,30});
+	lunar_month_structure_map.put("1974",{30,30,29,30,29,29,30,29,29,30,30,29,30});
+	lunar_month_structure_map.put("1975",{30,30,29,30,29,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1976",{30,30,29,30,29,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1977",{30,29,30,30,29,30,29,30,29,30,29,29});
+	lunar_month_structure_map.put("1978",{30,29,30,30,29,30,30,29,30,29,30,29});
+	lunar_month_structure_map.put("1979",{30,29,29,30,29,30,30,29,30,30,29,30,29});
+	lunar_month_structure_map.put("1980",{30,29,29,30,29,30,29,30,30,29,30,30});
+	lunar_month_structure_map.put("1981",{29,30,29,29,30,29,29,30,30,29,30,30});
+	lunar_month_structure_map.put("1982",{30,29,30,29,29,30,29,29,30,29,30,30,30});
+	lunar_month_structure_map.put("1983",{30,29,30,29,29,30,29,29,30,29,30,30});
+	lunar_month_structure_map.put("1984",{30,29,30,30,29,29,30,29,29,30,29,30,30});
+	lunar_month_structure_map.put("1985",{29,30,30,29,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1986",{29,30,30,29,30,30,29,30,29,30,29,29});
+	lunar_month_structure_map.put("1987",{30,29,30,29,30,30,29,30,30,29,30,29,29});
+	lunar_month_structure_map.put("1988",{30,29,30,29,30,29,30,30,29,30,30,29});
+	lunar_month_structure_map.put("1989",{30,29,29,30,29,30,29,30,29,30,30,30});
+	lunar_month_structure_map.put("1990",{29,30,29,29,30,29,29,30,29,30,30,30,30});
+	lunar_month_structure_map.put("1991",{29,30,29,29,30,29,29,30,29,30,30,30});
+	lunar_month_structure_map.put("1992",{29,30,30,29,29,30,29,29,30,29,30,30});
+	lunar_month_structure_map.put("1993",{29,30,30,29,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("1994",{30,30,30,29,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1995",{29,30,30,29,30,29,30,30,29,29,30,29,30});
+	lunar_month_structure_map.put("1996",{29,30,29,30,30,29,30,29,30,30,29,29});
+	lunar_month_structure_map.put("1997",{30,29,30,29,30,29,30,30,29,30,30,29});
+	lunar_month_structure_map.put("1998",{30,29,29,30,29,29,30,30,29,30,30,29,30});
+	lunar_month_structure_map.put("1999",{30,29,29,30,29,29,30,29,30,30,30,29});
+	lunar_month_structure_map.put("2000",{30,30,29,29,30,29,29,30,29,30,30,29});
+	lunar_month_structure_map.put("2001",{30,30,29,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2002",{30,30,29,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("2003",{30,30,29,30,30,29,30,29,29,30,29,30});
+	lunar_month_structure_map.put("2004",{29,30,29,30,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2005",{29,30,29,30,29,30,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2006",{30,29,30,29,30,29,30,29,30,30,29,30,30});
+	lunar_month_structure_map.put("2007",{29,29,30,29,29,30,29,30,30,30,29,30});
+	lunar_month_structure_map.put("2008",{30,29,29,30,29,29,30,29,30,30,29,30});
+	lunar_month_structure_map.put("2009",{30,30,29,29,30,29,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("2010",{30,29,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2011",{30,29,30,30,29,30,29,29,30,29,30,29});
+	lunar_month_structure_map.put("2012",{30,29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2013",{30,29,30,29,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2014",{29,30,29,30,29,30,29,30,30,29,30,29,30});
+	lunar_month_structure_map.put("2015",{29,30,29,29,30,29,30,30,30,29,30,29});
+	lunar_month_structure_map.put("2016",{30,29,30,29,29,30,29,30,30,29,30,30});
+	lunar_month_structure_map.put("2017",{29,30,29,30,29,29,30,29,30,29,30,30,30});
+	lunar_month_structure_map.put("2018",{29,30,29,30,29,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("2019",{30,29,30,29,30,29,29,30,29,29,30,30});
+	lunar_month_structure_map.put("2020",{29,30,30,30,29,30,29,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2021",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2022",{30,29,30,29,30,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2023",{29,30,29,29,30,30,29,30,30,29,30,29,30});
+	lunar_month_structure_map.put("2024",{29,30,29,29,30,29,30,30,29,30,30,29});
+	lunar_month_structure_map.put("2025",{30,29,30,29,29,30,29,30,29,30,30,30,29});
+	lunar_month_structure_map.put("2026",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2027",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2028",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2029",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2030",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2031",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2032",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2033",{30,30,29,30,29,30,29,30,29,30,29,29,29});
+	lunar_month_structure_map.put("2034",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2035",{30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2036",{29,30,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2037",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2038",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2039",{30,30,29,30,30,29,30,29,30,29,30,29,29});
+	lunar_month_structure_map.put("2040",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2041",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2042",{30,30,29,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2043",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2044",{30,29,30,30,29,30,29,29,29,30,29,30,29});
+	lunar_month_structure_map.put("2045",{29,30,29,30,29,30,29,30,29,30,29,30});
+	lunar_month_structure_map.put("2046",{30,29,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2047",{30,30,29,30,29,30,29,30,29,30,29,30,30});
+	lunar_month_structure_map.put("2048",{29,30,30,29,30,29,30,29,30,29,30,29});
+	lunar_month_structure_map.put("2049",{30,29,30,29,30,29,30,29,30,29,30,29});
+	// 每年閏月位置
+	leap_month_map = Map();
+	leap_month_map.put("1900",8);
+	leap_month_map.put("1903",5);
+	leap_month_map.put("1906",4);
+	leap_month_map.put("1909",2);
+	leap_month_map.put("1911",6);
+	leap_month_map.put("1914",5);
+	leap_month_map.put("1917",2);
+	leap_month_map.put("1919",7);
+	leap_month_map.put("1922",5);
+	leap_month_map.put("1925",4);
+	leap_month_map.put("1928",2);
+	leap_month_map.put("1930",6);
+	leap_month_map.put("1933",5);
+	leap_month_map.put("1936",3);
+	leap_month_map.put("1938",7);
+	leap_month_map.put("1941",6);
+	leap_month_map.put("1944",4);
+	leap_month_map.put("1947",2);
+	leap_month_map.put("1949",7);
+	leap_month_map.put("1952",5);
+	leap_month_map.put("1955",3);
+	leap_month_map.put("1957",8);
+	leap_month_map.put("1960",6);
+	leap_month_map.put("1963",4);
+	leap_month_map.put("1966",3);
+	leap_month_map.put("1968",7);
+	leap_month_map.put("1971",5);
+	leap_month_map.put("1974",4);
+	leap_month_map.put("1976",8);
+	leap_month_map.put("1979",6);
+	leap_month_map.put("1982",4);
+	leap_month_map.put("1984",10);
+	leap_month_map.put("1987",6);
+	leap_month_map.put("1990",5);
+	leap_month_map.put("1993",3);
+	leap_month_map.put("1995",8);
+	leap_month_map.put("1998",5);
+	leap_month_map.put("2001",4);
+	leap_month_map.put("2004",2);
+	leap_month_map.put("2006",7);
+	leap_month_map.put("2009",5);
+	leap_month_map.put("2012",4);
+	leap_month_map.put("2014",9);
+	leap_month_map.put("2017",6);
+	leap_month_map.put("2020",4);
+	leap_month_map.put("2023",2);
+	leap_month_map.put("2025",6);
+	leap_month_map.put("2028",5);
+	leap_month_map.put("2031",3);
+	leap_month_map.put("2033",11);
+	leap_month_map.put("2036",6);
+	leap_month_map.put("2039",5);
+	leap_month_map.put("2042",2);
+	leap_month_map.put("2044",7);
+	leap_month_map.put("2047",5);
+	// 中文化：月名與日名
+	month_name_map = Map();
+	month_name_map.put(1,"正");
+	month_name_map.put(2,"二");
+	month_name_map.put(3,"三");
+	month_name_map.put(4,"四");
+	month_name_map.put(5,"五");
+	month_name_map.put(6,"六");
+	month_name_map.put(7,"七");
+	month_name_map.put(8,"八");
+	month_name_map.put(9,"九");
+	month_name_map.put(10,"十");
+	month_name_map.put(11,"冬");
+	month_name_map.put(12,"臘");
+	day_name_map = Map();
+	day_name_map.put(1,"初一");
+	day_name_map.put(2,"初二");
+	day_name_map.put(3,"初三");
+	day_name_map.put(4,"初四");
+	day_name_map.put(5,"初五");
+	day_name_map.put(6,"初六");
+	day_name_map.put(7,"初七");
+	day_name_map.put(8,"初八");
+	day_name_map.put(9,"初九");
+	day_name_map.put(10,"初十");
+	day_name_map.put(11,"十一");
+	day_name_map.put(12,"十二");
+	day_name_map.put(13,"十三");
+	day_name_map.put(14,"十四");
+	day_name_map.put(15,"十五");
+	day_name_map.put(16,"十六");
+	day_name_map.put(17,"十七");
+	day_name_map.put(18,"十八");
+	day_name_map.put(19,"十九");
+	day_name_map.put(20,"二十");
+	day_name_map.put(21,"廿一");
+	day_name_map.put(22,"廿二");
+	day_name_map.put(23,"廿三");
+	day_name_map.put(24,"廿四");
+	day_name_map.put(25,"廿五");
+	day_name_map.put(26,"廿六");
+	day_name_map.put(27,"廿七");
+	day_name_map.put(28,"廿八");
+	day_name_map.put(29,"廿九");
+	day_name_map.put(30,"三十");
+	// --- 通用變數定義 ---
+	keys = new_year_map.keys();
+	// --- 處理生日 ---
+	birthday_lunar_map = Map();
+	current_solar_date = solarBirthday;
+	error_prefix = "生日";
+	// 1. 國曆年 → 農曆新年（包含時分秒）
+	current_gregorian_year = current_solar_date.getYear();
+	current_gregorian_year_str = current_gregorian_year.toString();
+	lunar_year_str = "";
+	lunar_calculation_possible = true;
+	if(!keys.contains(current_gregorian_year_str))
+	{
+		birthday_lunar_map.put("error","❌ " + error_prefix + "年份超出占卜計算範圍 (" + current_gregorian_year_str + ")");
+		lunar_calculation_possible = false;
+	}
+	else
+	{
+		this_year_new_year_dt = new_year_map.get(current_gregorian_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+		if(current_solar_date < this_year_new_year_dt)
+		{
+			lunar_year_numeric = current_gregorian_year - 1;
+			lunar_year_str = lunar_year_numeric.toString();
+			if(!keys.contains(lunar_year_str))
+			{
+				birthday_lunar_map.put("error","❌ " + error_prefix + "年份 (判斷農曆年後 " + lunar_year_str + ") 超出占卜計算範圍");
+				lunar_calculation_possible = false;
+			}
+			else
+			{
+				this_year_new_year_dt = new_year_map.get(lunar_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+			}
+		}
+		else
+		{
+			lunar_year_str = current_gregorian_year_str;
+		}
+	}
+	if(lunar_calculation_possible)
+	{
+		// 4. 計算天數差
+		start_time_epoch = this_year_new_year_dt.toLong();
+		end_time_epoch = current_solar_date.toLong();
+		days_passed_since_lunar_new_year = ((end_time_epoch - start_time_epoch) / (1000 * 60 * 60 * 24)).toLong();
+		// 5. 用大小月 & 閏月計算 lunar_month / lunar_day
+		month_days_list = lunar_month_structure_map.get(lunar_year_str);
+		current_leap_month_num = ifnull(leap_month_map.get(lunar_year_str),0);
+		calculated_lunar_month = 1;
+		calculated_lunar_day = 0;
+		temp_days_passed = days_passed_since_lunar_new_year;
+		for each  num_days_in_month in month_days_list
+		{
+			if(temp_days_passed < num_days_in_month)
+			{
+				calculated_lunar_day = temp_days_passed + 1;
+				break;
+			}
+			temp_days_passed = temp_days_passed - num_days_in_month;
+			calculated_lunar_month = calculated_lunar_month + 1;
+		}
+		// 6. 處理閏月
+		is_this_month_leap = false;
+		display_lunar_month = calculated_lunar_month;
+		if(current_leap_month_num != 0)
+		{
+			if(calculated_lunar_month == current_leap_month_num + 1)
+			{
+				is_this_month_leap = true;
+				display_lunar_month = current_leap_month_num;
+			}
+			else if(calculated_lunar_month > current_leap_month_num + 1)
+			{
+				display_lunar_month = calculated_lunar_month - 1;
+			}
+		}
+		is_leap_month_text_val = if(is_this_month_leap,"是","否");
+		// 7. & 8. 中文化與組字串
+		lunar_month_with_leap_prefix = if(is_this_month_leap,"閏","") + display_lunar_month.toString();
+		chinese_month_name = if(is_this_month_leap,"閏","") + month_name_map.get(display_lunar_month) + "月";
+		chinese_day_name = day_name_map.get(calculated_lunar_day) + "日";
+		// 9. 回填
+		birthday_lunar_map.put("國曆",current_solar_date.toString("yyyy/MM/dd HH:mm:ss"));
+		birthday_lunar_map.put("閏月",is_leap_month_text_val);
+		birthday_lunar_map.put("農曆",lunar_year_str + "年" + lunar_month_with_leap_prefix + "月" + calculated_lunar_day.toString() + "日 " + current_solar_date.toString("HH:mm:ss"));
+		birthday_lunar_map.put("中文日期",lunar_year_str + ", " + chinese_month_name + chinese_day_name);
+		birthday_lunar_map.put("error","");
+	}
+	else
+	{
+		birthday_lunar_map.put("國曆",current_solar_date.toString("yyyy/MM/dd HH:mm:ss"));
+		birthday_lunar_map.put("農曆","");
+		birthday_lunar_map.put("閏月","");
+		birthday_lunar_map.put("中文日期","");
+	}
+	overall_result_map.put("生日",birthday_lunar_map);
+	// --- 處理占卜日 ---
+	divination_lunar_map = Map();
+	current_solar_date = solarDivinationDate;
+	error_prefix = "占卜日";
+	// 1. 國曆年 → 農曆新年（包含時分秒）
+	current_gregorian_year = current_solar_date.getYear();
+	current_gregorian_year_str = current_gregorian_year.toString();
+	lunar_year_str = "";
+	lunar_calculation_possible = true;
+	if(!keys.contains(current_gregorian_year_str))
+	{
+		divination_lunar_map.put("error","❌ " + error_prefix + "年份超出占卜計算範圍 (" + current_gregorian_year_str + ")");
+		lunar_calculation_possible = false;
+	}
+	else
+	{
+		this_year_new_year_dt = new_year_map.get(current_gregorian_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+		if(current_solar_date < this_year_new_year_dt)
+		{
+			lunar_year_numeric = current_gregorian_year - 1;
+			lunar_year_str = lunar_year_numeric.toString();
+			if(!keys.contains(lunar_year_str))
+			{
+				divination_lunar_map.put("error","❌ " + error_prefix + "年份 (判斷農曆年後 " + lunar_year_str + ") 超出占卜計算範圍");
+				lunar_calculation_possible = false;
+			}
+			else
+			{
+				this_year_new_year_dt = new_year_map.get(lunar_year_str).toDate("yyyy-MM-dd HH:mm:ss");
+			}
+		}
+		else
+		{
+			lunar_year_str = current_gregorian_year_str;
+		}
+	}
+	if(lunar_calculation_possible)
+	{
+		// 4. 計算天數差
+		start_time_epoch = this_year_new_year_dt.toLong();
+		end_time_epoch = current_solar_date.toLong();
+		days_passed_since_lunar_new_year = ((end_time_epoch - start_time_epoch) / (1000 * 60 * 60 * 24)).toLong();
+		// 5. 用大小月 & 閏月計算 lunar_month / lunar_day
+		month_days_list = lunar_month_structure_map.get(lunar_year_str);
+		current_leap_month_num = ifnull(leap_month_map.get(lunar_year_str),0);
+		calculated_lunar_month = 1;
+		calculated_lunar_day = 0;
+		temp_days_passed = days_passed_since_lunar_new_year;
+		for each  num_days_in_month in month_days_list
+		{
+			if(temp_days_passed < num_days_in_month)
+			{
+				calculated_lunar_day = temp_days_passed + 1;
+				break;
+			}
+			temp_days_passed = temp_days_passed - num_days_in_month;
+			calculated_lunar_month = calculated_lunar_month + 1;
+		}
+		// 6. 處理閏月
+		is_this_month_leap = false;
+		display_lunar_month = calculated_lunar_month;
+		if(current_leap_month_num != 0)
+		{
+			if(calculated_lunar_month == current_leap_month_num + 1)
+			{
+				is_this_month_leap = true;
+				display_lunar_month = current_leap_month_num;
+			}
+			else if(calculated_lunar_month > current_leap_month_num + 1)
+			{
+				display_lunar_month = calculated_lunar_month - 1;
+			}
+		}
+		is_leap_month_text_val = if(is_this_month_leap,"是","否");
+		// 7. & 8. 中文化與組字串
+		lunar_month_with_leap_prefix = if(is_this_month_leap,"閏","") + display_lunar_month.toString();
+		chinese_month_name = if(is_this_month_leap,"閏","") + month_name_map.get(display_lunar_month) + "月";
+		chinese_day_name = day_name_map.get(calculated_lunar_day) + "日";
+		// 9. 回填
+		divination_lunar_map.put("國曆",current_solar_date.toString("yyyy/MM/dd HH:mm:ss"));
+		divination_lunar_map.put("閏月",is_leap_month_text_val);
+		divination_lunar_map.put("農曆",lunar_year_str + "年" + lunar_month_with_leap_prefix + "月" + calculated_lunar_day.toString() + "日 " + current_solar_date.toString("HH:mm:ss"));
+		divination_lunar_map.put("中文日期",lunar_year_str + ", " + chinese_month_name + chinese_day_name);
+		divination_lunar_map.put("error","");
+	}
+	else
+	{
+		divination_lunar_map.put("國曆",current_solar_date.toString("yyyy/MM/dd HH:mm:ss"));
+		divination_lunar_map.put("農曆","");
+		divination_lunar_map.put("閏月","");
+		divination_lunar_map.put("中文日期","");
+	}
+	overall_result_map.put("占卜日",divination_lunar_map);
+	return overall_result_map;
+}

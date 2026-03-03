@@ -1,0 +1,32 @@
+// ========================================
+// Workflow 名稱：TarotDivinationButton
+// 觸發方式：Clients_Report 表單 → 「塔羅占卜」Custom Action 按鈕
+// 執行類型：for each record
+// 功能描述：為選取的個案執行完整塔羅占卜流程
+//   - 從 Clients_Report 記錄取得個案 ID
+//   - 以預設問題「綜合運勢分析」呼叫 tarotDivinationFunction
+//   - 完整流程含：AI 問題分類、隨機抽牌、主卦分析、符令圖片、AI 解讀
+// 用途：
+//   1. 開發測試入口 — 快速驗證占卜流程完整性
+//   2. 備援機制 — 當用戶打字/錄音太快導致問題不明確時使用
+// 注意：
+//   - input 為 Clients_Report 記錄（for each record 模式）
+//   - 預設問題可依需求調整為其他分類（感情/事業/健康等）
+//   - 占卜結果寫入 Divination_Logs，可在該表單檢視
+// ========================================
+
+client_id = input.ID.toString();
+user_question = "綜合運勢分析";
+
+result = thisapp.Tarot.tarotDivinationFunction(client_id, user_question);
+
+if(result.get("success") == true)
+{
+	div_id = result.get("divination_id");
+	info "塔羅占卜完成 — 個案 ID：" + client_id + "，占卜記錄 ID：" + div_id;
+}
+else
+{
+	alert "塔羅占卜失敗：" + result.get("message");
+	info "塔羅占卜失敗 — 個案 ID：" + client_id + "，錯誤：" + result.get("message");
+}

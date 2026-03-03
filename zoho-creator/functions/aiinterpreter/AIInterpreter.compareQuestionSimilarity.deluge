@@ -1,0 +1,108 @@
+map AIInterpreter.compareQuestionSimilarity(string question1, string question2)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.compareQuestionSimilarity
+	// 函數用途：問題內容相似度比對函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：使用 AI 判斷兩個問題的內容相似度，用於冷卻機制智能判斷：
+	//           - 使用 AI 分析問題實質內容（非字面比對）
+	//           - 回傳 0-1 之間的相似度分數
+	//           - 相似度 > 0.8 視為相同問題，觸發冷卻機制
+	//           - JSON 解析失敗時自動降級為字符比對備用方案
+	// 參數說明：
+	//   - question1 (string): 第一個問題文字
+	//   - question2 (string): 第二個問題文字
+	// 回傳格式：map - {"success": bool, "similarity_score": float, "explanation": string, "is_same_question": bool}
+	// 相依性：thisapp.LLM.callChat
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	final_response = Map();
+	try
+	{
+		// --- 步驟 1: 驗證輸入參數 ---
+		if(question1 == null || question1.trim() == "" || question2 == null || question2.trim() == "")
+		{
+			final_response.put("success",false);
+			final_response.put("error","問題文字不能為空");
+			return final_response;
+		}
+		// --- 步驟 2: 建立 AI Prompt ---
+		system_prompt = "你是一位專業的問題分析專家，專門判斷兩個問題的實質相似度。\n\n" + "你的任務是分析兩個問題的內容，判斷它們是否為相同或高度相似的問題。\n\n" + "判斷標準：\n" + "1. 問題的核心主題是否相同（如：都是關於工作面試、都是關於特定對象的愛情）\n" + "2. 問題的具體對象是否相同（如：同一家公司、同一個人）\n" + "3. 問題的時間背景是否相同（如：都是關於當前的狀況）\n" + "4. 問題的決策點是否相同（如：都是關於是否接受某個機會）\n\n" + "請回傳一個 JSON 格式的結果：\n" + "{\n" + "  \"similarity_score\": 0.85,  // 0-1 之間的相似度分數\n" + "  \"explanation\": \"簡短說明相似度判斷的理由\",\n" + "  \"is_same_question\": true   // 是否為相同問題（相似度 > 0.8）\n" + "}\n\n" + "注意：\n" + "- 相似度 0.8 以上視為相同問題\n" + "- 相似度 0.5-0.8 視為相關但不同問題\n" + "- 相似度 0.5 以下視為不同問題";
+		user_prompt = "請分析以下兩個問題的相似度：\n\n" + "問題 1：「" + question1 + "」\n" + "問題 2：「" + question2 + "」\n\n" + "請判斷這兩個問題是否為相同或高度相似的問題。";
+		// --- 步驟 3: 呼叫 AI API ---
+		opts = Map();
+		opts.put("max_tokens", 300);
+		opts.put("temperature", 0.3);
+		content = thisapp.LLM.callChat(system_prompt, user_prompt, opts).trim();
+		// --- 步驟 4: 解析 AI 回應 ---
+		// 嘗試解析 JSON 格式的回應
+		try
+		{
+			ai_result = content.toMap();
+			if(ai_result.containKey("similarity_score") && ai_result.containKey("explanation") && ai_result.containKey("is_same_question"))
+			{
+				similarity_score = ai_result.get("similarity_score");
+				explanation = ai_result.get("explanation");
+				is_same_question = ai_result.get("is_same_question");
+				final_response.put("success",true);
+				final_response.put("similarity_score",similarity_score);
+				final_response.put("explanation",explanation);
+				final_response.put("is_same_question",is_same_question);
+				return final_response;
+			}
+		}
+		catch (parse_error)
+		{
+			// JSON 解析失敗，嘗試從文字中提取相似度（備用方案）
+			if(content.indexOf("similarity_score") > -1)
+			{
+				// 簡單的數值提取邏輯
+				score_match = content.replaceAll(".*similarity_score.*?([0-9]+\\.[0-9]+).*","$1");
+				if(score_match != content)
+				{
+					similarity_score = score_match.toNumber();
+					final_response.put("success",true);
+					final_response.put("similarity_score",similarity_score);
+					final_response.put("explanation","AI 分析結果（格式解析備用）");
+					final_response.put("is_same_question",similarity_score > 0.8);
+					return final_response;
+				}
+			}
+		}
+		// 如果無法解析 JSON，使用簡單的文字比對
+		question1_lower = question1.toLowerCase();
+		question2_lower = question2.toLowerCase();
+		// 使用 toList() 方法將字串轉換為字符列表
+		chars1 = question1_lower.toList("");
+		chars2 = question2_lower.toList("");
+		// 計算共同字符數量
+		common_chars = 0;
+		for each  char1 in chars1
+		{
+			if(chars2.contains(char1) && char1 != " " && char1 != "，" && char1 != "。" && char1 != "？" && char1 != "！")
+			{
+				common_chars = common_chars + 1;
+			}
+		}
+		total_chars = chars1.size() + chars2.size() - common_chars;
+		if(total_chars > 0)
+		{
+			simple_similarity = common_chars / total_chars;
+			final_response.put("success",true);
+			final_response.put("similarity_score",simple_similarity);
+			final_response.put("explanation","使用簡單字符比對計算相似度");
+			final_response.put("is_same_question",simple_similarity > 0.8);
+			return final_response;
+		}
+		// AI 回應解析失敗，使用預設值
+		final_response.put("success",false);
+		final_response.put("error","AI 回應解析失敗");
+	}
+	catch (e)
+	{
+		final_response.put("success",false);
+		final_response.put("error","在 compareQuestionSimilarity 函數中發生錯誤：" + e);
+	}
+	return final_response;
+}

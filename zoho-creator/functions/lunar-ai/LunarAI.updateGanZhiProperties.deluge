@@ -1,0 +1,76 @@
+void LunarAI.updateGanZhiProperties()
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.updateGanZhiProperties
+	// 函數用途：更新六十干支表的天干地支屬性
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：批次更新 Sixty_GanZhi_Table 表單中每一筆干支紀錄的屬性，
+	//           包含：序數、卦象、卦數、陰陽、五行、相生、相克、方位。
+	// 參數說明：無
+	// 回傳格式：void
+	// 相依性：Sixty_GanZhi_Table 表單
+	// 注意：資料來源為「八卦干支五行表.csv」，請確保表單欄位 API Name 正確
+	// =============================================================================
+	// 1. 定義天干屬性資料 (根據 八卦干支五行表.csv 更新)
+	stems_data = Map();
+	stems_data.put("甲",{"序數":1,"卦象":"震(☳)","卦數":1,"陰陽":"陽","五行":"木","生":"火","克":"土","方位":"東"});
+	stems_data.put("乙",{"序數":2,"卦象":"震(☳)","卦數":1,"陰陽":"陰","五行":"木","生":"火","克":"土","方位":"東"});
+	stems_data.put("丙",{"序數":3,"卦象":"離(☲)","卦數":5,"陰陽":"陽","五行":"火","生":"土","克":"金","方位":"南"});
+	stems_data.put("丁",{"序數":4,"卦象":"離(☲)","卦數":5,"陰陽":"陰","五行":"火","生":"土","克":"金","方位":"南"});
+	stems_data.put("戊",{"序數":5,"卦象":"艮(☶)","卦數":4,"陰陽":"陽","五行":"土","生":"金","克":"水","方位":"中"});
+	stems_data.put("己",{"序數":6,"卦象":"坤(☷)","卦數":0,"陰陽":"陰","五行":"土","生":"金","克":"水","方位":"中"});
+	stems_data.put("庚",{"序數":7,"卦象":"兌(☱)","卦數":3,"陰陽":"陽","五行":"金","生":"水","克":"木","方位":"西"});
+	stems_data.put("辛",{"序數":8,"卦象":"兌(☱)","卦數":3,"陰陽":"陰","五行":"金","生":"水","克":"木","方位":"西"});
+	stems_data.put("壬",{"序數":9,"卦象":"坎(☵)","卦數":2,"陰陽":"陽","五行":"水","生":"木","克":"火","方位":"北"});
+	stems_data.put("癸",{"序數":10,"卦象":"坎(☵)","卦數":2,"陰陽":"陰","五行":"水","生":"木","克":"火","方位":"北"});
+	// 2. 定義地支屬性資料 (根據 八卦干支五行表.csv 更新)
+	branches_data = Map();
+	branches_data.put("子",{"序數":1,"卦象":"坎(☵)","卦數":2,"陰陽":"陽","五行":"水","生":"木","克":"火","方位":"北"});
+	branches_data.put("丑",{"序數":2,"卦象":"艮(☶)","卦數":4,"陰陽":"陰","五行":"土","生":"金","克":"水","方位":"東北"});
+	branches_data.put("寅",{"序數":3,"卦象":"艮(☶)","卦數":4,"陰陽":"陽","五行":"木","生":"火","克":"土","方位":"東北"});
+	branches_data.put("卯",{"序數":4,"卦象":"震(☳)","卦數":1,"陰陽":"陰","五行":"木","生":"火","克":"土","方位":"東"});
+	branches_data.put("辰",{"序數":5,"卦象":"巽(☴)","卦數":6,"陰陽":"陽","五行":"土","生":"金","克":"水","方位":"東南"});
+	branches_data.put("巳",{"序數":6,"卦象":"巽(☴)","卦數":6,"陰陽":"陰","五行":"火","生":"土","克":"金","方位":"東南"});
+	branches_data.put("午",{"序數":7,"卦象":"離(☲)","卦數":5,"陰陽":"陽","五行":"火","生":"土","克":"金","方位":"南"});
+	branches_data.put("未",{"序數":8,"卦象":"坤(☷)","卦數":0,"陰陽":"陰","五行":"土","生":"金","克":"水","方位":"西南"});
+	branches_data.put("申",{"序數":9,"卦象":"坤(☷)","卦數":0,"陰陽":"陽","五行":"金","生":"水","克":"木","方位":"西南"});
+	branches_data.put("酉",{"序數":10,"卦象":"兌(☱)","卦數":3,"陰陽":"陰","五行":"金","生":"水","克":"木","方位":"西"});
+	branches_data.put("戌",{"序數":11,"卦象":"乾(☰)","卦數":7,"陰陽":"陽","五行":"土","生":"金","克":"水","方位":"西北"});
+	branches_data.put("亥",{"序數":12,"卦象":"乾(☰)","卦數":7,"陰陽":"陰","五行":"水","生":"木","克":"火","方位":"西北"});
+	// 3. 獲取所有60干支的紀錄並進行更新
+	info "開始更新 Sixty_GanZhi_Table 表單紀錄...";
+	ganzhi_records = Sixty_GanZhi_Table[ID != 0];
+	for each  rec in ganzhi_records
+	{
+		// 從紀錄中獲取天干和地支
+		stem_char = rec.Heavenly_Stem;
+		branch_char = rec.Earthly_Branch;
+		// 查詢對應的屬性 Map
+		stem_info = stems_data.get(stem_char);
+		branch_info = branches_data.get(branch_char);
+		// 檢查是否成功找到資料
+		if(stem_info != null && branch_info != null)
+		{
+			// 更新天干屬性
+			rec.Stem_Ordinal=stem_info.get("序數");
+			rec.Stem_Trigram=stem_info.get("卦象");
+			rec.Stem_Trigram_Number=stem_info.get("卦數");
+			rec.Stem_YinYang=stem_info.get("陰陽");
+			rec.Stem_FiveElement=stem_info.get("五行");
+			rec.Stem_Generates=stem_info.get("生");
+			rec.Stem_Restrains=stem_info.get("克");
+			rec.Stem_Position=stem_info.get("方位");
+			// 更新地支屬性
+			rec.Branch_Ordinal=branch_info.get("序數");
+			rec.Branch_Trigram=branch_info.get("卦象");
+			rec.Branch_Trigram_Number=branch_info.get("卦數");
+			rec.Branch_YinYang=branch_info.get("陰陽");
+			rec.Branch_FiveElement=branch_info.get("五行");
+			rec.Branch_Generates=branch_info.get("生");
+			rec.Branch_Restrains=branch_info.get("克");
+			rec.Branch_Position=branch_info.get("方位");
+		}
+	}
+	info "更新完成！";
+}

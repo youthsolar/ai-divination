@@ -1,0 +1,25 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > GenerateDivinationPrompt (Divination_Logs)
+// 觸發事件: on add or edit > on validate
+// 狀態: inactive
+//
+// 組合AI占卜的 Prompt（目前有錯誤）
+// A. 抓出表單資料欄位
+user_question = input.Original_Question;
+tone_style = input.Tone_Style;
+// B. 抓出選取的 I_Ching_Form_Report 記錄物件
+yao_record = I_Ching_Form[ID == input.Hexagram_Code];
+// C. Debug 確認
+info "▶ [DEBUG] 使用者選擇的爻記錄 ID：" + input.Hexagram_Code.toString();
+info "▶ [DEBUG] 撈到的記錄物件：" + yao_record.toString();
+// D. 取得爻碼字串（請改成你表單中爻碼欄位的 API 名稱）
+yaoCode = yao_record.get("Yao_Code");
+info "▶ [DEBUG] 取出的爻碼字串：" + yaoCode;
+// E. 改用 Hexagram.getHexagramByYaoCode 取卦象資料
+hex_data = thisapp.Hexagram.getHexagramByYaoCode(yaoCode);
+info "✅ [DEBUG] hex_data：" + hex_data.toString();
+// F. 組合 Prompt
+prompt = thisapp.LLM.combineDivinationPrompt(user_question,hex_data,tone_style);
+// G. 顯示或寫入 Prompt
+info "✅ 組合後的 Prompt：" + prompt;
+Prompt_Generated = prompt;

@@ -1,0 +1,96 @@
+string ECPay.publicWebhook(map crmAPIRequest)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.publicWebhook
+	// 函數用途：公開 Webhook 接收 ECPay 回調
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：設定為 "Everyone can access" 權限的公開 Webhook，
+	//           接收 ECPay POST 回調並更新訂單狀態。
+	//           - 從 crmAPIRequest 提取 POST 參數
+	//           - 呼叫 handleECPayResponse 驗證並解析
+	//           - 根據結果更新 Talisman_Purchases 訂單狀態
+	// 參數說明：
+	//   - crmAPIRequest (map): Creator API 請求參數
+	// 回傳格式：string - "1|OK"（成功）或 "0|ERROR"（失敗）
+	// 相依性：ECPay.handleECPayResponse, ECPay 變數, Talisman_Purchases 表單
+	// =============================================================================
+	info "======= 公開 Webhook 接收 =======";
+	info "接收時間: " + zoho.currenttime;
+	// 預設回傳值
+	result = "0|ERROR";
+	try
+	{
+		// 從 crmAPIRequest 獲取 POST 參數
+		ecpayParams = Map();
+		if(crmAPIRequest != null)
+		{
+			// 複製所有參數
+			for each  key in crmAPIRequest.keys()
+			{
+				value = crmAPIRequest.get(key);
+				if(value != null)
+				{
+					ecpayParams.put(key,value);
+				}
+			}
+		}
+		info "接收到的參數: " + ecpayParams;
+		info "參數數量: " + ecpayParams.keys().size();
+		// 如果沒有接收到參數，記錄並返回錯誤
+		if(ecpayParams.keys().size() == 0)
+		{
+			info "警告：未接收到任何參數";
+			result = "0|NO_PARAMS";
+		}
+		else
+		{
+			// 獲取金鑰
+			hashKey = thisapp.variables.ECPay.hashKey;
+			hashIV = thisapp.variables.ECPay.hashIV;
+			// 調用處理邏輯
+			response = thisapp.ECPay.handleECPayResponse(ecpayParams,hashKey,hashIV);
+			info "處理結果: " + response;
+			// 更新資料庫
+			orderNo = response.get("orderNo");
+			if(orderNo != null)
+			{
+				purchaseRecord = Talisman_Purchases[MerchantTradeNo == orderNo];
+				if(purchaseRecord.count() > 0)
+				{
+					for each  record in purchaseRecord
+					{
+						if(response.get("status") == "success")
+						{
+							record.Status="Paid";
+							record.TradeNo=response.get("TradeNo");
+							record.PaymentDate=response.get("PaymentDate");
+							record.PaymentType=response.get("PaymentType");
+							info "訂單 " + orderNo + " 更新為已付款";
+						}
+						else
+						{
+							record.Status="Failed";
+							record.RtnMsg=response.get("error");
+							info "訂單 " + orderNo + " 付款失敗";
+						}
+					}
+				}
+				else
+				{
+					info "警告：找不到訂單 " + orderNo;
+				}
+			}
+			info "======= 公開 Webhook 處理完成 =======";
+			// 成功處理，設定回傳值
+			result = "1|OK";
+		}
+	}
+	catch (e)
+	{
+		info "公開 Webhook 錯誤: " + e.toString();
+		result = "0|ERROR: " + e.toString();
+	}
+	// 統一的回傳點
+	return result;
+}

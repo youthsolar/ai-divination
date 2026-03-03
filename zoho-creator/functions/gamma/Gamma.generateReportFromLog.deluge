@@ -1,0 +1,103 @@
+void Gamma.generateReportFromLog(int divinationLogId)
+{
+	// =============================================================================
+	// 函數名稱：Gamma.generateReportFromLog
+	// 函數用途：觸發 Gamma 報告生成流程
+	// 平台：Zoho Creator
+	// 命名空間：Gamma
+	// 功能描述：根據指定的占卜記錄 ID 建立 Gamma 報告生成任務：
+	//           - 查詢 Divination_Logs 原始占卜記錄
+	//           - 從 Client_Link 取得客戶姓名
+	//           - 取得占卜內容（優先完整版，備援基本版）
+	//           - 建立 Divination_Reports 報告任務記錄
+	//           - 呼叫 Zoho Flow Webhook 觸發 Gamma 報告生成
+	// 參數說明：
+	//   - divinationLogId (int): 占卜記錄 ID
+	// 回傳格式：void（直接建立記錄並觸發 Flow）
+	// 相依性：Divination_Logs, Clients_Report, Divination_Reports, Zoho Flow Webhook
+	// =============================================================================
+	// 1. 查詢原始的占卜紀錄 - 回傳集合
+	logRecords = Divination_Logs[ID == divinationLogId];
+	// 2. 檢查集合是否為空
+	if(logRecords.count() > 0)
+	{
+		// 3. 使用 for each 迴圈取得第一筆紀錄
+		singleLogRecord = null;
+		for each  record in logRecords
+		{
+			singleLogRecord = record;
+			break;
+		}
+		// 4. 從 Client_Link 查詢客戶資料
+		clientName = "";
+		if(singleLogRecord.Client_Link != null)
+		{
+			clientRecords = Clients_Report[ID == singleLogRecord.Client_Link];
+			if(clientRecords.count() > 0)
+			{
+				singleClientRecord = null;
+				for each  clientRecord in clientRecords
+				{
+					singleClientRecord = clientRecord;
+					break;
+				}
+				if(singleClientRecord != null && singleClientRecord.Visitor_Name != null)
+				{
+					firstName = ifnull(singleClientRecord.Visitor_Name.first_name,"");
+					lastName = ifnull(singleClientRecord.Visitor_Name.last_name,"");
+					clientName = lastName + " " + firstName;
+				}
+			}
+		}
+		// 5. 取得占卜內容（優先使用完整解讀，沒有則使用基本描述）
+		divinationContent = "";
+		if(singleLogRecord.AI_Interpretation_Full != null && singleLogRecord.AI_Interpretation_Full != "")
+		{
+			divinationContent = singleLogRecord.AI_Interpretation_Full;
+		}
+		else if(singleLogRecord.AI_Interpretation != null && singleLogRecord.AI_Interpretation != "")
+		{
+			divinationContent = singleLogRecord.AI_Interpretation;
+		}
+		else
+		{
+			divinationContent = "此占卜紀錄暫無詳細解讀內容";
+		}
+		// 6. 建立一筆新的報告生成任務
+		newReportId = insert into Divination_Reports
+		[
+			reportTitle="關於「" + singleLogRecord.Original_Question + "」的占卜報告"
+			reportSubtitle="客戶：" + clientName
+			reportContentMarkdown=divinationContent
+			reportTone="鼓舞人心"
+			imagePrompt="魅惑, 性感色情, 粉色期待, 一堆厲害的忍者龜背景圖"
+			divinationLog=divinationLogId
+			status="待處理"
+			Added_User=zoho.loginuser
+		];
+		// 7. 準備呼叫 Flow 的資料
+		flowPayload = Map();
+		flowPayload.put("reportTitle","關於「" + singleLogRecord.Original_Question + "」的占卜報告");
+		flowPayload.put("reportSubtitle","客戶：" + clientName);
+		flowPayload.put("reportContentMarkdown",divinationContent);
+		flowPayload.put("reportTone","鼓舞人心");
+		flowPayload.put("imagePrompt","魅惑, 性感色情, 粉色期待, 一堆厲害的忍者龜背景圖");
+		flowPayload.put("creatorRecordId",newReportId);
+		// 8. 呼叫 Zoho Flow 的 Webhook URL
+		flowWebhookUrl = "https://flow.zoho.com/876589289/flow/webhook/incoming?zapikey=1001.c2f3c731da1c083c0e9b189b9beed841.aeaee06484461f4563e8d52e8cc42f25&isdebug=false";
+		requestHeaders = Map();
+		requestHeaders.put("Content-Type","application/json");
+		response = invokeurl
+		[
+			url :flowWebhookUrl
+			type :POST
+			parameters:flowPayload.toString()
+			headers:requestHeaders
+		];
+		info "已成功觸發 Gamma 報告生成流程，報告請求 ID 為：" + newReportId;
+	}
+	else
+	{
+		info "找不到指定的占卜紀錄，ID：" + divinationLogId;
+	}
+}

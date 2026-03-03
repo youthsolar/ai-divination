@@ -1,0 +1,80 @@
+list Tarot.drawRandomSpread()
+{
+	// =============================================================================
+	// 函數名稱：Tarot.drawRandomSpread
+	// 函數用途：五張牌牌陣隨機抽牌
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：使用「ID 列表隨機法」抽出五張牌的牌陣：
+	//           - 從 All_Tarot_Cards 取得所有牌卡 ID 列表
+	//           - 五次迴圈中隨機抽取不重複的牌卡
+	//           - 每張牌依隨機值決定正位或逆位
+	//           - 回傳包含 Card_ID, Card_Image, Card_Meaning, Is_Reversed 的列表
+	// 參數說明：（無參數）
+	// 回傳格式：list - 包含 5 個 map 的列表，每個 map 含牌卡 ID、圖片、牌義、正逆位
+	// 相依性：All_Tarot_Cards 表單
+	// =============================================================================
+	// 初始化回傳用的列表
+	spread_results = List();
+	// 1. 取得所有牌卡的 ID，建立一個純粹的 ID 列表
+	all_cards_collection = All_Tarot_Cards[ID != 0];
+	card_id_list = List();
+	for each  card in all_cards_collection
+	{
+		card_id_list.add(card.ID);
+	}
+	// 檢查 ID 列表是否成功建立
+	if(card_id_list.size() > 0)
+	{
+		// 2. 執行五次抽牌迴圈
+		loop_count = {1,2,3,4,5};
+		for each  i in loop_count
+		{
+			// 3. 從 ID 列表中隨機抽出一張牌的 ID
+			// 檢查列表是否還有 ID 可抽
+			if(card_id_list.size() > 0)
+			{
+				deck_size = card_id_list.size();
+				random_index = zoho.currenttime.toLong() % deck_size;
+				// 取得並移除該 ID
+				drawn_id = card_id_list.remove(random_index);
+				// 4. 使用抽出的 ID，獲取完整的牌卡紀錄集合
+				card_collection = All_Tarot_Cards[ID == drawn_id];
+				// 關鍵修正：使用 for each 迴圈從集合中安全地取出唯一的紀錄物件
+				// 這是最穩健的方法，可以避免所有關於集合物件操作的相容性問題
+				if(card_collection.count() > 0)
+				{
+					for each  drawn_card_record in card_collection
+					{
+						// 5. 決定正逆位
+						orientation = zoho.currenttime.toLong() % 2;
+						// 產生 0 或 1
+						// 準備儲存單張牌結果的 Map
+						card_result_map = Map();
+						card_result_map.put("Card_ID",drawn_card_record.ID);
+						if(orientation == 1)
+						{
+							// 正位
+							card_result_map.put("Card_Image",drawn_card_record.Upright_Image);
+							card_result_map.put("Card_Meaning",drawn_card_record.Upright_Meaning);
+							card_result_map.put("Is_Reversed",false);
+						}
+						else
+						{
+							// 逆位
+							card_result_map.put("Card_Image",drawn_card_record.Reversed_Image);
+							card_result_map.put("Card_Meaning",drawn_card_record.Reversed_Meaning);
+							card_result_map.put("Is_Reversed",true);
+						}
+						// 6. 將這張牌的結果加入最終的列表
+						spread_results.add(card_result_map);
+						// 因為是透過 ID 查詢，只會有一筆紀錄，處理完就跳出迴圈
+						break;
+					}
+				}
+			}
+		}
+	}
+	// 7. 回傳包含五張牌結果的列表
+	return spread_results;
+}

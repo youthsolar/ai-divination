@@ -1,0 +1,68 @@
+map Tools.getTimezoneFromIP(string ip_address)
+{
+	// =============================================================================
+	// 函數名稱：Tools.getTimezoneFromIP
+	// 函數用途：從 IP 位址查詢時區資訊
+	// 平台：Zoho Creator
+	// 命名空間：Tools
+	// 功能描述：使用免費的 ip-api.com 服務從 IP 位址查詢時區：
+	//           - 驗證 IP 位址是否有效
+	//           - 呼叫 ip-api.com JSON API
+	//           - 回傳時區字串（如 "Asia/Taipei"）
+	// 參數說明：
+	//   - ip_address (string): 要查詢的公開 IP 位址
+	// 回傳格式：map - {success, timezone/error}
+	// 相依性：ip-api.com 外部 API
+	// =============================================================================
+	// 初始化回傳的 map
+	response_map = Map();
+	// 檢查傳入的 IP 位址是否為空或無效
+	if(ip_address == null || ip_address.trim() == "")
+	{
+		response_map.put("success",false);
+		response_map.put("error","傳入的 IP 位址為空。");
+		return response_map;
+	}
+	// 使用免費的 ip-api.com 服務來查詢
+	api_url = "http://ip-api.com/json/" + ip_address;
+	try
+	{
+		// 呼叫 API
+		api_response = invokeurl
+		[
+			url :api_url
+			type :GET
+		];
+		// 檢查 API 回應的狀態
+		if(api_response.get("status") == "success")
+		{
+			// 從 JSON 回應中提取時區資訊
+			timezone = api_response.get("timezone");
+			// 檢查時區資訊是否存在
+			if(timezone != null)
+			{
+				response_map.put("success",true);
+				response_map.put("timezone",timezone);
+			}
+			else
+			{
+				response_map.put("success",false);
+				response_map.put("error","API 回應中未找到時區資訊。");
+			}
+		}
+		else
+		{
+			// API 查詢失敗
+			error_message = "IP 位址查詢失敗: " + api_response.get("message");
+			response_map.put("success",false);
+			response_map.put("error",error_message);
+		}
+	}
+	catch (e)
+	{
+		// 捕捉 invokeurl 可能發生的例外
+		response_map.put("success",false);
+		response_map.put("error","呼叫 IP 查詢 API 時發生錯誤: " + e);
+	}
+	return response_map;
+}

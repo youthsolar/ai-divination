@@ -1,0 +1,276 @@
+map Email.sendTalismanReport(string order_id)
+{
+	// =============================================================================
+	// 函數名稱：Email.sendTalismanReport
+	// 函數用途：發送符令完整報告郵件
+	// 平台：Zoho Creator
+	// 命名空間：Email
+	// 功能描述：付款成功後自動發送完整符令和占卜報告郵件：
+	//           - 查詢訂單資訊（Talisman_Purchases）
+	//           - 透過 Lookup 取得客戶與占卜記錄
+	//           - 取得符令圖片和牌卡描述
+	//           - 組合 HTML 郵件（符令圖片、占卜解讀、PDF 下載連結）
+	//           - 發送郵件並處理首次購買的 3000 字完整報告生成
+	// 參數說明：
+	//   - order_id (string): Talisman_Purchases 訂單 ID
+	// 回傳格式：map - {success, message, recipient, is_first_purchase, report_included}
+	// 相依性：Talisman_Purchases, Clients_Report, Divination_Logs, All_Tarot_Cards,
+	//         AIInterpreter.getTarotInterpretationFull, sendmail
+	// =============================================================================
+	// 採用單一出口模式
+	email_result = Map();
+	try
+	{
+		info "=== 開始發送符令報告 ===";
+		info "訂單 ID：" + order_id;
+		// === 步驟 1：查詢訂單資訊 ===
+		order_records = Talisman_Purchases[ID == order_id.toLong()];
+		if(order_records.count() == 0)
+		{
+			email_result.put("success",false);
+			email_result.put("message","找不到訂單記錄");
+			return email_result;
+		}
+		// 取得訂單資訊
+		order_info = null;
+		for each  order in order_records
+		{
+			order_info = order;
+			break;
+		}
+		// 透過 Lookup 取得客戶資訊
+		client_id = order_info.Client_Link;
+		customer_name = "";
+		customer_email = "";
+		if(client_id != null)
+		{
+			client_records = Clients_Report[ID == client_id];
+			if(client_records.count() > 0)
+			{
+				for each  client in client_records
+				{
+					customer_name = client.Visitor_Name.first_name + " " + client.Visitor_Name.last_name;
+					customer_email = client.Email;
+					break;
+				}
+			}
+		}
+		// 如果無法取得客戶資訊，回傳錯誤
+		if(customer_email == "")
+		{
+			email_result.put("success",false);
+			email_result.put("message","無法取得客戶郵件地址");
+			return email_result;
+		}
+		talisman_name = order_info.Item_Name_Chinese;
+		divination_id = order_info.Divination_Log_Link;
+		info "客戶：" + customer_name;
+		info "郵件：" + customer_email;
+		info "符令：" + talisman_name;
+		// === 步驟 2：取得占卜記錄詳細資訊 ===
+		divination_records = Divination_Logs[ID == divination_id];
+		if(divination_records.count() == 0)
+		{
+			email_result.put("success",false);
+			email_result.put("message","找不到占卜記錄");
+			return email_result;
+		}
+		// 取得占卜資訊
+		divination_info = null;
+		for each  divination in divination_records
+		{
+			divination_info = divination;
+			break;
+		}
+		user_question = divination_info.Original_Question;
+		ai_interpretation = divination_info.AI_Interpretation;
+		primary_card_id = divination_info.Primary_Talisman_Card_ID;
+		// === 步驟 3：取得符令圖片和詳細資訊 ===
+		talisman_image_url = "";
+		talisman_description = "";
+		talisman_usage_guide = "";
+		if(primary_card_id != null)
+		{
+			card_records = All_Tarot_Cards[ID == primary_card_id];
+			if(card_records.count() > 0)
+			{
+				for each  card in card_records
+				{
+					// 根據正逆位選擇符令圖片
+					primary_polarity = divination_info.Primary_Trend_Polarity;
+					if(primary_polarity == "正位")
+					{
+						talisman_image_url = card.Upright_Talisman_Image;
+					}
+					else
+					{
+						talisman_image_url = card.Reverse_Talisman_Image;
+					}
+					talisman_description = card.Card_Description;
+					break;
+				}
+			}
+		}
+		// === 步驟 4：組合 HTML 郵件內容 ===
+		html_content = "<!DOCTYPE html>";
+		html_content = html_content + "<html><head><meta charset='UTF-8'>";
+		html_content = html_content + "<title>您的專屬符令報告</title>";
+		html_content = html_content + "<style>";
+		html_content = html_content + "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }";
+		html_content = html_content + ".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }";
+		html_content = html_content + ".content { padding: 20px; max-width: 600px; margin: 0 auto; }";
+		html_content = html_content + ".talisman-box { border: 2px solid #667eea; border-radius: 10px; padding: 15px; margin: 20px 0; text-align: center; }";
+		html_content = html_content + ".divination-box { background: #f8f9fa; border-radius: 8px; padding: 15px; margin: 15px 0; }";
+		html_content = html_content + ".footer { background: #333; color: white; padding: 15px; text-align: center; font-size: 12px; }";
+		html_content = html_content + "</style></head><body>";
+		// 郵件標題
+		html_content = html_content + "<div class='header'>";
+		html_content = html_content + "<h1>? 您的專屬符令報告 ?</h1>";
+		html_content = html_content + "<p>親愛的 " + customer_name + "，感謝您的信任！</p>";
+		html_content = html_content + "</div>";
+		// 主要內容
+		html_content = html_content + "<div class='content'>";
+		// 符令部分
+		html_content = html_content + "<div class='talisman-box'>";
+		html_content = html_content + "<h2>✨ 您的專屬符令 ✨</h2>";
+		html_content = html_content + "<h3>" + talisman_name + "</h3>";
+		if(talisman_image_url != null && talisman_image_url != "")
+		{
+			html_content = html_content + "<img src='" + talisman_image_url + "' alt='專屬符令' style='max-width: 300px; height: auto; border-radius: 8px;'>";
+		}
+		html_content = html_content + "<p><strong>使用說明</strong>：</p>";
+		html_content = html_content + "<p>1. 將此符令圖片設為手機桌布或保存在手機相簿中</p>";
+		html_content = html_content + "<p>2. 每日晨起觀看符令 3 分鐘，進行冥想</p>";
+		html_content = html_content + "<p>3. 遇到挑戰時觀看符令，獲得力量與智慧</p>";
+		html_content = html_content + "<p>4. 符令有效期為一年，期間可隨時使用</p>";
+		html_content = html_content + "</div>";
+		// 占卜解讀部分 - 根據購買類型顯示不同內容
+		html_content = html_content + "<div class='divination-box'>";
+		html_content = html_content + "<h2>? 您的占卜解讀</h2>";
+		html_content = html_content + "<p><strong>您的問題</strong>：" + user_question + "</p>";
+		// 檢查是否已有完整報告
+		full_report_available = divination_info.AI_Interpretation_Full != null && divination_info.AI_Interpretation_Full != "";
+		pdf_link_available = divination_info.Report_PDF_Link != null && divination_info.Report_PDF_Link != "";
+		if(full_report_available && pdf_link_available)
+		{
+			// 有完整報告和PDF連結 - 顯示PDF下載連結
+			html_content = html_content + "<div style='background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 15px; margin: 15px 0;'>";
+			html_content = html_content + "<h3>? 完整占卜報告</h3>";
+			html_content = html_content + "<p>您的專業 3000 字完整占卜報告已準備就緒！</p>";
+			html_content = html_content + "<p><a href='" + divination_info.Report_PDF_Link + "' style='background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>? 下載完整報告 PDF</a></p>";
+			html_content = html_content + "</div>";
+		}
+		else
+		{
+			// 暫時顯示 500 字解讀，並說明完整報告準備中
+			html_content = html_content + "<div style='white-space: pre-line; margin-top: 15px;'>";
+			html_content = html_content + ai_interpretation;
+			html_content = html_content + "</div>";
+			html_content = html_content + "<div style='background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 15px 0;'>";
+			html_content = html_content + "<p><strong>? 專業完整報告準備中...</strong></p>";
+			html_content = html_content + "<p>您的 3000 字專業完整占卜報告正在生成中，完成後將以 PDF 格式提供下載連結。</p>";
+			html_content = html_content + "</div>";
+		}
+		html_content = html_content + "</div>";
+		// 感謝和聯絡資訊
+		html_content = html_content + "<div style='text-align: center; margin-top: 30px;'>";
+		html_content = html_content + "<h3>? 感謝您的信任</h3>";
+		html_content = html_content + "<p>願宇宙的智慧與愛與您同在！</p>";
+		html_content = html_content + "<p>如有任何問題，歡迎隨時聯繫我們的客服團隊。</p>";
+		html_content = html_content + "</div>";
+		html_content = html_content + "</div>";
+		// 頁尾
+		html_content = html_content + "<div class='footer'>";
+		html_content = html_content + "<p>© 2025 AI 靈學占卜系統 | 專業塔羅占卜服務</p>";
+		html_content = html_content + "<p>此為系統自動發送郵件，請勿直接回覆</p>";
+		html_content = html_content + "</div>";
+		html_content = html_content + "</body></html>";
+		// === 步驟 5：發送郵件 ===
+		email_subject = "? 您的專屬符令報告 - " + customer_name;
+		info "準備發送郵件給：" + customer_email;
+		info "郵件主旨：" + email_subject;
+		// === 步驟 5：發送郵件 ===
+		try
+		{
+			sendmail
+			[
+				from :zoho.adminuserid
+				to :customer_email
+				subject :email_subject
+				message :html_content
+			]
+			info "郵件發送命令執行完成";
+			// === 步驟 6：處理首次購買報告生成 ===
+			// 檢查是否為首次購買並包含完整報告
+			is_first_purchase = order_info.Is_First_Purchase;
+			report_included = order_info.Report_Included;
+			if(is_first_purchase && report_included)
+			{
+				// 首次購買：生成 3000 字完整報告
+				info "首次購買檢測，準備生成完整報告";
+				// 呼叫 3000 字完整報告生成函數
+				// 準備牌陣資料 Map
+				tarot_spread_data = Map();
+				tarot_spread_data.put("Position_a_Meaning",divination_info.Position_a_Meaning);
+				tarot_spread_data.put("Position_b_Meaning",divination_info.Position_b_Meaning);
+				tarot_spread_data.put("Position_c_Meaning",divination_info.Position_c_Meaning);
+				tarot_spread_data.put("Position_d_Meaning",divination_info.Position_d_Meaning);
+				tarot_spread_data.put("Position_e_Meaning",divination_info.Position_e_Meaning);
+				tarot_spread_data.put("Card_1_Reversed",divination_info.Card_1_Reversed);
+				tarot_spread_data.put("Card_2_Reversed",divination_info.Card_2_Reversed);
+				tarot_spread_data.put("Card_3_Reversed",divination_info.Card_3_Reversed);
+				tarot_spread_data.put("Card_4_Reversed",divination_info.Card_4_Reversed);
+				tarot_spread_data.put("Card_5_Reversed",divination_info.Card_5_Reversed);
+				full_report_result = thisapp.AIInterpreter.getTarotInterpretationFull(divination_info.Original_Question,divination_info.Question_Type_AI,tarot_spread_data,if(client_id != null,client_id.toString(),""));
+				// 更新占卜記錄的完整報告
+				if(full_report_result != null && full_report_result.get("success") == true)
+				{
+					// 從 Map 中提取解讀文字
+					full_interpretation_text = full_report_result.get("interpretation");
+					if(full_interpretation_text != null && full_interpretation_text != "")
+					{
+						// 使用正確的 update 語法
+						divination_records_update = Divination_Logs[ID == divination_id];
+						if(divination_records_update.count() > 0)
+						{
+							for each  divination_record in divination_records_update
+							{
+								divination_record.AI_Interpretation_Full=full_interpretation_text;
+								divination_record.Report_Generated=true;
+								break;
+							}
+						}
+						info "3000字完整報告生成並保存成功，字數：" + full_report_result.get("word_count").toString();
+					}
+				}
+				else if(full_report_result != null)
+				{
+					info "完整報告生成失敗：" + full_report_result.get("error");
+				}
+				else
+				{
+					info "完整報告生成函數回傳空值";
+				}
+			}
+			email_result.put("success",true);
+			email_result.put("message","符令報告發送成功");
+			email_result.put("recipient",customer_email);
+			email_result.put("is_first_purchase",is_first_purchase);
+			email_result.put("report_included",report_included);
+			info "郵件處理流程完成";
+		}
+		catch (mail_error)
+		{
+			email_result.put("success",false);
+			email_result.put("message","郵件發送失敗：" + mail_error.toString());
+			info "郵件發送過程發生錯誤：" + mail_error.toString();
+		}
+	}
+	catch (e)
+	{
+		email_result.put("success",false);
+		email_result.put("message","郵件系統錯誤：" + e);
+		info "sendTalismanReport 函數執行錯誤：" + e;
+	}
+	return email_result;
+}

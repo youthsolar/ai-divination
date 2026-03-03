@@ -1,0 +1,100 @@
+string OpenAI.callChatGPT(string prompt)
+{
+	// =============================================================================
+	// 函數名稱：callChatGPT
+	// 函數用途：同步呼叫 OpenAI ChatGPT API（gpt-4），取得占卜解說回應
+	// 平台：Zoho Creator
+	// 命名空間：OpenAI
+	//
+	// 功能描述：
+	// - 使用組織變數中的 API Key 與 URL 發送 POST 請求到 OpenAI API
+	// - 使用 system prompt 設定占卜師角色
+	// - 解析 response 中 choices[0].message.content 作為回應文字
+	// - 錯誤時回傳錯誤提示字串（不拋出例外）
+	//
+	// 參數說明：
+	// @param prompt (string) - 組合後的占卜 prompt（由 combineDivinationPrompt 產出）
+	//
+	// 回傳格式：
+	// @return (string) - GPT 回應的文字內容，錯誤時為錯誤提示字串
+	//
+	// 相依性：
+	// - thisapp.variables.OpenAI.OpenAI_API_Key（組織變數）
+	// - thisapp.variables.OpenAI.OpenAI_API_URL（組織變數）
+	//
+	// 注意：
+	// - 使用 postUrl 發送請求（非 invokeurl），適用於簡單的 JSON POST
+	// - model 固定為 gpt-4，temperature=0.7，max_tokens=2000
+	// =============================================================================
+
+	// 預設回應文字
+	responseText = "尚未取得回應";
+	try
+	{
+		// 取得 API Key 和 URL（從全域變數）
+		api_key = thisapp.variables.OpenAI.OpenAI_API_Key;
+		url = thisapp.variables.OpenAI.OpenAI_API_URL;
+		// 設定 headers
+		headers = Map();
+		headers.put("Authorization","Bearer " + api_key);
+		headers.put("Content-Type","application/json");
+		// 設定 messages（含 system 指令與使用者提問）
+		messages = list();
+		system_msg = Map();
+		system_msg.put("role","system");
+		system_msg.put("content","你是一位占卜師，根據用戶提問進行專業的占卜解說。");
+		messages.add(system_msg);
+		user_msg = Map();
+		user_msg.put("role","user");
+		user_msg.put("content",prompt);
+		messages.add(user_msg);
+		// 組裝 payload
+		payload = Map();
+		payload.put("model","gpt-4");
+		payload.put("messages",messages);
+		payload.put("temperature",0.7);
+		payload.put("max_tokens",2000);
+		info "callChatGPT: 已組裝 Payload，開始送出請求";
+		// 發送 POST 請求
+		response = postUrl(url,payload.toString(),headers);
+		// 解讀回應
+		response_map = response.toMap();
+		if(response_map.get("choices") != null)
+		{
+			choices = response_map.get("choices");
+			if(choices.size() > 0)
+			{
+				first_choice = choices.get(0);
+				message = first_choice.get("message");
+				if(message.get("content") != null)
+				{
+					responseText = message.get("content").toString();
+					info "callChatGPT: 成功取得回應內容";
+				}
+				else
+				{
+					responseText = "GPT 回應格式錯誤：缺少 content 欄位";
+				}
+			}
+			else
+			{
+				responseText = "GPT 回應的 choices 為空陣列";
+			}
+		}
+		else if(response_map.get("error") != null)
+		{
+			error = response_map.get("error");
+			responseText = "OpenAI 錯誤：" + error.get("message");
+		}
+		else
+		{
+			responseText = "GPT 沒有提供任何回應內容";
+		}
+	}
+	catch (e)
+	{
+		// 錯誤處理
+		responseText = "系統錯誤：" + e.toString();
+	}
+	return responseText;
+}

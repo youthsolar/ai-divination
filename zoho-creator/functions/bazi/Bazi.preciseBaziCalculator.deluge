@@ -1,0 +1,94 @@
+map Bazi.preciseBaziCalculator(date solar_datetime)
+{
+	// =============================================================================
+	// 函數名稱：Bazi.preciseBaziCalculator
+	// 函數用途：八字計算系統總裝引擎
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：依序呼叫年、月、日、時四個獨立支柱計算函數，
+	//           將結果組合成完整、詳細的八字資訊 Map。
+	//           這是從外部系統（如 CRM 同步函數）呼叫八字功能時的主要入口。
+	//           - 依序呼叫 calculatePreciseYearPillar, MonthPillar, DayPillar, HourPillar
+	//           - 每次呼叫後檢查 "error" 鍵，若有則立即中斷
+	//           - 使用 try-catch 捕捉預期外錯誤
+	// 參數說明：
+	//   - solar_datetime (date): 需要計算的國曆日期時間
+	// 回傳格式：map - 包含完整八字資訊及計算狀態：
+	//   - "success" (boolean): 計算是否成功
+	//   - "完整八字" (string): 「年柱 月柱 日柱 時柱」格式
+	//   - "年柱", "月柱", "日柱", "時柱" (string): 各支柱干支
+	//   - "年柱詳情", "月柱詳情", "日柱詳情", "時柱詳情" (map): 各計算函數回傳的詳細 Map
+	//   - "error" (string): 如果出錯，則包含錯誤訊息
+	// 相依性：Bazi.calculatePreciseYearPillar, Bazi.calculatePreciseMonthPillar,
+	//         Bazi.calculatePreciseDayPillar, Bazi.calculatePreciseHourPillar
+	// 注意：原函數名為 PreciseBaziCalculator，已改為 camelCase
+	// =============================================================================
+	info "=== 開始精確八字計算 ===";
+	info "輸入時間：" + solar_datetime.toString("yyyy-MM-dd HH:mm:ss");
+	result_map = Map();
+	// 建立天干地支對照表（子函數中也會呼叫，此處保留供潛在直接使用）
+	stemsList = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
+	branchesList = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	try
+	{
+		// ========== 1. 計算年柱 ==========
+		info "計算年柱...";
+		year_result = thisapp.Bazi.calculatePreciseYearPillar(solar_datetime);
+		if(year_result.containKey("error"))
+		{
+			result_map.put("error","年柱計算失敗：" + year_result.get("error"));
+			return result_map;
+		}
+		info "年柱：" + year_result.get("pillar") + " (八字年：" + year_result.get("bazi_year") + ")";
+		// ========== 2. 計算月柱 ==========
+		info "計算月柱...";
+		month_result = thisapp.Bazi.calculatePreciseMonthPillar(solar_datetime);
+		if(month_result.containKey("error"))
+		{
+			result_map.put("error","月柱計算失敗：" + month_result.get("error"));
+			return result_map;
+		}
+		info "月柱：" + month_result.get("pillar") + " (節氣：" + month_result.get("solar_term") + ")";
+		// ========== 3. 計算日柱 ==========
+		info "計算日柱...";
+		day_result = thisapp.Bazi.calculatePreciseDayPillar(solar_datetime);
+		if(day_result.containKey("error"))
+		{
+			result_map.put("error","日柱計算失敗：" + day_result.get("error"));
+			return result_map;
+		}
+		info "日柱：" + day_result.get("pillar") + " (距基準：" + day_result.get("days_diff") + "天)";
+		// ========== 4. 計算時柱 ==========
+		info "計算時柱...";
+		hour_result = thisapp.Bazi.calculatePreciseHourPillar(solar_datetime);
+		if(hour_result.containKey("error"))
+		{
+			result_map.put("error","時柱計算失敗：" + hour_result.get("error"));
+			return result_map;
+		}
+		info "時柱：" + hour_result.get("pillar") + " (" + hour_result.get("hour") + "點 = " + hour_result.get("time_period") + ")";
+		// ========== 5. 組合最終結果 ==========
+		complete_bazi = year_result.get("pillar") + " " + month_result.get("pillar") + " " + day_result.get("pillar") + " " + hour_result.get("pillar");
+		result_map.put("success",true);
+		result_map.put("input_datetime",solar_datetime.toString("yyyy-MM-dd HH:mm:ss"));
+		result_map.put("年柱",year_result.get("pillar"));
+		result_map.put("月柱",month_result.get("pillar"));
+		result_map.put("日柱",day_result.get("pillar"));
+		result_map.put("時柱",hour_result.get("pillar"));
+		result_map.put("完整八字",complete_bazi);
+		// 詳細計算資訊
+		result_map.put("年柱詳情",year_result);
+		result_map.put("月柱詳情",month_result);
+		result_map.put("日柱詳情",day_result);
+		result_map.put("時柱詳情",hour_result);
+		info "=== 八字計算完成 ===";
+		info "完整八字：" + complete_bazi;
+	}
+	catch (e)
+	{
+		result_map.put("error","八字計算過程發生錯誤：" + e);
+		result_map.put("success",false);
+		info "計算錯誤：" + e;
+	}
+	return result_map;
+}

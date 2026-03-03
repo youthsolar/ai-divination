@@ -1,0 +1,53 @@
+string LLM.combineDivinationPrompt(string question, map hex_data, string tone_prompt)
+{
+	// =============================================================================
+	// 函數名稱：LLM.combineDivinationPrompt
+	// 函數用途：組合占卜 prompt，將卦象資料與使用者問題合併為 AI 可用的 prompt
+	// 平台：Zoho Creator
+	// 命名空間：LLM
+	//
+	// 功能描述：
+	// - 從 hex_data Map 中提取爻碼、卦象、五行、主題分析等欄位
+	// - 結合使用者的問題文字與語氣風格設定
+	// - 組合完整的 prompt 字串供 LLM.callChat 使用
+	//
+	// 參數說明：
+	// @param question (string) - 使用者的提問內容
+	// @param hex_data (map) - 卦象資料 Map（來自 Hexagram.getHexagramByYaoCode 的回傳）
+	//   - yao: 爻碼
+	//   - appearance: 卦象名稱
+	//   - five_elements: 五行屬性
+	//   - yao_love / yao_work / yao_wish: 主題分析文字
+	// @param tone_prompt (string) - AI 回應的語氣風格（例："溫暖且帶有智慧的占卜師"）
+	//
+	// 回傳格式：
+	// @return (string) - 組合後的完整 prompt 字串
+	//
+	// 相依性：
+	// - 無外部函數依賴（純字串組合）
+	//
+	// 注意：
+	// - hex_data 的欄位格式需與 Hexagram.getHexagramByYaoCode 的回傳一致
+	// - 此函數從 OpenAI.combineDivinationPrompt 遷移而來，邏輯完全不變
+	// =============================================================================
+
+	prompt = "";
+	// 從 hex_data 取出代表欄位
+	yao = hex_data.get("yao");
+	gua = hex_data.get("appearance");
+	elements = hex_data.get("five_elements");
+	love = hex_data.get("yao_love");
+	work = hex_data.get("yao_work");
+	wish = hex_data.get("yao_wish");
+	// 組合占卜內容摘要
+	summary = "這是一個由爻碼 " + yao + " 所構成的卦象，卦象為「" + gua + "」，五行屬「" + elements + "」。\n";
+	summary = summary + "關於願望的解釋是：" + wish + "\n";
+	summary = summary + "關於情感的解釋是：" + love + "\n";
+	summary = summary + "關於工作的解釋是：" + work + "\n";
+	// 加入語氣風格指令
+	full_prompt = "請用「" + tone_prompt + "」的語氣，回答以下提問：\n";
+	full_prompt = full_prompt + "提問內容：「" + question + "」\n";
+	full_prompt = full_prompt + "占卜分析依據如下：\n";
+	full_prompt = full_prompt + summary;
+	return full_prompt;
+}

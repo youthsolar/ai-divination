@@ -1,0 +1,115 @@
+void Tools.populateTaisuiDeityNames()
+{
+	// =============================================================================
+	// 函數名稱：Tools.populateTaisuiDeityNames
+	// 函數用途：批量填充六十太歲星君名稱（一次性工具）
+	// 平台：Zoho Creator
+	// 命名空間：Tools
+	// 功能描述：讀取預定義的六十干支與太歲星君對照表，批量更新資料庫：
+	//           - 建立完整的干支→太歲星君名稱 Map（60 筆）
+	//           - 遍歷 Sixty_GanZhi_Table 所有記錄
+	//           - 將對應的太歲星君名稱填入 Taisui_Deity_Name 欄位
+	// 參數說明：無
+	// 回傳格式：void（直接更新資料庫，透過 info 輸出結果）
+	// 相依性：Sixty_GanZhi_Table 表單
+	// 注意：此為一次性工具函數，執行成功後可刪除
+	// =============================================================================
+	info "準備開始更新六十太歲星君名稱...";
+	// 步驟 1: 在記憶體中建立一個從「干支組合」到「太歲星君名稱」的完整對照 Map。
+	// 這是所有更新操作的資料來源。
+	taisui_map = Map();
+	taisui_map.put("甲子","金辦將軍");
+	taisui_map.put("乙丑","陳材將軍");
+	taisui_map.put("丙寅","耿章將軍");
+	taisui_map.put("丁卯","沈興將軍");
+	taisui_map.put("戊辰","趙達將軍");
+	taisui_map.put("己巳","郭燦將軍");
+	taisui_map.put("庚午","王清將軍");
+	taisui_map.put("辛未","李素將軍");
+	taisui_map.put("壬申","劉旺將軍");
+	taisui_map.put("癸酉","康志將軍");
+	taisui_map.put("甲戌","施廣將軍");
+	taisui_map.put("乙亥","任保將軍");
+	taisui_map.put("丙子","郭嘉將軍");
+	taisui_map.put("丁丑","汪文將軍");
+	taisui_map.put("戊寅","曾光將軍");
+	taisui_map.put("己卯","龍仲將軍");
+	taisui_map.put("庚辰","董德將軍");
+	taisui_map.put("辛巳","鄭但將軍");
+	taisui_map.put("壬午","陸明將軍");
+	taisui_map.put("癸未","魏仁將軍");
+	taisui_map.put("甲申","方杰將軍");
+	taisui_map.put("乙酉","蔣崇將軍");
+	taisui_map.put("丙戌","白敏將軍");
+	taisui_map.put("丁亥","封濟將軍");
+	taisui_map.put("戊子","鄒鏜將軍");
+	taisui_map.put("己丑","潘佐將軍");
+	taisui_map.put("庚寅","鄔桓將軍");
+	taisui_map.put("辛卯","范寧將軍");
+	taisui_map.put("壬辰","彭泰將軍");
+	taisui_map.put("癸巳","徐華將軍");
+	taisui_map.put("甲午","章詞將軍");
+	taisui_map.put("乙未","楊仙將軍");
+	taisui_map.put("丙申","管仲將軍");
+	taisui_map.put("丁酉","唐傑將軍");
+	taisui_map.put("戊戌","姜武將軍");
+	taisui_map.put("己亥","謝燾將軍");
+	taisui_map.put("庚子","虞起將軍");
+	taisui_map.put("辛丑","楊信將軍");
+	taisui_map.put("壬寅","賢諤將軍");
+	taisui_map.put("癸卯","皮時將軍");
+	taisui_map.put("甲辰","李誠將軍");
+	taisui_map.put("乙巳","吳遂將軍");
+	taisui_map.put("丙午","文哲將軍");
+	taisui_map.put("丁未","繆丙將軍");
+	taisui_map.put("戊申","徐浩將軍");
+	taisui_map.put("己酉","程寶將軍");
+	taisui_map.put("庚戌","倪秘將軍");
+	taisui_map.put("辛亥","葉堅將軍");
+	taisui_map.put("壬子","丘德將軍");
+	taisui_map.put("癸丑","朱得將軍");
+	taisui_map.put("甲寅","張朝將軍");
+	taisui_map.put("乙卯","萬清將軍");
+	taisui_map.put("丙辰","辛亞將軍");
+	taisui_map.put("丁巳","楊彥將軍");
+	taisui_map.put("戊午","黎卿將軍");
+	taisui_map.put("己未","傅黨將軍");
+	taisui_map.put("庚申","毛梓將軍");
+	taisui_map.put("辛酉","石政將軍");
+	taisui_map.put("壬戌","洪充將軍");
+	taisui_map.put("癸亥","虞程將軍");
+	// 步驟 2: 從資料庫中一次性獲取所有 `Sixty_GanZhi_Table` 的記錄。
+	// 條件 `ID != 0` 是獲取所有記錄的標準做法。
+	all_ganzhi_records = Sixty_GanZhi_Table[ID != 0];
+	// 初始化計數器，用於追蹤更新結果。
+	updated_count = 0;
+	not_found_count = 0;
+	// 步驟 3: 使用 for each 迴圈遍歷從資料庫中獲取的每一筆干支記錄。
+	for each  record in all_ganzhi_records
+	{
+		// 從記錄中取得作為 key 的干支組合字串 (例如 "甲子")。
+		ganzhi_key = record.GanZhi_Combination;
+		// 步驟 4: 使用 .get() 方法從先前建立的 Map 中查找對應的太歲星君名稱。
+		deity_name = taisui_map.get(ganzhi_key);
+		// 步驟 5: 檢查是否成功找到了名稱。
+		if(deity_name != null)
+		{
+			// 如果找到了，則直接更新當前記錄的 `Taisui_Deity_Name` 欄位。
+			// 這裡的更新是針對記憶體中的記錄物件。
+			record.Taisui_Deity_Name=deity_name;
+			updated_count = updated_count + 1;
+		}
+		else
+		{
+			// 如果在 Map 中找不到，表示資料可能不一致，發出警告訊息便於除錯。
+			info "警告：在 Map 中找不到干支 '" + ganzhi_key + "' 對應的太歲星君。";
+			not_found_count = not_found_count + 1;
+		}
+	}
+	// 步驟 6: 在迴圈結束後，報告最終的執行結果。
+	info "✅ 更新完成！成功更新 " + updated_count + " 筆記錄。";
+	if(not_found_count > 0)
+	{
+		info "⚠️ 有 " + not_found_count + " 筆記錄未找到對應的太歲星君，請檢查以上的警告訊息。";
+	}
+}

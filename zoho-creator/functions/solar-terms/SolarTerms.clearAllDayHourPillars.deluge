@@ -1,0 +1,76 @@
+void SolarTerms.clearAllDayHourPillars()
+{
+	// =============================================================================
+	// 函數名稱：SolarTerms.clearAllDayHourPillars
+	// 函數用途：清空所有節氣資料的日干支和時干支記錄
+	// 平台：Zoho Creator
+	// 命名空間：SolarTerms
+	// 功能描述：批次清空 SolarTerms 表單中的 Day_Stem, Day_Branch,
+	//           Hour_Stem, Hour_Branch 欄位：
+	//           - 分 6 批處理（每批 500 筆），共 2904 筆
+	//           - 僅清空非 null 的欄位，記錄實際清空數量
+	//           - 清空後可重新執行日干支和時干支的計算函數
+	// 參數說明：（無參數）
+	// 回傳格式：void
+	// 相依性：SolarTerms 表單
+	// =============================================================================
+	info "? 開始清空所有節氣資料的日干支和時干支記錄...";
+	// 分批處理以避免執行限制
+	totalCleared = 0;
+	batchSize = 500;
+	// 每批處理500筆
+	totalRecords = 2904;
+	totalBatches = (totalRecords + batchSize - 1) / batchSize;
+	// 向上取整
+	info "總共需要處理 " + totalRecords + " 筆記錄，分成 " + totalBatches + " 批";
+	// 使用 for each 迴圈處理批次
+	batchNumbers = {1,2,3,4,5,6};
+	// 總共6批
+	for each  batchNum in batchNumbers
+	{
+		startRecord = (batchNum - 1) * batchSize + 1;
+		endRecord = batchNum * batchSize;
+		if(endRecord > totalRecords)
+		{
+			endRecord = totalRecords;
+		}
+		info "處理第 " + batchNum + " 批：記錄 " + startRecord + " 到 " + endRecord;
+		// 取得這批記錄
+		batchRecords = SolarTerms[ID != 0] range from startRecord to endRecord;
+		batchCleared = 0;
+		for each  record in batchRecords
+		{
+			updateNeeded = false;
+			// 清空日干支
+			if(record.Day_Stem != null)
+			{
+				record.Day_Stem=null;
+				updateNeeded = true;
+			}
+			if(record.Day_Branch != null)
+			{
+				record.Day_Branch=null;
+				updateNeeded = true;
+			}
+			// 清空時干支
+			if(record.Hour_Stem != null)
+			{
+				record.Hour_Stem=null;
+				updateNeeded = true;
+			}
+			if(record.Hour_Branch != null)
+			{
+				record.Hour_Branch=null;
+				updateNeeded = true;
+			}
+			if(updateNeeded)
+			{
+				batchCleared = batchCleared + 1;
+			}
+		}
+		totalCleared = totalCleared + batchCleared;
+		info "第 " + batchNum + " 批完成！清空了 " + batchCleared + " 筆記錄的日干支和時干支";
+	}
+	info "✅ 清理完成！總共清空了 " + totalCleared + " 筆節氣資料的日干支和時干支記錄";
+	info "現在可以重新執行日干支和時干支的計算函數了。";
+}

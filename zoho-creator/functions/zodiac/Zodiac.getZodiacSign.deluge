@@ -1,0 +1,77 @@
+map Zodiac.getZodiacSign(date solar_date)
+{
+	// =============================================================================
+	// 函數名稱：Zodiac.getZodiacSign
+	// 函數用途：國曆生日 → 星座查詢
+	// 平台：Zoho Creator
+	// 命名空間：Zodiac
+	// 功能描述：根據國曆生日查詢對應的星座資訊。
+	//           透過查詢 Zodiac_Signs 表單實現，能正確處理跨年星座（如摩羯座）。
+	//           - 提取生日月份和日期
+	//           - 遍歷所有星座記錄
+	//           - 判斷是否為跨年星座（Start_Month > End_Month）
+	//           - 匹配後回傳星座名稱和 ID
+	// 參數說明：
+	//   - solar_date (date): 使用者的國曆生日
+	// 回傳格式：map - 包含以下鍵值：
+	//   - "success" (boolean): 操作是否成功
+	//   - "sign_id" (bigint): 查詢到的星座記錄 ID
+	//   - "sign_name" (string): 星座名稱（如「牡羊宮（Aries, ♈︎）」）
+	//   - "error" (string): 錯誤訊息（若 success 為 false）
+	// 相依性：Zodiac_Signs 表單
+	// =============================================================================
+	// 初始化回傳的 Map
+	response = Map();
+	response.put("success",false);
+	// 1. 驗證輸入參數
+	if(solar_date == null)
+	{
+		response.put("error","輸入的國曆生日不可為空。");
+		return response;
+	}
+	// 2. 提取生日的月份和日期
+	month = solar_date.getMonth();
+	day = solar_date.getDay();
+	// 3. 查詢所有星座資料
+	// 由於 Deluge 查詢語法限制，先獲取所有記錄，再於迴圈中進行邏輯判斷。
+	all_zodiacs = Zodiac_Signs[ID != 0];
+	// 4. 遍歷所有星座記錄，找到匹配的星座
+	for each  sign in all_zodiacs
+	{
+		start_month = sign.Start_Month.toLong();
+		start_day = sign.Start_Day;
+		end_month = sign.End_Month.toLong();
+		end_day = sign.End_Day;
+		// 判斷是否為跨年星座（例如：摩羯座 Start_Month=12, End_Month=1）
+		is_cross_year_sign = start_month > end_month;
+		if(is_cross_year_sign)
+		{
+			// 對於跨年星座，生日需滿足以下任一條件：
+			// 1. 在起始月份，且日期大於等於起始日（例如：12月22日之後）
+			// 2. 在結束月份，且日期小於等於結束日（例如：1月19日之前）
+			if((month == start_month && day >= start_day) || (month == end_month && day <= end_day))
+			{
+				response.put("success",true);
+				response.put("sign_name",sign.Sign_Name);
+				response.put("sign_id",sign.ID);
+				return response;
+			}
+		}
+		else
+		{
+			// 對於常規星座，生日必須在起始月日和結束月日之間。
+			is_after_start = month > start_month || (month == start_month && day >= start_day);
+			is_before_end = month < end_month || (month == end_month && day <= end_day);
+			if(is_after_start && is_before_end)
+			{
+				response.put("success",true);
+				response.put("sign_name",sign.Sign_Name);
+				response.put("sign_id",sign.ID);
+				return response;
+			}
+		}
+	}
+	// 5. 如果遍歷完所有星座都找不到，則回傳錯誤
+	response.put("error","在星座表(Zodiac_Signs)中找不到對應的星座。日期：" + month + "月" + day + "日");
+	return response;
+}

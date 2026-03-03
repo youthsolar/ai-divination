@@ -1,0 +1,80 @@
+map Webhook.handleECPayReturn()
+{
+	// =============================================================================
+	// ⚠️ 已廢棄：此函數已標記為廢棄，不應在生產環境中使用。
+	// 原函數用途：Webhook 接收綠界 ReturnURL 回調（極簡版本）
+	// 廢棄原因：已被 API.ecPayReturn 取代（包含完整驗簽和訂單處理邏輯）
+	// 封存日期：2026-02-25
+	// =============================================================================
+	info "======= ECPay 回調接收 =======";
+	info "收到回調請求";
+	info "時間: " + zoho.currenttime;
+	// 初始化回傳結果
+	result = Map();
+	result.put("status","1|OK");
+	result.put("code","3000");
+	info "開始處理付款回調";
+	// 查詢 Pending 訂單
+	pendingOrders = Talisman_Purchases[Status == "Pending"];
+	// 檢查是否有訂單
+	hasOrders = false;
+	for each  order in pendingOrders
+	{
+		hasOrders = true;
+		break;
+	}
+	if(hasOrders)
+	{
+		info "找到 Pending 訂單，準備更新";
+		for each  order in pendingOrders
+		{
+			order.Status="Paid";
+			order.Purchase_Timestamp=zoho.currenttime;
+			// 簡化的交易編號生成
+			timeNow = zoho.currenttime;
+			order.Transaction_ID="ECPay_" + timeNow.toString("yyyyMMddHHmmss");
+			info "已更新訂單為 Paid 狀態";
+			// === 新增：自動交付機制 ===
+			// 取得訂單 ID
+			order_id = order.ID;
+			info "開始自動交付流程，訂單 ID：" + order_id.toString();
+			// 檢查是否為首次購買，以便觸發完整報告生成
+			is_first_purchase = order.Is_First_Purchase;
+			report_included = order.Report_Included;
+			info "訂單類型檢查：首次購買=" + is_first_purchase.toString() + "，包含報告=" + report_included.toString();
+			try
+			{
+				// 調用郵件發送函數（內含首次購買完整報告生成邏輯）
+				email_result = thisapp.Email.sendTalismanReport(order_id.toString());
+				if(email_result.get("success") == true)
+				{
+					info "符令報告發送成功";
+					// 檢查是否成功生成了完整報告
+					if(email_result.get("is_first_purchase") == true && email_result.get("report_included") == true)
+					{
+						info "首次購買：3000字完整報告已生成並發送";
+					}
+					else
+					{
+						info "後續購買：符令和原有解讀已發送";
+					}
+				}
+				else
+				{
+					info "符令報告發送失敗：" + email_result.get("message");
+				}
+			}
+			catch (e)
+			{
+				info "自動交付過程發生錯誤：" + e;
+			}
+			break;
+		}
+	}
+	else
+	{
+		info "沒有找到 Pending 狀態的訂單";
+	}
+	info "======= 回調處理完成 =======";
+	return result;
+}

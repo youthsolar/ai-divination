@@ -1,0 +1,131 @@
+string LunarAI.lunarWordsToBazi(string lunarText, string timeStr)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.lunarWordsToBazi
+	// 函數用途：中文農曆文字 → 八字字串
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：將中文農曆文字（如「戊辰（龍）年 正月初一」）和時間字串，
+	//           解析為農曆 Map 後呼叫 convertToBaZi 取得四柱八字。
+	// 參數說明：
+	//   - lunarText (string): 中文農曆文字（格式「干支年 月日」，如 lunarToWords 輸出）
+	//   - timeStr (string): 時間字串（如「14:30」）
+	// 回傳格式：string - 四柱八字（如「甲子 丙寅 戊辰 庚午」）
+	// 相依性：LunarAI.convertToBaZi
+	// 注意：原函數名為 LunarWordsToBazi，已改為 camelCase；
+	//       已修正：干支→年份反推邏輯（60 年循環取最近年份）+ 接通 convertToBaZi
+	// =============================================================================
+	// 1. 先把 lunarText 拆成年柱與月日
+	parts = lunarText.toList(" ");
+	yearP = parts.get(0).subString(0,2);
+	// 取干支（如「戊辰」），去掉括號生肖和「年」字
+	mdPart = parts.get(1);
+	// 正月初一 或 閏四月初一
+	// 2. 解析是否閏月
+	isLeap = mdPart.startsWith("閏");
+	idxYue = mdPart.indexOf("月") + 1;
+	monthCN = "";
+	if(isLeap)
+	{
+		monthCN = mdPart.subString(1,idxYue);
+	}
+	else
+	{
+		monthCN = mdPart.subString(0,idxYue);
+	}
+	dayCN = mdPart.subString(idxYue);
+	// 3. 月中文轉數字 & 日中文轉數字
+	monthMap = Map();
+	monthMap.put("正月",1);
+	monthMap.put("二月",2);
+	monthMap.put("三月",3);
+	monthMap.put("四月",4);
+	monthMap.put("五月",5);
+	monthMap.put("六月",6);
+	monthMap.put("七月",7);
+	monthMap.put("八月",8);
+	monthMap.put("九月",9);
+	monthMap.put("十月",10);
+	monthMap.put("冬月",11);
+	monthMap.put("臘月",12);
+	dayMap = Map();
+	dayMap.put("初一",1);
+	dayMap.put("初二",2);
+	dayMap.put("初三",3);
+	dayMap.put("初四",4);
+	dayMap.put("初五",5);
+	dayMap.put("初六",6);
+	dayMap.put("初七",7);
+	dayMap.put("初八",8);
+	dayMap.put("初九",9);
+	dayMap.put("初十",10);
+	dayMap.put("十一",11);
+	dayMap.put("十二",12);
+	dayMap.put("十三",13);
+	dayMap.put("十四",14);
+	dayMap.put("十五",15);
+	dayMap.put("十六",16);
+	dayMap.put("十七",17);
+	dayMap.put("十八",18);
+	dayMap.put("十九",19);
+	dayMap.put("二十",20);
+	dayMap.put("廿一",21);
+	dayMap.put("廿二",22);
+	dayMap.put("廿三",23);
+	dayMap.put("廿四",24);
+	dayMap.put("廿五",25);
+	dayMap.put("廿六",26);
+	dayMap.put("廿七",27);
+	dayMap.put("廿八",28);
+	dayMap.put("廿九",29);
+	dayMap.put("三十",30);
+	// 4. 干支→農曆年份反推（60 年循環，取不超過今年的最近匹配年）
+	// 建立完整 60 干支對照表：干支名稱 → 在甲子循環中的序號（0-59）
+	stems = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
+	branches = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	// 從 yearP 取得天干和地支
+	yearStem = yearP.subString(0,1);
+	yearBranch = yearP.subString(1,2);
+	stemIdx = stems.indexOf(yearStem);
+	branchIdx = branches.indexOf(yearBranch);
+	// 計算干支在 60 年循環中的序號（甲子=0, 乙丑=1, ...）
+	// 公式：找到同時滿足 offset%10==stemIdx 且 offset%12==branchIdx 的 offset（0-59）
+	// 簡化方法：甲子年對應西元 4 年，所以 offset = (year - 4) % 60
+	// 反推：year = 4 + offset + 60*n，取不超過今年的最大值
+	ganzhiOffset = -1;
+	checkList = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59};
+	for each  k in checkList
+	{
+		if(k % 10 == stemIdx && k % 12 == branchIdx)
+		{
+			ganzhiOffset = k;
+			break;
+		}
+	}
+	// 從 offset 反推年份：取不超過今年的最近匹配年
+	currentYear = zoho.currentdate.getYear();
+	// 基礎年份 = 4 + ganzhiOffset（西元 4 年是甲子年）
+	baseYear = 4 + ganzhiOffset;
+	// 計算需要加幾個 60 年循環
+	cyclesNeeded = ((currentYear - baseYear) / 60).toLong();
+	lunarYear = baseYear + cyclesNeeded * 60;
+	// 如果算出來的年份超過今年，退一個循環
+	if(lunarYear > currentYear)
+	{
+		lunarYear = lunarYear - 60;
+	}
+	// 5. 組合農曆 Map
+	lunarMap = Map();
+	lunarMap.put("lunar_year",lunarYear);
+	lunarMap.put("lunar_month",monthMap.get(monthCN));
+	lunarMap.put("lunar_day",dayMap.get(dayCN));
+	lunarMap.put("is_leap_month",isLeap);
+	// 6. 把 timeStr 併進一個臨時的 datetime
+	todayStr = zoho.currentdate.toString("yyyy-MM-dd");
+	dtStr = todayStr + " " + timeStr + ":00";
+	solarDt = dtStr.toTime("yyyy-MM-dd HH:mm:ss");
+	// 7. 呼叫 convertToBaZi 計算四柱八字
+	baziMap = thisapp.LunarAI.convertToBaZi(solarDt,lunarMap);
+	// 8. 組成「年柱 + 月柱 + 日柱 + 時柱」的字串並回傳
+	return baziMap.get("year_pillar") + " " + baziMap.get("month_pillar") + " " + baziMap.get("day_pillar") + " " + baziMap.get("hour_pillar");
+}

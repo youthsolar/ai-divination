@@ -1,0 +1,151 @@
+map IChing.calculateHexagram(date solar_birthday, date divination_datetime)
+{
+	// =============================================================================
+	// 函數名稱：IChing.calculateHexagram
+	// 函數用途：根據生日與占卜時間計算易經六爻碼
+	// 平台：Zoho Creator
+	// 命名空間：IChing
+	// 功能描述：透過三階段數字轉換邏輯，將個案生日和占卜時間轉為六爻碼。
+	//           - 階段一：取出生八字與占卜八字，天干地支逐柱取數值相加
+	//           - 階段二：分組除二並無條件進位（地支→上爻來源，天干→下爻來源）
+	//           - 階段三：相鄰加總取奇偶，組成六位爻碼
+	// 參數說明：
+	//   - solar_birthday (date): 個案的西元國曆生日
+	//   - divination_datetime (date): 占卜當下的西元國曆日期與時間
+	// 回傳格式：map - 包含計算結果：
+	//   - "success" (boolean): 是否成功
+	//   - "hexagram_code" (string): 最終六爻碼（如「111010」）
+	//   - "intermediate_results" (map): 中間步驟資料（除錯用）
+	//   - "error" (string): 錯誤訊息（若失敗）
+	// 相依性：Bazi.preciseBaziCalculator
+	// 注意：內部呼叫已更新（PreciseBaziCalculator → preciseBaziCalculator）
+	// =============================================================================
+	// 最終回傳的 Map
+	response_map = Map();
+	// 用於存放中間過程，方便除錯
+	intermediate_results = Map();
+	try
+	{
+		// --- 步驟 0: 建立干支數值對照表 ---
+		heavenly_stems_map = Map();
+		heavenly_stems_map.put("甲",1);
+		heavenly_stems_map.put("乙",2);
+		heavenly_stems_map.put("丙",3);
+		heavenly_stems_map.put("丁",4);
+		heavenly_stems_map.put("戊",5);
+		heavenly_stems_map.put("己",6);
+		heavenly_stems_map.put("庚",7);
+		heavenly_stems_map.put("辛",8);
+		heavenly_stems_map.put("壬",9);
+		heavenly_stems_map.put("癸",10);
+		earthly_branches_map = Map();
+		earthly_branches_map.put("子",1);
+		earthly_branches_map.put("丑",2);
+		earthly_branches_map.put("寅",3);
+		earthly_branches_map.put("卯",4);
+		earthly_branches_map.put("辰",5);
+		earthly_branches_map.put("巳",6);
+		earthly_branches_map.put("午",7);
+		earthly_branches_map.put("未",8);
+		earthly_branches_map.put("申",9);
+		earthly_branches_map.put("酉",10);
+		earthly_branches_map.put("戌",11);
+		earthly_branches_map.put("亥",12);
+		intermediate_results.put("step0_gan_zhi_maps",{"stems":heavenly_stems_map,"branches":earthly_branches_map});
+		// --- 步驟 0: 獲取生日和占卜時間的八字 ---
+		birthday_bazi = thisapp.Bazi.preciseBaziCalculator(solar_birthday);
+		divination_bazi = thisapp.Bazi.preciseBaziCalculator(divination_datetime);
+		if(birthday_bazi.get("success") == false || divination_bazi.get("success") == false)
+		{
+			response_map.put("success",false);
+			response_map.put("error","獲取八字資料失敗。生日八字錯誤：" + birthday_bazi.get("error") + "，占卜八字錯誤：" + divination_bazi.get("error"));
+			return response_map;
+		}
+		intermediate_results.put("step0_bazi_data",{"birthday":birthday_bazi,"divination":divination_bazi});
+		// --- 階段一: 干支取數與相加 ---
+		// 從八字 Map 中提取四柱
+		birthday_pillars = {birthday_bazi.get("年柱"),birthday_bazi.get("月柱"),birthday_bazi.get("日柱"),birthday_bazi.get("時柱")};
+		divination_pillars = {divination_bazi.get("年柱"),divination_bazi.get("月柱"),divination_bazi.get("日柱"),divination_bazi.get("時柱")};
+		// 天干與地支的和
+		stems_sum = List();
+		branches_sum = List();
+		// 使用迴圈處理四柱
+		i = 0;
+		for each  pillar_group in {{0,1},{2,3},{4,5},{6,7}}
+		{
+			// 生日八字
+			birth_pillar = birthday_pillars.get(i);
+			birth_stem = birth_pillar.substring(0,1);
+			birth_branch = birth_pillar.substring(1,2);
+			// 占卜八字
+			div_pillar = divination_pillars.get(i);
+			div_stem = div_pillar.substring(0,1);
+			div_branch = div_pillar.substring(1,2);
+			// 相加
+			current_stem_sum = heavenly_stems_map.get(birth_stem) + heavenly_stems_map.get(div_stem);
+			current_branch_sum = earthly_branches_map.get(birth_branch) + earthly_branches_map.get(div_branch);
+			stems_sum.add(current_stem_sum);
+			branches_sum.add(current_branch_sum);
+			i = i + 1;
+		}
+		intermediate_results.put("step1_sums",{"stems_sum":stems_sum,"branches_sum":branches_sum});
+		// --- 階段二: 分組、除二並無條件進位 ---
+		upper_yao_source = List();
+		lower_yao_source = List();
+		// 處理地支和（上爻來源）
+		for each  val in branches_sum
+		{
+			result_float = val.toDecimal() / 2;
+			result_long = result_float.toLong();
+			if(result_float > result_long)
+			{
+				upper_yao_source.add(result_long + 1);
+			}
+			else
+			{
+				upper_yao_source.add(result_long);
+			}
+		}
+		// 處理天干和（下爻來源）
+		for each  val in stems_sum
+		{
+			result_float = val.toDecimal() / 2;
+			result_long = result_float.toLong();
+			if(result_float > result_long)
+			{
+				lower_yao_source.add(result_long + 1);
+			}
+			else
+			{
+				lower_yao_source.add(result_long);
+			}
+		}
+		intermediate_results.put("step2_ceiling_results",{"upper_source":upper_yao_source,"lower_source":lower_yao_source});
+		// --- 階段三: 相鄰加總與奇偶轉換 ---
+		upper_yao = "";
+		lower_yao = "";
+		// 計算上爻（地支）
+		sum1 = upper_yao_source.get(0) + upper_yao_source.get(1);
+		sum2 = upper_yao_source.get(1) + upper_yao_source.get(2);
+		sum3 = upper_yao_source.get(2) + upper_yao_source.get(3);
+		upper_yao = upper_yao + sum1 % 2 + sum2 % 2 + sum3 % 2;
+		// 計算下爻（天干）
+		sum1 = lower_yao_source.get(0) + lower_yao_source.get(1);
+		sum2 = lower_yao_source.get(1) + lower_yao_source.get(2);
+		sum3 = lower_yao_source.get(2) + lower_yao_source.get(3);
+		lower_yao = lower_yao + sum1 % 2 + sum2 % 2 + sum3 % 2;
+		intermediate_results.put("step3_yao_strings",{"upper_yao":upper_yao,"lower_yao":lower_yao});
+		// --- 組合最終結果 ---
+		final_hexagram_code = upper_yao + lower_yao;
+		// 組合成功回傳
+		response_map.put("success",true);
+		response_map.put("hexagram_code",final_hexagram_code);
+		response_map.put("intermediate_results",intermediate_results);
+	}
+	catch (e)
+	{
+		response_map.put("success",false);
+		response_map.put("error","計算過程中發生未知錯誤：" + e);
+	}
+	return response_map;
+}

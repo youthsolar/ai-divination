@@ -1,0 +1,107 @@
+string GuaCalculator.bitToHexagramCode(date birthDateTime)
+{
+	// =============================================================================
+	// 函數名稱：GuaCalculator.bitToHexagramCode
+	// 函數用途：出生日期 → 六爻爻碼
+	// 平台：Zoho Creator
+	// 命名空間：GuaCalculator
+	// 功能描述：結合「出生時辰八字」與「系統當前占卜時辰八字」，
+	//           透過天干地支編號的數學運算，產生 6 位二進制爻碼字串。
+	//           - 取出生八字與當前八字的天干/地支編號
+	//           - 天干編號兩兩取中位數（奇數則進位）→ L1-L4
+	//           - 地支編號兩兩取中位數（奇數則進位）→ U1-U4
+	//           - 上卦（地支）：相鄰 U 值相加取餘 → X, Y, Z
+	//           - 下卦（天干）：相鄰 L 值相加取餘 → A, B, C
+	//           - 組成 XYZABC 六位爻碼
+	// 參數說明：
+	//   - birthDateTime (date): 出生日期時間
+	// 回傳格式：string - 6 位爻碼字串（如「001001」）
+	// 相依性：LunarAI.getSolarDateTimeBazi, LunarAI.getCurrentTimeBazi,
+	//         GuaCalculator.baziToBitSequence
+	// 注意：原函數名為 BitToHexagramCode，已改為 camelCase；
+	//       內部呼叫已更新為新命名
+	// =============================================================================
+	birthBazi = thisapp.LunarAI.getSolarDateTimeBazi(birthDateTime);
+	birthSeqStr = thisapp.GuaCalculator.baziToBitSequence(birthBazi);
+	timeBazi = thisapp.LunarAI.getCurrentTimeBazi();
+	timeSeqStr = thisapp.GuaCalculator.baziToBitSequence(timeBazi);
+	birthSeq = birthSeqStr.toList();
+	timeSeq = timeSeqStr.toList();
+	birthSeqNum = list();
+	for each  item in birthSeq
+	{
+		birthSeqNum.add(item.toLong());
+	}
+	timeSeqNum = list();
+	for each  item in timeSeq
+	{
+		timeSeqNum.add(item.toLong());
+	}
+	bYs = birthSeqNum.get(0);
+	bYb = birthSeqNum.get(1);
+	bMs = birthSeqNum.get(2);
+	bMb = birthSeqNum.get(3);
+	bDs = birthSeqNum.get(4);
+	bDb = birthSeqNum.get(5);
+	bHs = birthSeqNum.get(6);
+	bHb = birthSeqNum.get(7);
+	tYs = timeSeqNum.get(0);
+	tYb = timeSeqNum.get(1);
+	tMs = timeSeqNum.get(2);
+	tMb = timeSeqNum.get(3);
+	tDs = timeSeqNum.get(4);
+	tDb = timeSeqNum.get(5);
+	tHs = timeSeqNum.get(6);
+	tHb = timeSeqNum.get(7);
+	// 天干
+	L1 = ((bYs + tYs) / 2).round(0);
+	if((bYs + tYs) % 2 != 0)
+	{
+		L1 = L1 + 1;
+	}
+	L2 = ((bMs + tMs) / 2).round(0);
+	if((bMs + tMs) % 2 != 0)
+	{
+		L2 = L2 + 1;
+	}
+	L3 = ((bDs + tDs) / 2).round(0);
+	if((bDs + tDs) % 2 != 0)
+	{
+		L3 = L3 + 1;
+	}
+	L4 = ((bHs + tHs) / 2).round(0);
+	if((bHs + tHs) % 2 != 0)
+	{
+		L4 = L4 + 1;
+	}
+	// 地支
+	U1 = ((bYb + tYb) / 2).round(0);
+	if((bYb + tYb) % 2 != 0)
+	{
+		U1 = U1 + 1;
+	}
+	U2 = ((bMb + tMb) / 2).round(0);
+	if((bMb + tMb) % 2 != 0)
+	{
+		U2 = U2 + 1;
+	}
+	U3 = ((bDb + tDb) / 2).round(0);
+	if((bDb + tDb) % 2 != 0)
+	{
+		U3 = U3 + 1;
+	}
+	U4 = ((bHb + tHb) / 2).round(0);
+	if((bHb + tHb) % 2 != 0)
+	{
+		U4 = U4 + 1;
+	}
+	// 上卦（地支）
+	X = (U1 + U2) % 2;
+	Y = (U2 + U3) % 2;
+	Z = (U3 + U4) % 2;
+	// 下卦（天干）
+	A = (L1 + L2) % 2;
+	B = (L2 + L3) % 2;
+	C = (L3 + L4) % 2;
+	return X.toString() + Y.toString() + Z.toString() + A.toString() + B.toString() + C.toString();
+}

@@ -1,0 +1,150 @@
+map Bazi.calculatePreciseMonthPillar(date solar_datetime)
+{
+	// =============================================================================
+	// 函數名稱：Bazi.calculatePreciseMonthPillar
+	// 函數用途：精確月柱計算引擎（基於節氣）
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：根據國曆日期時間，查找在此時間點之前最近的「節」，
+	//           以此確定八字月份地支，再結合年柱天干使用「五虎遁月」規則計算月干。
+	//           - 先呼叫年柱函數取得年干
+	//           - 套用子時換日（23:00-23:59 視為隔日）
+	//           - 查詢 SolarTerms 表（450 天窗口優化，避免全表掃描）
+	//           - 找到 effective_dt 之前最近的節氣
+	//           - 五虎遁月查表推算月干
+	// 參數說明：
+	//   - solar_datetime (date): 需要計算的國曆日期時間
+	// 回傳格式：map - 包含月柱詳細資訊：
+	//   - "stem" (string): 天干
+	//   - "branch" (string): 地支
+	//   - "pillar" (string): 月柱干支
+	//   - "solar_term" (string): 所依據的節氣名稱
+	//   - "solar_term_datetime" (string): 節氣精確時間
+	//   - "year_stem_for_reference" (string): 除錯資訊
+	// 相依性：Bazi.calculatePreciseYearPillar, LunarAI.getBaziConstants,
+	//         Calendar.normalizeToTaipei, Calendar.applyZiHourDayRollover,
+	//         SolarTerms 表單
+	// 注意：已修正 Bug #3（catch 區塊加入 info 日誌）、
+	//       Bug #6（子時換日套用於節氣邊界比較）、
+	//       Bug #7（450 天窗口查詢避免超時）
+	// =============================================================================
+	result = Map();
+	// 步驟 1: 呼叫中央常數函數，獲取所需常數。
+	bazi_constants = thisapp.LunarAI.getBaziConstants();
+	stemsList = bazi_constants.get("heavenly_stems");
+	branchesList = bazi_constants.get("earthly_branches");
+	month_stem_map = bazi_constants.get("month_stem_map");
+	// 步驟 2: 依賴年柱的計算結果來確定月干，所以先呼叫年柱函數。
+	year_result = thisapp.Bazi.calculatePreciseYearPillar(solar_datetime);
+	if(year_result.containKey("error"))
+	{
+		result.put("error","年柱計算失敗：" + year_result.get("error"));
+		return result;
+	}
+	year_stem = year_result.get("stem");
+	// 步驟 3: 建立節氣到月份地支的對照表。
+	solar_term_month_map = Map();
+	solar_term_month_map.put("立春","寅");
+	solar_term_month_map.put("雨水","寅");
+	solar_term_month_map.put("驚蟄","卯");
+	solar_term_month_map.put("春分","卯");
+	solar_term_month_map.put("清明","辰");
+	solar_term_month_map.put("穀雨","辰");
+	solar_term_month_map.put("立夏","巳");
+	solar_term_month_map.put("小滿","巳");
+	solar_term_month_map.put("芒種","午");
+	solar_term_month_map.put("夏至","午");
+	solar_term_month_map.put("小暑","未");
+	solar_term_month_map.put("大暑","未");
+	solar_term_month_map.put("立秋","申");
+	solar_term_month_map.put("處暑","申");
+	solar_term_month_map.put("白露","酉");
+	solar_term_month_map.put("秋分","酉");
+	solar_term_month_map.put("寒露","戌");
+	solar_term_month_map.put("霜降","戌");
+	solar_term_month_map.put("立冬","亥");
+	solar_term_month_map.put("小雪","亥");
+	solar_term_month_map.put("大雪","子");
+	solar_term_month_map.put("冬至","子");
+	solar_term_month_map.put("小寒","丑");
+	solar_term_month_map.put("大寒","丑");
+	// 步驟 4: 查詢在輸入時間點之前、最近的節氣。
+	// 子時換日政策：23:00–23:59 視為隔日（Bug #6 修正）
+	effective_dt = solar_datetime;
+	try
+	{
+		norm = thisapp.Calendar.normalizeToTaipei(solar_datetime);
+		if(norm.get("success"))
+		{
+			zr = thisapp.Calendar.applyZiHourDayRollover(norm.get("value"));
+			if(zr.get("success"))
+			{
+				effective_dt = zr.get("value");
+			}
+		}
+	}
+	catch(_e)
+	{
+		// Bug #3 修正：Calendar helpers 尚未部署時記錄日誌，保持向後相容
+		info "Bazi.calculatePreciseMonthPillar: Calendar fallback - " + _e;
+		effective_dt = solar_datetime;
+	}
+	target_year = effective_dt.getYear();
+	// 撈取節氣資料（效能優化，Bug #7 修正）：只抓 effective_dt 前 450 天內的節氣，
+	// 再從中找出 <= effective_dt 的最近者。
+	latest_term = null;
+	latest_term_datetime = null;
+	// 節氣每年 24 筆；為保守處理跨年邊界與閏月/資料偏移風險，
+	// 取較大的回溯窗口：450 天。
+	window_start = effective_dt.addDay(-450);
+	// 先用時間範圍縮小查詢集合，避免 SolarTerms 全表掃描造成超時。
+	terms_window = SolarTerms[Solar_Term_DateTime >= window_start && Solar_Term_DateTime <= effective_dt];
+	// 若資料異常導致查不到（例如 SolarTerms 資料不完整），才退回全表掃描（保守且向後相容）。
+	if(terms_window == null || terms_window.count() == 0)
+	{
+		terms_window = SolarTerms[ID != 0];
+	}
+	for each  record in terms_window
+	{
+		if(record.Solar_Term_DateTime != null)
+		{
+			// 完全依照時間窗與 <= effective_dt 來決定「最近節氣」。
+			if(record.Solar_Term_DateTime <= effective_dt)
+			{
+				if(latest_term_datetime == null || record.Solar_Term_DateTime > latest_term_datetime)
+				{
+					latest_term = record.Solar_Term_Name;
+					latest_term_datetime = record.Solar_Term_DateTime;
+				}
+			}
+		}
+	}
+	// 步驟 5: 確認是否成功找到了節氣。
+	if(latest_term == null)
+	{
+		result.put("error","無法確定節氣月份");
+		return result;
+	}
+	month_branch = solar_term_month_map.get(latest_term);
+	if(month_branch == null)
+	{
+		result.put("error","節氣" + latest_term + "無對應月份");
+		return result;
+	}
+	// 步驟 6: 使用「五虎遁月」規則，根據年干和月支，計算月干。
+	month_stem_start = month_stem_map.get(year_stem);
+	month_stem_start_index = stemsList.indexOf(month_stem_start);
+	// 寅月是每年的第一個命理月。
+	month_order = {"寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"};
+	month_branch_index = month_order.indexOf(month_branch);
+	month_stem_index = (month_stem_start_index + month_branch_index) % 10;
+	month_stem = stemsList.get(month_stem_index);
+	// 步驟 7: 組合並回傳最終結果。
+	result.put("stem",month_stem);
+	result.put("branch",month_branch);
+	result.put("pillar",month_stem + month_branch);
+	result.put("solar_term",latest_term);
+	result.put("solar_term_datetime",latest_term_datetime.toString("yyyy-MM-dd HH:mm:ss"));
+	result.put("year_stem_for_reference",year_stem);
+	return result;
+}

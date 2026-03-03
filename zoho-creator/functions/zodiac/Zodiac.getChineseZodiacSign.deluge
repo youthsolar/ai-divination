@@ -1,0 +1,97 @@
+map Zodiac.getChineseZodiacSign(date solar_date)
+{
+	// =============================================================================
+	// 函數名稱：Zodiac.getChineseZodiacSign
+	// 函數用途：國曆生日 → 生肖查詢
+	// 平台：Zoho Creator
+	// 命名空間：Zodiac
+	// 功能描述：根據國曆生日查詢對應的生肖資訊。
+	//           以農曆新年作為生肖切換點，若生日在農曆新年前則生肖年份減一。
+	//           - 查詢 LunarData 表取得農曆新年日期
+	//           - 套用子時換日（23:00-23:59 視為隔日）
+	//           - 以 (zodiac_year - 4) % 12 計算地支（西元4年甲子年為鼠年首）
+	//           - 查詢 Earthly_Branches 表取得生肖名稱
+	// 參數說明：
+	//   - solar_date (date): 使用者的國曆生日
+	// 回傳格式：map - 包含以下鍵值：
+	//   - "success" (boolean): 操作是否成功
+	//   - "zodiac_id" (bigint): 生肖記錄 ID（來自 Earthly_Branches 表單）
+	//   - "zodiac_name" (string): 生肖中文名稱（如「龍」）
+	//   - "zodiac_year" (int): 用於計算生肖的有效農曆年份
+	//   - "error" (string): 錯誤訊息（若 success 為 false）
+	// 相依性：LunarData 表單, Earthly_Branches 表單,
+	//         Calendar.normalizeToTaipei, Calendar.applyZiHourDayRollover
+	// 注意：已修正 catch 區塊加入 info 日誌（Bug #3 模式）
+	// =============================================================================
+	// 初始化回傳的 Map
+	response = Map();
+	response.put("success",false);
+	// 1. 驗證輸入參數
+	if(solar_date == null)
+	{
+		response.put("error","輸入的國曆生日不可為空。");
+		return response;
+	}
+	// 2. 確定用於計算生肖的有效農曆年份
+	// 預設使用國曆年份，但如果生日在該年農曆新年前，則生肖年份需減一。
+	solar_year = solar_date.getYear();
+	zodiac_year = solar_year;
+	lunar_data_record = LunarData[Solar_Year == solar_year];
+	if(lunar_data_record.count() > 0)
+	{
+		lunar_new_year_date = lunar_data_record.Lunar_New_Year;
+		// 子時換日政策：若 solar_date 含時間且落在 23:00–23:59，視為隔日
+		effective_solar_date = solar_date;
+		try
+		{
+			norm_z = thisapp.Calendar.normalizeToTaipei(solar_date);
+			if(norm_z.get("success"))
+			{
+				zr_z = thisapp.Calendar.applyZiHourDayRollover(norm_z.get("value"));
+				if(zr_z.get("success"))
+				{
+					effective_solar_date = zr_z.get("value");
+				}
+			}
+		}
+		catch(_e_z)
+		{
+			// Bug #3 修正：記錄 Calendar fallback 日誌
+			info "Zodiac.getChineseZodiacSign: Calendar fallback - " + _e_z;
+			effective_solar_date = solar_date;
+		}
+		if(effective_solar_date < lunar_new_year_date)
+		{
+			zodiac_year = solar_year - 1;
+		}
+	}
+	else
+	{
+		response.put("error","在 LunarData 表中找不到 " + solar_year + " 年的農曆新年資料，無法計算生肖。");
+		return response;
+	}
+	// 3. 根據有效的農曆年份計算地支
+	// (zodiac_year - 4) % 12 的算法是基於西元4年（甲子年）為鼠年（子）首。
+	branches = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	branch_index = (zodiac_year - 4) % 12;
+	if(branch_index < 0)
+	{
+		branch_index = branch_index + 12;
+	}
+	target_branch_name = branches.get(branch_index);
+	// 4. 使用計算出的地支名稱，去查詢 Earthly_Branches 表單
+	branch_record = Earthly_Branches[Branch_Name == target_branch_name];
+	// 5. 處理查詢結果
+	if(branch_record != null)
+	{
+		response.put("success",true);
+		response.put("zodiac_id",branch_record.ID);
+		response.put("zodiac_name",branch_record.Chinese_Zodiac);
+		response.put("zodiac_year",zodiac_year);
+	}
+	else
+	{
+		response.put("error","在 Earthly_Branches 表中找不到地支為 '" + target_branch_name + "' 的記錄。");
+	}
+	return response;
+}

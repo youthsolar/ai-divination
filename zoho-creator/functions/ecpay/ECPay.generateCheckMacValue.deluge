@@ -1,0 +1,50 @@
+string ECPay.generateCheckMacValue(map params, string hashKey, string hashIV)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.generateCheckMacValue
+	// 函數用途：產生綠界 ECPay API 所需的 CheckMacValue 簽章
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：根據 ECPay 官方文件的加密流程產生簽章：
+	//           - 將參數 keys 字母排序後組合字串
+	//           - 加上 HashKey/HashIV 前後綴
+	//           - Zoho URL Encode 後手動修正 .NET UrlEncode 差異
+	//           - 轉小寫 → SHA256 → 轉大寫
+	// 參數說明：
+	//   - params (map): 要加入簽章計算的參數集合
+	//   - hashKey (string): 綠界後台設定的 HashKey
+	//   - hashIV (string): 綠界後台設定的 HashIV
+	// 回傳格式：string - 計算完成的 CheckMacValue
+	// 相依性：無
+	// 注意：原函數名為 generateCheckMacValue_private，已去掉 _private 後綴
+	// =============================================================================
+	// 1. 將 map 的 keys 取出並進行字母排序
+	paramKeys = params.keys();
+	paramKeys.sort(true);
+	// 2. 組合排序後的參數字串（不進行任何編碼）
+	paramString = "";
+	for each  key in paramKeys
+	{
+		value = params.get(key);
+		if(value != null)
+		{
+			valueStr = value.toString();
+			if(valueStr != "")
+			{
+				paramString = paramString + key + "=" + valueStr + "&";
+			}
+		}
+	}
+	paramString = paramString.substring(0,paramString.length() - 1);
+	// 3. 加上 HashKey 和 HashIV
+	checkString = "HashKey=" + hashKey + "&" + paramString + "&HashIV=" + hashIV;
+	// 4. 對完整的字串進行 Zoho 的 URL Encode
+	encodedString = zoho.encryption.urlEncode(checkString);
+	// 5. 手動模擬 ECPay(.NET) 的 UrlEncode 行為
+	fixedString = encodedString.replaceAll("%20","+").replaceAll("%5f","_").replaceAll("%2e",".").replaceAll("%21","!").replaceAll("%2a","*").replaceAll("%28","(").replaceAll("%29",")").replaceAll("%27","'").replaceAll("%2f","/").replaceAll("%3a",":");
+	// 6. 轉為小寫
+	lowerCaseString = fixedString.toLowerCase();
+	// 7. 使用 SHA256 加密並將結果轉為大寫
+	checkMacValue = zoho.encryption.sha256(lowerCaseString).toUpperCase();
+	return checkMacValue;
+}

@@ -1,0 +1,94 @@
+map Tarot.getLifePathTarot(date solar_date)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.getLifePathTarot
+	// 函數用途：本命塔羅牌計算
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：根據使用者的公曆生日計算本命塔羅牌（最多 4 張）：
+	//           - 第一張【本世功課】：(年+月+日) % 22
+	//           - 第二張【時事地】：21 - 第一張 Card_Number
+	//           - 第三張【業力因果】：21 - 第二張 Card_Number
+	//           - 第四張【有無佛緣】：生日年份的數字根（僅在第三張非業力過重牌時計算）
+	//           業力過重牌：惡魔、高塔、寶劍十、寶劍九、寶劍三
+	// 參數說明：
+	//   - solar_date (date): 使用者的公曆生日（包含時間）
+	// 回傳格式：map - 包含各牌卡的 ID 與圖片 URL
+	// 相依性：All_Tarot_Cards 表單
+	// 注意：Bug #1 修正 — subString 加入邊界檢查
+	// =============================================================================
+	// 初始化回傳用的 Map
+	response_map = Map();
+	// 定義業力過重的牌卡名稱列表
+	heavy_karma_cards = {"惡魔","高塔","寶劍十","寶劍九","寶劍三"};
+	// -------------------------------------------------------------------------
+	// 1. 計算第一張牌【本世功課】
+	// 規則: (年 + 月 + 日) % 22
+	// -------------------------------------------------------------------------
+	year_val = solar_date.getYear();
+	month_val = solar_date.getMonth();
+	day_val = solar_date.getDay();
+	card1_number = (year_val + month_val + day_val) % 22;
+	card1_record = All_Tarot_Cards[Card_Number == card1_number && Minor_Arcana == false];
+	if(card1_record != null)
+	{
+		response_map.put("Ben_Ming_Tarot_ID",card1_record.ID);
+		response_map.put("Ben_Ming_Tarot_Image_Value",card1_record.Upright_Image);
+		// -------------------------------------------------------------------------
+		// 2. 計算第二張牌【時事地】
+		// 規則: 21 - [第一張牌的 Card_Number]
+		// -------------------------------------------------------------------------
+		card2_number = 21 - card1_number;
+		card2_record = All_Tarot_Cards[Card_Number == card2_number && Minor_Arcana == false];
+		if(card2_record != null)
+		{
+			response_map.put("Xian_Zhuang_Tarot_ID",card2_record.ID);
+			response_map.put("Xian_Zhuang_Tarot_Image_Value",card2_record.Upright_Image);
+			// -------------------------------------------------------------------------
+			// 3. 計算第三張牌【業力因果】
+			// 規則: 21 - [第二張牌的 Card_Number]
+			// -------------------------------------------------------------------------
+			card3_number = 21 - card2_number;
+			card3_record = All_Tarot_Cards[Card_Number == card3_number && Minor_Arcana == false];
+			if(card3_record != null)
+			{
+				response_map.put("Ye_Li_Tarot_ID",card3_record.ID);
+				response_map.put("Ye_Li_Tarot_Image_Value",card3_record.Upright_Image);
+				// -------------------------------------------------------------------------
+				// 4. 判斷並計算第四張牌【有無佛緣】
+				// 條件: 第三張牌的名稱不在業力過重列表中。
+				// 規則: 生日年份的數字根。
+				// -------------------------------------------------------------------------
+				if(!heavy_karma_cards.contains(card3_record.Card_Name))
+				{
+					// 計算數字根
+					year_str = year_val.toString();
+					digital_root = 0;
+					for each  digit_char in year_str.toList()
+					{
+						digital_root = digital_root + digit_char.toLong();
+					}
+					// 如果結果是兩位數，再次相加
+					if(digital_root > 9)
+					{
+						root_str = digital_root.toString();
+						// Bug #1 修正：subString 邊界檢查
+						if(root_str.length() >= 2)
+						{
+							digital_root = root_str.subString(0,1).toLong() + root_str.subString(1,2).toLong();
+						}
+					}
+					card4_number = digital_root;
+					card4_record = All_Tarot_Cards[Card_Number == card4_number && Minor_Arcana == false];
+					if(card4_record != null)
+					{
+						response_map.put("Tian_Yuan_Tarot_ID",card4_record.ID);
+						response_map.put("Tian_Yuan_Tarot_Image_Value",card4_record.Upright_Image);
+					}
+				}
+			}
+		}
+	}
+	// 回傳包含所有結果的 Map
+	return response_map;
+}

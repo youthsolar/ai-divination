@@ -1,0 +1,71 @@
+map LunarAI.getBaziConstants()
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getBaziConstants
+	// 函數用途：八字天干地支常數函式
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：集中定義八字計算所需的天干、地支、五虎遁月、五鼠遁時等常數對照表，
+	//           供年柱、月柱、日柱、時柱等主函式調用。
+	// 參數說明：無
+	// 回傳格式：Map - { heavenly_stems, earthly_branches, month_stem_map, hour_stem_map }
+	// 相依性：無（純常數）
+	// 注意：所有主計算函式統一呼叫本函式取得常數，避免重複定義
+	// =============================================================================
+	constants = Map();
+	// 1. 天干
+	heavenly_stems = List();
+	heavenly_stems.add("甲");
+	heavenly_stems.add("乙");
+	heavenly_stems.add("丙");
+	heavenly_stems.add("丁");
+	heavenly_stems.add("戊");
+	heavenly_stems.add("己");
+	heavenly_stems.add("庚");
+	heavenly_stems.add("辛");
+	heavenly_stems.add("壬");
+	heavenly_stems.add("癸");
+	constants.put("heavenly_stems",heavenly_stems);
+	// 2. 地支
+	earthly_branches = List();
+	earthly_branches.add("子");
+	earthly_branches.add("丑");
+	earthly_branches.add("寅");
+	earthly_branches.add("卯");
+	earthly_branches.add("辰");
+	earthly_branches.add("巳");
+	earthly_branches.add("午");
+	earthly_branches.add("未");
+	earthly_branches.add("申");
+	earthly_branches.add("酉");
+	earthly_branches.add("戌");
+	earthly_branches.add("亥");
+	constants.put("earthly_branches",earthly_branches);
+	// 3. 五虎遁月（年干 → 月干）
+	month_stem_map = Map();
+	month_stem_map.put("甲","丙");
+	month_stem_map.put("己","丙");
+	month_stem_map.put("乙","戊");
+	month_stem_map.put("庚","戊");
+	month_stem_map.put("丙","庚");
+	month_stem_map.put("辛","庚");
+	month_stem_map.put("丁","壬");
+	month_stem_map.put("壬","壬");
+	month_stem_map.put("戊","甲");
+	month_stem_map.put("癸","甲");
+	constants.put("month_stem_map",month_stem_map);
+	// 4. 五鼠遁時（日干 → 時干）
+	hour_stem_map = Map();
+	hour_stem_map.put("甲","甲");
+	hour_stem_map.put("己","甲");
+	hour_stem_map.put("乙","丙");
+	hour_stem_map.put("庚","丙");
+	hour_stem_map.put("丙","戊");
+	hour_stem_map.put("辛","戊");
+	hour_stem_map.put("丁","庚");
+	hour_stem_map.put("壬","庚");
+	hour_stem_map.put("戊","壬");
+	hour_stem_map.put("癸","壬");
+	constants.put("hour_stem_map",hour_stem_map);
+	return constants;
+}

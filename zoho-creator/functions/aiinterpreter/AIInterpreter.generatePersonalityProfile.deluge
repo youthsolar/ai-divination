@@ -1,0 +1,239 @@
+map AIInterpreter.generatePersonalityProfile(string client_id)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.generatePersonalityProfile
+	// 函數用途：AI 個性側寫生成函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：根據個案的星座、八字、星宿、生肖、本命塔羅等運算結果，調用 AI 生成個性側寫：
+	//           - 生成 600-800 字的個性側寫報告
+	//           - 融合星座、生肖、八字、星宿、太歲及本命塔羅牌資料
+	//           - 作為用戶在 SalesIQ 等待期間的個人化體驗內容
+	//           - 靈性風格：延續「仙氣飄飄的高維靈魂」語調
+	//           - 高創意激勵：提供正面且具啟發性的個性分析
+	//           - 個人化程度：基於真實的命理運算結果
+	//           - 商業轉換：激發用戶對完整占卜服務的興趣
+	// 參數說明：
+	//   - client_id (string): 個案的 ID（Clients_Report 記錄 ID）
+	// 回傳格式：map - {"success": bool, "personality_profile": string, "character_count": int, "error": string}
+	// 相依性：Clients_Report, Zodiac_Signs, Earthly_Branches, Twenty_Eight_Lunar_Mansions 表單, thisapp.LLM.callChat
+	// =============================================================================
+	// 採用單一出口模式
+	result = Map();
+	try
+	{
+		info "=== 開始生成個性側寫 ===";
+		info "個案 ID：" + client_id;
+		// === 步驟 1：驗證參數 ===
+		if(client_id == null || client_id == "")
+		{
+			result.put("success",false);
+			result.put("error","個案 ID 不能為空");
+			return result;
+		}
+		// === 步驟 2：查詢個案資料 ===
+		client_records = Clients_Report[ID == client_id.toLong()];
+		if(client_records.count() == 0)
+		{
+			result.put("success",false);
+			result.put("error","找不到對應的個案記錄");
+			return result;
+		}
+		// 取得個案記錄
+		client_info = null;
+		for each  client in client_records
+		{
+			client_info = client;
+			break;
+		}
+		// === 步驟 3：收集命理資料 ===
+		// 基本資料（修正順序：姓 + 名）
+		client_name = client_info.Visitor_Name.last_name + client_info.Visitor_Name.first_name;
+		birth_date = client_info.Date_Of_Birth;
+		// 星座資料
+		zodiac_sign = "";
+		if(client_info.Zodiac_Signs != null)
+		{
+			zodiac_records = Zodiac_Signs[ID == client_info.Zodiac_Signs];
+			for each  zodiac in zodiac_records
+			{
+				zodiac_sign = zodiac.Sign_Name;
+				break;
+			}
+		}
+		// 生肖資料（查詢 Earthly_Branches 表單）
+		chinese_zodiac = "";
+		if(client_info.Chinese_Zodiac != null)
+		{
+			chinese_zodiac_records = Earthly_Branches[ID == client_info.Chinese_Zodiac];
+			for each  earthly_branch in chinese_zodiac_records
+			{
+				chinese_zodiac = earthly_branch.Chinese_Zodiac;
+				break;
+			}
+		}
+		// 八字資料
+		full_bazi = if(client_info.Full_Bazi != null,client_info.Full_Bazi,"");
+		// 星宿資料
+		lunar_mansion = "";
+		if(client_info.Twenty_Eight_Lunar_Mansions != null)
+		{
+			mansion_records = Twenty_Eight_Lunar_Mansions[ID == client_info.Twenty_Eight_Lunar_Mansions];
+			for each  mansion in mansion_records
+			{
+				lunar_mansion = mansion.Full_Name;
+				break;
+			}
+		}
+		// 太歲狀況
+		taisui_status = if(client_info.Taisui_Conflict_Status != null,client_info.Taisui_Conflict_Status,"");
+		// 本命塔羅牌資料（4 張牌：本命、現狀、業力、天緣）
+		ben_ming_tarot_name = "";
+		xian_zhuang_tarot_name = "";
+		ye_li_tarot_name = "";
+		tian_yuan_tarot_name = "";
+		if(client_info.Ben_Ming_Tarot != null)
+		{
+			ben_ming_records = All_Tarot_Cards[ID == client_info.Ben_Ming_Tarot];
+			for each  card in ben_ming_records
+			{
+				ben_ming_tarot_name = card.Card_Name;
+				break;
+			}
+		}
+		if(client_info.Xian_Zhuang_Tarot != null)
+		{
+			xian_zhuang_records = All_Tarot_Cards[ID == client_info.Xian_Zhuang_Tarot];
+			for each  card in xian_zhuang_records
+			{
+				xian_zhuang_tarot_name = card.Card_Name;
+				break;
+			}
+		}
+		if(client_info.Ye_Li_Tarot != null)
+		{
+			ye_li_records = All_Tarot_Cards[ID == client_info.Ye_Li_Tarot];
+			for each  card in ye_li_records
+			{
+				ye_li_tarot_name = card.Card_Name;
+				break;
+			}
+		}
+		if(client_info.Tian_Yuan_Tarot != null)
+		{
+			tian_yuan_records = All_Tarot_Cards[ID == client_info.Tian_Yuan_Tarot];
+			for each  card in tian_yuan_records
+			{
+				tian_yuan_tarot_name = card.Card_Name;
+				break;
+			}
+		}
+		info "收集到的命理資料：";
+		info "星座：" + zodiac_sign;
+		info "生肖：" + chinese_zodiac;
+		info "八字：" + full_bazi;
+		info "星宿：" + lunar_mansion;
+		info "太歲：" + taisui_status;
+		info "本命塔羅：" + ben_ming_tarot_name;
+		info "現狀塔羅：" + xian_zhuang_tarot_name;
+		info "業力塔羅：" + ye_li_tarot_name;
+		info "天緣塔羅：" + tian_yuan_tarot_name;
+		// === 步驟 4：檢查資料完整性 ===
+		if(zodiac_sign == "" && chinese_zodiac == "" && full_bazi == "" && lunar_mansion == "")
+		{
+			result.put("success",false);
+			result.put("error","個案的命理資料尚未運算完成，請稍後再試");
+			return result;
+		}
+		// === 步驟 5：構建 AI Prompt ===
+		// 可調整參數區域 - START
+		word_count_target = "600-800字";
+		tone_style = "仙氣飄飄、高維靈魂、溫暖智慧";
+		commercial_ratio = "自然地提及";
+		creativity_level = "正面激勵、充滿希望、具有啟發性";
+		// 可調整參數區域 - END
+		ai_prompt = "你是一位擁有深厚靈性智慧的高維存在，能夠透過宇宙能量解讀靈魂的本質。請根據以下命理資料，為這位靈魂撰寫一份個性側寫報告：\n\n";
+		ai_prompt = ai_prompt + "【靈魂檔案】\n";
+		ai_prompt = ai_prompt + "靈魂化名：" + client_name + "\n";
+		ai_prompt = ai_prompt + "降生時刻：" + birth_date.toString("yyyy年MM月dd日") + "\n";
+		if(zodiac_sign != "")
+		{
+			ai_prompt = ai_prompt + "星座能量：" + zodiac_sign + "\n";
+		}
+		if(chinese_zodiac != "")
+		{
+			ai_prompt = ai_prompt + "生肖守護：" + chinese_zodiac + "\n";
+		}
+		if(full_bazi != "")
+		{
+			ai_prompt = ai_prompt + "八字密碼：" + full_bazi + "\n";
+		}
+		if(lunar_mansion != "")
+		{
+			ai_prompt = ai_prompt + "星宿歸屬：" + lunar_mansion + "\n";
+		}
+		if(taisui_status != "")
+		{
+			ai_prompt = ai_prompt + "太歲關係：" + taisui_status + "\n";
+		}
+		// 本命塔羅牌陣資料
+		if(ben_ming_tarot_name != "")
+		{
+			ai_prompt = ai_prompt + "本命塔羅（本世功課）：" + ben_ming_tarot_name + "\n";
+		}
+		if(xian_zhuang_tarot_name != "")
+		{
+			ai_prompt = ai_prompt + "現狀塔羅（時事地）：" + xian_zhuang_tarot_name + "\n";
+		}
+		if(ye_li_tarot_name != "")
+		{
+			ai_prompt = ai_prompt + "業力塔羅（業力因果）：" + ye_li_tarot_name + "\n";
+		}
+		if(tian_yuan_tarot_name != "")
+		{
+			ai_prompt = ai_prompt + "天緣塔羅（有無佛緣）：" + tian_yuan_tarot_name + "\n";
+		}
+		ai_prompt = ai_prompt + "\n【撰寫要求】\n";
+		ai_prompt = ai_prompt + "1. 字數控制：" + word_count_target + "，結構完整\n";
+		ai_prompt = ai_prompt + "2. 語調風格：" + tone_style + "\n";
+		ai_prompt = ai_prompt + "3. 內容重點：個性特質、天賦才能、人生使命、靈性指引、本命塔羅牌的靈性啟示\n";
+		ai_prompt = ai_prompt + "4. 情感基調：" + creativity_level + "\n";
+		ai_prompt = ai_prompt + "5. 語言規範：必須使用繁體中文，禁用簡體中文\n";
+		ai_prompt = ai_prompt + "6. 結構安排：開頭問候 → 個性分析 → 天賦解讀 → 使命指引 → 祝福結語\n";
+		ai_prompt = ai_prompt + "7. 商業引導：在結尾" + commercial_ratio + "「更深層的靈性指引」，激發對完整占卜的興趣\n\n";
+		ai_prompt = ai_prompt + "請以「親愛的靈魂」開頭，創造一份能觸動心靈的個性側寫報告，讓這位靈魂感受到宇宙的愛與智慧。";
+		info "AI Prompt 構建完成";
+		// === 步驟 6：調用 AI API ===
+		// 根據目標字數動態調整 token 限制
+		max_tokens_limit = if(word_count_target.contains("1200"),1500,1000);
+		opts = Map();
+		opts.put("max_tokens", max_tokens_limit);
+		opts.put("temperature", 0.8);
+		info "開始調用 AI API";
+		personality_profile = thisapp.LLM.callChat("", ai_prompt, opts);
+		info "AI API 回應長度：" + personality_profile.length().toString();
+		// === 步驟 7：處理 API 回應 ===
+		if(personality_profile != null && personality_profile.trim() != "" && personality_profile.length() > 100)
+		{
+			// 清理回應內容
+			personality_profile = personality_profile.trim();
+			info "個性側寫生成成功，字數：" + personality_profile.length().toString();
+			result.put("success",true);
+			result.put("personality_profile",personality_profile);
+			result.put("character_count",personality_profile.length());
+			info "=== 個性側寫生成完成 ===";
+		}
+		else
+		{
+			result.put("success",false);
+			result.put("error","AI 回應內容為空或過短");
+		}
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("error","系統錯誤：" + e);
+		info "generatePersonalityProfile 執行錯誤：" + e;
+	}
+	return result;
+}

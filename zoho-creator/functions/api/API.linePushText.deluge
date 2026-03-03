@@ -1,0 +1,55 @@
+map API.linePushText(string lineUserId, string messageText)
+{
+	// =============================================================================
+	// 函數名稱：API.linePushText
+	// 函數用途：LINE Push Message 純文字推播
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：透過 LINE Messaging API 推送純文字訊息給指定使用者：
+	//           - 以手動組 JSON 方式，避免 Map.toString() 非標準 JSON 造成 LINE 400 錯誤
+	//           - 驗證 LINE Channel Access Token 與使用者 ID
+	//           - 呼叫 LINE Push Message API (v2/bot/message/push)
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID
+	//   - messageText (string): 推播的文字內容
+	// 回傳格式：map - {success, message/api_response}
+	// 相依性：API.jsonEscape, thisapp.variables.System.LINE_ChannelAccessToken
+	// 注意：原名 LINE_PushText，已重命名為 camelCase
+	// =============================================================================
+	res = Map();
+	try
+	{
+		token = if(thisapp.variables.System.LINE_ChannelAccessToken != null,thisapp.variables.System.LINE_ChannelAccessToken.toString(),"");
+		if(token == "")
+		{
+			res.put("success",false);
+			res.put("message","LINE token 未設定");
+			return res;
+		}
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			res.put("success",false);
+			res.put("message","lineUserId 為空");
+			return res;
+		}
+		text_escaped = thisapp.API.jsonEscape(messageText);
+		uid_escaped = thisapp.API.jsonEscape(lineUserId);
+		json_body = "{\"to\":\"" + uid_escaped + "\",\"messages\":[{\"type\":\"text\",\"text\":\"" + text_escaped + "\"}]}";
+
+		headers = Map();
+		headers.put("Authorization","Bearer " + token);
+		headers.put("Content-Type","application/json");
+
+		api_response = postUrl("https://api.line.me/v2/bot/message/push",json_body,headers);
+		res.put("success",true);
+		res.put("api_response",api_response);
+		return res;
+	}
+	catch (e)
+	{
+		res.put("success",false);
+		res.put("message","LINE push error: " + e.toString());
+		return res;
+	}
+	return res;
+}

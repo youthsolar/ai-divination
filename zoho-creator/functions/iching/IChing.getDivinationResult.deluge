@@ -1,0 +1,51 @@
+map IChing.getDivinationResult(date solar_birthday)
+{
+	// =============================================================================
+	// 函數名稱：IChing.getDivinationResult
+	// 函數用途：易經占卜總查詢函數
+	// 平台：Zoho Creator
+	// 命名空間：IChing
+	// 功能描述：高階總引擎函數，簡化整個易經占卜呼叫流程。
+	//           只需提供個案生日，即可一步到位取得完整卦象詳解。
+	//           - 自動獲取當下系統時間作為占卜時間
+	//           - 呼叫 calculateHexagram 將生日與占卜時間轉為六爻碼
+	//           - 呼叫 getHexagramDetails 用爻碼查詢完整卦象資料
+	// 參數說明：
+	//   - solar_birthday (date): 個案的西元國曆生日
+	// 回傳格式：map - 直接回傳 getHexagramDetails 的結果，包含該卦象的完整資訊：
+	//   - 成功: {"success": true, "appearance": "乾", "yao_article": "困龍得水...", ...}
+	//   - 失敗: {"success": false, "error": "詳細的錯誤訊息"}
+	// 相依性：IChing.calculateHexagram, IChing.getHexagramDetails
+	// =============================================================================
+	// 建立一個最終回傳用的 Map，確保函數只有一個出口點
+	final_response = Map();
+	try
+	{
+		// 步驟 1: 自動獲取當前系統時間作為占卜時間
+		divination_datetime = zoho.currenttime;
+		// 步驟 2: 呼叫計算函數，從日期產生爻碼
+		hexagram_result = thisapp.IChing.calculateHexagram(solar_birthday,divination_datetime);
+		// 檢查第一步是否有誤
+		if(hexagram_result.get("success") == false)
+		{
+			// 如果計算爻碼出錯，將錯誤資訊複製到最終回傳的 Map 中
+			final_response.putAll(hexagram_result);
+		}
+		else
+		{
+			// 步驟 3: 從上一步的結果中提取爻碼
+			hexagram_code = hexagram_result.get("hexagram_code");
+			// 步驟 4: 呼叫查詢函數，用爻碼獲取詳細卦象資料
+			details_result = thisapp.IChing.getHexagramDetails(hexagram_code);
+			// 步驟 5: 將最終的查詢結果複製到最終回傳的 Map 中
+			final_response.putAll(details_result);
+		}
+	}
+	catch (e)
+	{
+		final_response.put("success",false);
+		final_response.put("error","在 getDivinationResult 總查詢函數中發生未知錯誤：" + e);
+	}
+	// 在函數的最後，統一回傳結果
+	return final_response;
+}

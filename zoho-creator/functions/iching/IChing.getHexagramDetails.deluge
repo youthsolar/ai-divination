@@ -1,0 +1,61 @@
+map IChing.getHexagramDetails(string hexagram_code)
+{
+	// =============================================================================
+	// 函數名稱：IChing.getHexagramDetails
+	// 函數用途：六爻碼 → 卦象詳細資料查詢
+	// 平台：Zoho Creator
+	// 命名空間：IChing
+	// 功能描述：根據輸入的六爻碼，從 I_Ching_Form 表中查詢對應的卦象詳細資料。
+	//           回傳包含卦象外觀、爻辭、爻解、事業/感情/學業/旅行/心願等面向，
+	//           以及對應的符令圖片欄位。
+	// 參數說明：
+	//   - hexagram_code (string): 六位數字的爻碼字串（如「111111」代表乾卦）
+	// 回傳格式：map - 包含該卦象的完整資訊：
+	//   - "success" (boolean): 是否成功
+	//   - "yao_code" (string): 爻碼
+	//   - "appearance" (string): 卦象名稱（如「乾」）
+	//   - "up_appearance", "down_appearance": 上下卦
+	//   - "five_elements", "life_and_death": 五行、生死
+	//   - "symbol_1" ~ "symbol_5": 符令
+	//   - "yao_article", "yao_comment": 爻辭、爻解
+	//   - "yao_work", "yao_business", "yao_study", "yao_travel", "yao_love", "yao_wish": 各面向
+	//   - "error" (string): 錯誤訊息（若失敗）
+	// 相依性：I_Ching_Form 表單
+	// =============================================================================
+	// 根據傳入的爻碼查詢 I_Ching_Form 表單
+	hexagram_record = I_Ching_Form[yao == hexagram_code];
+	// 準備回傳的 Map
+	response_map = Map();
+	// 檢查是否有查詢到紀錄
+	if(hexagram_record.count() > 0)
+	{
+		// 查詢成功，組合回傳的資料
+		response_map.put("success",true);
+		response_map.put("yao_code",hexagram_record.yao);
+		response_map.put("appearance",hexagram_record.appearance);
+		response_map.put("up_appearance",hexagram_record.up_appearance);
+		response_map.put("down_appearance",hexagram_record.down_appearance);
+		response_map.put("five_elements",hexagram_record.five_elements);
+		response_map.put("life_and_death",hexagram_record.life_and_death);
+		response_map.put("symbol_1",hexagram_record.symbol_1);
+		response_map.put("symbol_2",hexagram_record.symbol_2);
+		response_map.put("symbol_3",hexagram_record.symbol_3);
+		response_map.put("symbol_4",hexagram_record.symbol_4);
+		response_map.put("symbol_5",hexagram_record.symbol_5);
+		response_map.put("yao_article",hexagram_record.yao_article);
+		response_map.put("yao_comment",hexagram_record.yao_comment);
+		response_map.put("yao_work",hexagram_record.yao_work);
+		response_map.put("yao_business",hexagram_record.yao_business);
+		response_map.put("yao_study",hexagram_record.yao_study);
+		response_map.put("yao_travel",hexagram_record.yao_travel);
+		response_map.put("yao_love",hexagram_record.yao_love);
+		response_map.put("yao_wish",hexagram_record.yao_wish);
+	}
+	else
+	{
+		// 查詢失敗，回傳錯誤訊息
+		response_map.put("success",false);
+		response_map.put("error","在 I_Ching_Form 中找不到爻碼為 " + hexagram_code + " 的資料。");
+	}
+	return response_map;
+}

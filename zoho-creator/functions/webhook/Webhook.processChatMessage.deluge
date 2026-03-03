@@ -1,0 +1,178 @@
+map Webhook.processChatMessage(string jsonPayload)
+{
+	// =============================================================================
+	// 函數名稱：Webhook.processChatMessage
+	// 函數用途：SalesIQ Codeless Bot Webhook 處理器
+	// 平台：Zoho Creator
+	// 命名空間：Webhook
+	// 功能描述：處理 SalesIQ Codeless Bot 的 Webhook 請求（Entire JSON 模式）：
+	//           - 處理 HTTP HEAD 驗證請求（回傳 200 狀態）
+	//           - 解析 JSON 字串（支援多種格式：直接參數、Session、Body、欄位變體）
+	//           - 根據關鍵字提供分類回應（問候、塔羅、八字、一般）
+	//           - 回傳結構化 JSON 回應給 SalesIQ
+	// 參數說明：
+	//   - jsonPayload (string): SalesIQ 發送的完整 JSON 字串
+	// 回傳格式：map - {status/replies, debug_info, ...}
+	// 相依性：無（未來計畫整合 OpenAI Assistant、RAG 知識庫）
+	// =============================================================================
+	api_result = Map();
+	try
+	{
+		info "=== SalesIQ Webhook 請求處理 (Entire JSON 模式) ===";
+		info "收到JSON Payload：" + jsonPayload;
+		// === 檢查是否為空字串 (HEAD 請求) ===
+		if(jsonPayload == null || jsonPayload.trim() == "")
+		{
+			info "收到空 JSON Payload，判斷為 HEAD 驗證請求";
+			api_result.put("status","ok");
+			api_result.put("message","Webhook endpoint is ready (Entire JSON mode)");
+			api_result.put("timestamp",zoho.currenttime.toString("yyyy-MM-dd HH:mm:ss"));
+			return api_result;
+		}
+		// === 解析JSON字串 ===
+		request_data = Map();
+		try
+		{
+			request_data = jsonPayload.toMap();
+			info "JSON 解析成功：" + request_data.toString();
+		}
+		catch (json_error)
+		{
+			info "JSON 解析失敗：" + json_error.toString();
+			api_result.put("success",false);
+			api_result.put("error","無法解析JSON資料：" + json_error.toString());
+			return api_result;
+		}
+		// === 處理實際的POST聊天訊息 ===
+		info "處理 SalesIQ 聊天訊息請求 (JSON 模式)";
+		// === 取得訊息參數（支援多種JSON格式） ===
+		message_text = null;
+		user_id = null;
+		session_id = null;
+		// 方法1：直接參數格式
+		message_text = request_data.get("message");
+		user_id = request_data.get("userid");
+		session_id = request_data.get("sessionid");
+		// 方法2：Session格式（SalesIQ可能的標準格式）
+		if(request_data.get("session") != null)
+		{
+			session_data = request_data.get("session");
+			if(session_data.get("message") != null)
+			{
+				if(session_data.get("message").get("value") != null)
+				{
+					message_text = session_data.get("message").get("value").toString();
+				}
+				else
+				{
+					message_text = session_data.get("message").toString();
+				}
+			}
+			if(session_data.get("userid") != null)
+			{
+				if(session_data.get("userid").get("value") != null)
+				{
+					user_id = session_data.get("userid").get("value").toString();
+				}
+				else
+				{
+					user_id = session_data.get("userid").toString();
+				}
+			}
+			if(session_data.get("sessionid") != null)
+			{
+				if(session_data.get("sessionid").get("value") != null)
+				{
+					session_id = session_data.get("sessionid").get("value").toString();
+				}
+				else
+				{
+					session_id = session_data.get("sessionid").toString();
+				}
+			}
+		}
+		// 方法3：Body格式
+		if(message_text == null && request_data.get("body") != null)
+		{
+			body_data = request_data.get("body");
+			message_text = body_data.get("message");
+			user_id = body_data.get("userid");
+			session_id = body_data.get("sessionid");
+		}
+		// 方法4：檢查所有可能的欄位名稱變體
+		if(message_text == null)
+		{
+			possible_message_keys = {"text","msg","content","value"};
+			for each  key in possible_message_keys
+			{
+				if(request_data.get(key) != null)
+				{
+					message_text = request_data.get(key).toString();
+					break;
+				}
+			}
+		}
+		info "訊息內容：" + if(message_text != null,message_text,"空訊息");
+		info "用戶ID：" + if(user_id != null,user_id,"未提供");
+		info "會話ID：" + if(session_id != null,session_id,"未提供");
+		// === 輸入驗證 ===
+		if(message_text == null || message_text.trim() == "")
+		{
+			api_result.put("success",false);
+			api_result.put("error","訊息內容不能為空");
+			api_result.put("received_json",request_data);
+			return api_result;
+		}
+		// === 初始化回應結構 ===
+		replies = List();
+		// === 簡單的回應邏輯（暫時） ===
+		if(message_text.toLowerCase().contains("hello") || message_text.contains("你好"))
+		{
+			replies.add("? 歡迎來到我們的靈性世界！我是你的專屬占卜助理，很高興為你服務！");
+			replies.add("✨ 我可以幫你進行塔羅占卜、八字命理分析，還可以推薦適合的靈性方案。");
+			replies.add("? 請告訴我你的姓名，讓我們開始這段神奇的探索之旅吧！");
+		}
+		else if(message_text.contains("塔羅") || message_text.toLowerCase().contains("tarot"))
+		{
+			replies.add("? 塔羅占卜是我的專長！我會根據你的問題，抽取最適合的牌組為你解答。");
+			replies.add("? 在開始占卜前，需要先建立你的個人檔案，這樣占卜會更加精準。");
+			replies.add("? 請提供你的基本資料：姓名、電子郵件和手機號碼。");
+		}
+		else if(message_text.contains("八字") || message_text.contains("命理"))
+		{
+			replies.add("? 八字命理分析需要你的精確出生資訊！");
+			replies.add("⏰ 請提供：出生年月日和出生時間（越精確越好）");
+			replies.add("? 有了完整的時間資訊，我就能為你推算專屬的本命星盤。");
+		}
+		else
+		{
+			// 一般回應
+			replies.add("✨ 謝謝你的訊息！我正在學習如何更好地為你服務。");
+			replies.add("? 你可以試試問我關於「塔羅占卜」或「八字命理」的問題。");
+			replies.add("? 或者直接告訴我你的姓名，讓我們開始建立你的靈性檔案！");
+		}
+		// === 建立回應格式（直接回傳SalesIQ期望的格式） ===
+		api_result.put("replies",replies);
+		// === 加入調試信息 ===
+		api_result.put("debug_info",Map());
+		debug_info = api_result.get("debug_info");
+		debug_info.put("processed_message",message_text);
+		debug_info.put("user_id",user_id);
+		debug_info.put("session_id",session_id);
+		debug_info.put("original_json",request_data);
+		debug_info.put("timestamp",zoho.currenttime.toString("yyyy-MM-dd HH:mm:ss"));
+		// === TODO: 未來整合功能 ===
+		// 1. OpenAI Assistant API 調用
+		// 2. RAG 知識庫查詢
+		// 3. 用戶檔案建立和更新
+		// 4. 複雜的對話狀態管理
+		info "成功處理訊息並準備回應";
+	}
+	catch (error)
+	{
+		api_result.put("success",false);
+		api_result.put("error","處理請求時發生錯誤：" + error.toString());
+		info "Webhook 處理錯誤：" + error.toString();
+	}
+	return api_result;
+}

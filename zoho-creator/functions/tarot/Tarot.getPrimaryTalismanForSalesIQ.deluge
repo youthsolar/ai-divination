@@ -1,0 +1,139 @@
+map Tarot.getPrimaryTalismanForSalesIQ(string client_id)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.getPrimaryTalismanForSalesIQ
+	// 函數用途：SalesIQ 專用符令取得函數
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：為 SalesIQ 提供占卜記錄的主卦符令圖片和基本資訊：
+	//           - 驗證占卜記錄 ID 並查詢 Divination_Logs
+	//           - 取得主卦牌卡詳細資訊
+	//           - 根據正逆位取得對應的符令圖片與五行元素
+	//           - 完整的符令空值檢查（寬容處理，狀態標記為 pending）
+	//           - 附帶付費狀態檢查
+	// 參數說明：
+	//   - client_id (string): 占卜記錄 ID（從 SalesIQ 傳遞過來的 divination_id）
+	// 回傳格式：map - 包含 success, talisman_image_url, card_name, polarity, element,
+	//                 has_paid, divination_id, talisman_status
+	// 相依性：Divination_Logs 表單, All_Tarot_Cards 表單
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	result = Map();
+	try
+	{
+		// 參數驗證
+		if(client_id == null || client_id == "")
+		{
+			result.put("success",false);
+			result.put("error","占卜記錄 ID 不能為空");
+			return result;
+		}
+		divination_id_long = client_id.toLong();
+		// 直接查找指定的占卜記錄
+		divination_records = Divination_Logs[ID == divination_id_long];
+		if(divination_records.count() == 0)
+		{
+			result.put("success",false);
+			result.put("error","找不到指定的占卜記錄 ID: " + client_id);
+			return result;
+		}
+		// 取得指定的占卜記錄
+		latest_record = null;
+		for each  record in divination_records
+		{
+			latest_record = record;
+			break;
+		}
+		// 檢查是否有主卦符令資料
+		if(latest_record.Primary_Talisman_Card_ID == null)
+		{
+			result.put("success",false);
+			result.put("error","該占卜記錄尚未進行主卦分析");
+			return result;
+		}
+		// 取得主卦牌卡詳細資訊
+		primary_card_collection = All_Tarot_Cards[ID == latest_record.Primary_Talisman_Card_ID];
+		if(primary_card_collection.count() == 0)
+		{
+			result.put("success",false);
+			result.put("error","找不到主卦牌卡詳細資訊");
+			return result;
+		}
+		primary_card = null;
+		for each  card in primary_card_collection
+		{
+			primary_card = card;
+			break;
+		}
+		// 準備符令圖片 URL 和其他資料
+		polarity = latest_record.Primary_Trend_Polarity;
+		element = "";
+		talisman_image_url = "";
+		// 根據正逆位取得對應的符令圖片和五行元素
+		if(polarity == "逆位")
+		{
+			element = primary_card.Reversed_Outsight_Element;
+			// 符令空值檢查：逆位符令（寬容處理）
+			if(primary_card.Reverse_Talisman_Image != null && primary_card.Reverse_Talisman_Image != "")
+			{
+				talisman_image_url = primary_card.Reverse_Talisman_Image;
+			}
+			else
+			{
+				// 符令尚未準備時，提供預設資訊而非錯誤
+				talisman_image_url = "";
+				result.put("talisman_status","pending");
+			}
+		}
+		else
+		{
+			element = primary_card.Outsight_Element;
+			// 符令空值檢查：正位符令（寬容處理）
+			if(primary_card.Upright_Talisman_Image != null && primary_card.Upright_Talisman_Image != "")
+			{
+				talisman_image_url = primary_card.Upright_Talisman_Image;
+			}
+			else
+			{
+				// 符令尚未準備時，提供預設資訊而非錯誤
+				talisman_image_url = "";
+				result.put("talisman_status","pending");
+			}
+		}
+		// 所有檢查通過，回傳成功結果
+		result.put("success",true);
+		result.put("talisman_image_url",talisman_image_url);
+		result.put("card_name",primary_card.Card_Name);
+		result.put("polarity",polarity);
+		result.put("element",element);
+		result.put("divination_id",latest_record.ID);
+		// 檢查付費狀態（如果欄位存在）
+		if(latest_record.Has_Paid_Report != null)
+		{
+			result.put("has_paid",latest_record.Has_Paid_Report);
+		}
+		else
+		{
+			result.put("has_paid",false);
+		}
+		// 如果沒有設定 talisman_status，表示符令正常
+		try
+		{
+			test_status = result.get("talisman_status");
+			if(test_status == null)
+			{
+				result.put("talisman_status","ready");
+			}
+		}
+		catch (e)
+		{
+			result.put("talisman_status","ready");
+		}
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("error","系統錯誤：" + e);
+	}
+	return result;
+}

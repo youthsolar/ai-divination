@@ -1,0 +1,60 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第4段)
+//
+//
+// Workflow/Clients_Report/OnEdit_UpdateLunarMansion.deluge
+//
+// @description: (Workflow 腳本) 在「個案表單」(Clients_Report) 上觸發。
+//               當「生日」(Date_Of_Birth) 欄位被填寫或修改時，此腳本會根據國曆生日，
+//               自動查詢並帶入對應的「二十八星宿」Lookup 記錄。
+//
+// @trigger_event: On User Input (使用者輸入時)
+// @trigger_form: Clients_Report (個案表單)
+// @trigger_field: Date_Of_Birth (生日)
+//
+// @dependencies:
+//   - thisapp.Star.getLunarMansion (函數)
+//   - Twenty_Eight_Lunar_Mansions (表單)
+//
+// @placement: 應設定於 Clients_Report 表單的 Date_Of_Birth 欄位的 "On User Input" 事件中。
+//
+// 1. 檢查生日欄位是否有值
+if(input.Date_Of_Birth != null)
+{
+	// 2. 呼叫我們建立的 Star.getLunarMansion 函數來查詢星宿名稱
+	mansion_result = thisapp.Star.getLunarMansion(input.Date_Of_Birth);
+	// 3. 檢查函數是否成功執行並回傳了星宿名稱
+	if(mansion_result.get("success") == true)
+	{
+		// 4. 從回傳結果中取得星宿名稱
+		mansion_name = mansion_result.get("mansion_name");
+		// 5. 使用星宿名稱去查詢 "二十八星宿詳細資訊表" (Twenty_Eight_Lunar_Mansions)
+		mansion_info_record = Twenty_Eight_Lunar_Mansions[Star_Name == mansion_name];
+		// 6. 處理查詢結果
+		if(mansion_info_record != null)
+		{
+			// 如果找到了對應的記錄，就將個案表單的 Lookup 欄位更新為該記錄的 ID
+			input.Twenty_Eight_Lunar_Mansions = mansion_info_record.ID;
+		}
+		else
+		{
+			// 如果在詳細資訊表中找不到該星宿，則清空 Lookup 欄位
+			input.Twenty_Eight_Lunar_Mansions = null;
+			// (可選) 您可以在此處加上 alert 通知管理員資料不完整
+			// alert "資料庫警告：在 Twenty_Eight_Lunar_Mansions 表中找不到名為 '" + mansion_name + "' 的星宿記錄。";
+		}
+	}
+	else
+	{
+		// 如果 getLunarMansion 函數執行失敗，也清空 Lookup 欄位
+		input.Twenty_Eight_Lunar_Mansions = null;
+		// (可選) 您可以在此處加上 alert 通知使用者或管理員
+		// alert "無法計算星宿，錯誤訊息：" + mansion_result.get("error");
+	}
+}
+else
+{
+	// 如果生日欄位被清空，則同步清空星宿 Lookup 欄位
+	input.Twenty_Eight_Lunar_Mansions = null;
+}

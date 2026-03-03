@@ -1,0 +1,42 @@
+map Calendar.getEffectiveDayKey(date dt)
+{
+	// =============================================================================
+	// 函數名稱：Calendar.getEffectiveDayKey
+	// 函數用途：取得套用子時換日後的有效日期 key
+	// 平台：Zoho Creator
+	// 命名空間：Calendar
+	// 功能描述：組合 normalizeToTaipei + applyZiHourDayRollover，
+	//           輸出 yyyy-MM-dd 格式的日期字串，用於節氣/農曆新年邊界比較。
+	// 參數說明：
+	//   - dt (date): 輸入的日期時間
+	// 回傳格式：map - { success:bool, key:string, rolled:bool, error:string }
+	// 相依性：Calendar.normalizeToTaipei, Calendar.applyZiHourDayRollover
+	// =============================================================================
+	res = Map();
+	res.put("success",false);
+	res.put("error","");
+	res.put("rolled",false);
+	try
+	{
+		norm = thisapp.Calendar.normalizeToTaipei(dt);
+		if(!norm.get("success"))
+		{
+			res.put("error",norm.get("error"));
+			return res;
+		}
+		zr = thisapp.Calendar.applyZiHourDayRollover(norm.get("value"));
+		if(!zr.get("success"))
+		{
+			res.put("error",zr.get("error"));
+			return res;
+		}
+		res.put("rolled",zr.get("rolled"));
+		res.put("key",zr.get("value").toString("yyyy-MM-dd"));
+		res.put("success",true);
+	}
+	catch(e)
+	{
+		res.put("error","getEffectiveDayKey failed: " + e.toString());
+	}
+	return res;
+}

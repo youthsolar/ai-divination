@@ -1,0 +1,20 @@
+string GuaCalculator.getHexagramBySolarBirthday(date solarDateTime)
+{
+	// =============================================================================
+	// 函數名稱：GuaCalculator.getHexagramBySolarBirthday
+	// 函數用途：陽曆生日 → 六爻爻碼
+	// 平台：Zoho Creator
+	// 命名空間：GuaCalculator
+	// 功能描述：將陽曆出生日期轉為八字後，結合占卜時間產生六位爻碼字串。
+	//           為 bitToHexagramCode 的上層封裝函數。
+	// 參數說明：
+	//   - solarDateTime (date): 陽曆出生日期時間
+	// 回傳格式：string - 6 位爻碼字串（如「001001」）
+	// 相依性：GuaCalculator.bitToHexagramCode
+	// 注意：內部呼叫已更新為新命名（BitToHexagramCode → bitToHexagramCode）
+	// =============================================================================
+	// 1. 呼叫 bitToHexagramCode：將「生日 + 占卜時間」轉成 6 位爻碼字串
+	hexCode = thisapp.GuaCalculator.bitToHexagramCode(solarDateTime);
+	// 2. 直接回傳六爻爻碼（格式例如："001001"）
+	return hexCode;
+}

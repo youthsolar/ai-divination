@@ -1,0 +1,37 @@
+string LunarAI.getCurrentTimeBazi()
+{
+	// =============================================================================
+	// 函數名稱：getCurrentTimeBazi
+	// 函數用途：取得當前系統時間的八字字串
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	//
+	// 功能描述：
+	// - 取得目前系統時間
+	// - 調用 solarToLunar 轉換為農曆
+	// - 調用 convertToBaZi 計算四柱
+	// - 組成「年柱 月柱 日柱 時柱」字串回傳
+	//
+	// 參數說明：
+	// 無參數
+	//
+	// 回傳格式：
+	// @return (string) - 四柱八字字串，空格分隔（例："甲子 丙寅 戊辰 庚午"）
+	//
+	// 相依性：
+	// - thisapp.LunarAI.solarToLunar（國曆轉農曆）
+	// - thisapp.LunarAI.convertToBaZi（農曆轉八字）
+	// =============================================================================
+
+	// 取得目前系統時間（含日期與時分秒）
+	now = zoho.currenttime;
+	// 用 solarToLunar 轉出對應的農曆 Map
+	lunarMap = thisapp.LunarAI.solarToLunar(now);
+	// [BUG FIX] solarToLunar 回傳 {"生日": {...}, "占卜日": {...}} 巢狀結構，
+	//           需先取出 "生日" 子 Map 才能傳給 convertToBaZi
+	birthdayLunar = lunarMap.get("生日");
+	// 呼叫 convertToBaZi 計算四柱
+	baziMap = thisapp.LunarAI.convertToBaZi(now,birthdayLunar);
+	// 組成「年柱 月柱 日柱 時柱」字串並回傳
+	return baziMap.get("year_pillar") + " " + baziMap.get("month_pillar") + " " + baziMap.get("day_pillar") + " " + baziMap.get("hour_pillar");
+}

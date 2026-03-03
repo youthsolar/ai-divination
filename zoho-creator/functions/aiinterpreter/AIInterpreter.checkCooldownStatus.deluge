@@ -1,0 +1,203 @@
+map AIInterpreter.checkCooldownStatus(string client_id, string question_text, date divination_time)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.checkCooldownStatus
+	// 函數用途：AI 智能冷卻機制檢查函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：檢查客戶是否符合占卜冷卻規則，防止資源濫用並維持占卜公信力：
+	//           - 規則 1：相同問題限制（3 天內不能問相同/高度相似問題，相似度 >= 80%）
+	//           - 規則 2：同類型頻率限制（6 小時內同類型問題最多 1 次）
+	//           - 規則 3：不同類型數量限制（24 小時內最多問 2 種不同類型）
+	//           - 規則優先級：相同問題(3天) > 同類型頻率(6小時) > 不同類型數量(24小時)
+	// 參數說明：
+	//   - client_id (string): 客戶 ID
+	//   - question_text (string): 當前問題內容
+	//   - divination_time (date): 占卜時間
+	// 回傳格式：map - {"allowed": bool, "rule_violated": string, "message": string, "time_remaining": string, "question_type": string, "confidence": string}
+	// 相依性：AIInterpreter.classifyQuestionType, AIInterpreter.compareQuestionSimilarity, Divination_Logs 表單
+	// =============================================================================
+	result = Map();
+	try
+	{
+		// 初始化結果
+		result.put("allowed",true);
+		result.put("rule_violated","");
+		result.put("message","可以進行占卜");
+		result.put("time_remaining","");
+		result.put("question_type","");
+		result.put("confidence","");
+		// 步驟1：先進行問題類型分類
+		classification_result = thisapp.AIInterpreter.classifyQuestionType(question_text);
+		if(!classification_result.get("success"))
+		{
+			result.put("allowed",false);
+			result.put("message","問題分類失敗：" + classification_result.get("error"));
+			return result;
+		}
+		current_question_type = classification_result.get("question_type");
+		confidence = classification_result.get("confidence");
+		result.put("question_type",current_question_type);
+		result.put("confidence",confidence);
+		// 步驟2：查詢客戶最近的占卜記錄（只統計成功的記錄）
+		recent_questions = Divination_Logs[Client_Link == client_id.toLong() && Divination_Timestamp > divination_time.addDay(-3)];
+		// 如果沒有歷史記錄，直接允許
+		if(recent_questions.count() == 0)
+		{
+			return result;
+		}
+		// 步驟3：規則1 - 相同問題檢查（3天內，最嚴格）
+		most_similar_question_record = null;
+		highest_similarity = 0.0;
+		for each  past_question in recent_questions
+		{
+			// 只檢查有效的記錄
+			valid_status = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+			if(valid_status)
+			{
+				// 計算問題相似度
+				similarity_result = thisapp.AIInterpreter.compareQuestionSimilarity(question_text,past_question.Original_Question);
+				if(similarity_result.get("success"))
+				{
+					similarity_score = similarity_result.get("similarity_score");
+					if(similarity_score > highest_similarity)
+					{
+						highest_similarity = similarity_score;
+						most_similar_question_record = past_question;
+					}
+				}
+			}
+		}
+		// 如果相似度 >= 80%，觸發相同問題限制
+		if(highest_similarity >= 0.8 && most_similar_question_record != null)
+		{
+			// 計算天數差：將時間差轉換為毫秒，再除以一天的毫秒數
+			time_diff_ms = divination_time.toLong() - most_similar_question_record.Divination_Timestamp.toLong();
+			days_diff = time_diff_ms / (24 * 60 * 60 * 1000);
+			days_remaining = 3 - days_diff;
+			if(days_remaining > 0)
+			{
+				result.put("allowed",false);
+				result.put("rule_violated","相同問題限制");
+				result.put("message","我知道你很在意這件事，但在情緒還很熱的時候重複問同一題，解讀很容易被焦慮放大。\n\n為了讓占卜保持清晰與可信，這題需要先冷卻：請在 " + days_remaining.round(0) + " 天後再回來問（同一題/高度相似題）。\n\n這段時間先把問題縮成一句最核心的話，我會在冷卻後再陪你看一次。");
+				result.put("time_remaining",days_remaining.round(0) + " 天");
+				return result;
+			}
+		}
+		// 步驟4：規則2 - 同類型頻率檢查（6小時內）
+		six_hours_ago = divination_time.addHour(-6);
+		recent_same_type_questions = 0;
+		for each  past_question in recent_questions
+		{
+			valid_status2 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+			if(valid_status2 && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
+			{
+				recent_same_type_questions = recent_same_type_questions + 1;
+			}
+		}
+		// 如果6小時內已經問過相同類型，觸發頻率限制
+		if(recent_same_type_questions > 0)
+		{
+			// 找到最近一次同類型問題的時間
+			last_same_type_time = null;
+			for each  past_question in recent_questions
+			{
+				valid_status3 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+				if(valid_status3 && past_question.Divination_Timestamp >= six_hours_ago && past_question.Question_Type_AI == current_question_type)
+				{
+					if(last_same_type_time == null || past_question.Divination_Timestamp > last_same_type_time)
+					{
+						last_same_type_time = past_question.Divination_Timestamp;
+					}
+				}
+			}
+			// 計算剩餘時間
+			time_diff_ms = divination_time.toLong() - last_same_type_time.toLong();
+			hours_diff = time_diff_ms / (60 * 60 * 1000);
+			minutes_diff = (time_diff_ms % (60 * 60 * 1000)) / (60 * 1000);
+			hours_remaining = 6 - hours_diff;
+			minutes_remaining = 60 - minutes_diff;
+			if(hours_remaining > 0)
+			{
+				result.put("allowed",false);
+				result.put("rule_violated","同類型頻率限制");
+				result.put("message","我知道你想快點得到答案，但同類型的問題在短時間內連問，容易讓你越問越亂。\n\n為了讓占卜保持清晰與可信，這類問題需要先冷卻：請在 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後再回來。\n\n先把注意力放回你能控制的一件小事（例如：今天先把問題寫成一句話）。");
+				result.put("time_remaining",hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘");
+				return result;
+			}
+		}
+		// 步驟5：規則3 - 不同類型數量檢查（24小時內最多2種）
+		twenty_four_hours_ago = divination_time.addHour(-24);
+		question_types_in_24h = List();
+		for each  past_question in recent_questions
+		{
+			valid_status4 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+			if(valid_status4 && past_question.Divination_Timestamp >= twenty_four_hours_ago)
+			{
+				// 如果這個類型還沒記錄過，加入列表
+				type_exists = false;
+				for each  existing_type in question_types_in_24h
+				{
+					if(existing_type == past_question.Question_Type_AI)
+					{
+						type_exists = true;
+						break;
+					}
+				}
+				if(!type_exists)
+				{
+					question_types_in_24h.add(past_question.Question_Type_AI);
+				}
+			}
+		}
+		// 檢查當前問題類型是否已經在24小時內問過
+		current_type_exists = false;
+		for each  existing_type in question_types_in_24h
+		{
+			if(existing_type == current_question_type)
+			{
+				current_type_exists = true;
+				break;
+			}
+		}
+		// 如果當前類型不在24小時記錄中，且已經有2種不同類型，觸發數量限制
+		if(!current_type_exists && question_types_in_24h.size() >= 2)
+		{
+			// 找到24小時內最早的問題時間
+			earliest_time_in_24h = null;
+			for each  past_question in recent_questions
+			{
+				valid_status5 = (past_question.Status == "已提問" || past_question.Status == "已推薦" || past_question.Status == "已購買" || past_question.Status == "已完成");
+				if(valid_status5 && past_question.Divination_Timestamp >= twenty_four_hours_ago)
+				{
+					if(earliest_time_in_24h == null || past_question.Divination_Timestamp < earliest_time_in_24h)
+					{
+						earliest_time_in_24h = past_question.Divination_Timestamp;
+					}
+				}
+			}
+			// 計算剩餘時間
+			time_diff_ms = divination_time.toLong() - earliest_time_in_24h.toLong();
+			hours_diff = time_diff_ms / (60 * 60 * 1000);
+			minutes_diff = (time_diff_ms % (60 * 60 * 1000)) / (60 * 1000);
+			hours_remaining = 24 - hours_diff;
+			minutes_remaining = 60 - minutes_diff;
+			if(hours_remaining > 0)
+			{
+				result.put("allowed",false);
+				result.put("rule_violated","不同類型數量限制");
+				result.put("message","我知道你現在很想把所有面向都問清楚，但在一天之內快速切換太多類型，心會更亂，解讀也會失焦。\n\n為了讓占卜保持清晰與可信，今天先停在你最核心的那一題：請在 " + hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘後，再回來開新的問題類型。\n\n先照顧好你的心，冷靜下來，我們再繼續。");
+				result.put("time_remaining",hours_remaining.round(0) + " 小時 " + minutes_remaining.round(0) + " 分鐘");
+				return result;
+			}
+		}
+		// 所有檢查都通過，允許占卜
+		result.put("message","可以進行占卜，問題類型：" + current_question_type);
+	}
+	catch (e)
+	{
+		result.put("allowed",false);
+		result.put("message","冷卻檢查發生錯誤：" + e);
+	}
+	return result;
+}

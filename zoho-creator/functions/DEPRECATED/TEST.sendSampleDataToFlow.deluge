@@ -1,0 +1,38 @@
+void TEST.sendSampleDataToFlow()
+{
+	// =============================================================================
+	// ⚠️ 已廢棄：此函數已標記為廢棄，不應在生產環境中使用。
+	// 原函數用途：一次性測試函數 — 向 Zoho Flow 發送範例資料
+	// 廢棄原因：測試函數，無任何 caller，執行成功後應刪除
+	// 封存日期：2026-02-25
+	// =============================================================================
+	// 1. 這是你在 Zoho Flow 拿到的 Webhook URL
+	flowWebhookUrl = if(thisapp.variables.System.FlowWebhookUrl != null,thisapp.variables.System.FlowWebhookUrl.toString(),"");
+	if(flowWebhookUrl == "")
+	{
+		info "Flow webhook URL 未設定，取消測試";
+		return;
+	}
+	// 2. 準備一筆模擬的報告請求資料 (Map)
+	sampleData = Map();
+	sampleData.put("reportTitle","關於事業發展的塔羅指引");
+	sampleData.put("reportSubtitle","客戶：王大明");
+	sampleData.put("reportContentMarkdown","## 牌陣：三牌時間流\n\n### 現在\n寶劍三 (逆位)\n\n### 未來\n太陽 (正位)");
+	sampleData.put("reportTone","溫暖同理");
+	sampleData.put("imagePrompt","神秘學、星空、魔法光暈");
+	sampleData.put("creatorRecordId","1234567890");
+	// 3. 準備 HTTP 標頭 (Headers)，這是修正的關鍵
+	requestHeaders = Map();
+	requestHeaders.put("Content-Type","application/json");
+	// 4. 透過 invokeurl 將資料發送給 Flow (使用正確的語法)
+	response = invokeurl
+	[
+		url :flowWebhookUrl
+		type :POST
+		parameters:sampleData.toString()
+		headers:requestHeaders
+	];
+	// 5. 在控制台印出回應，方便我們確認是否成功
+	info "已成功發送測試資料到 Zoho Flow！";
+	info "Flow 的回應：" + response;
+}

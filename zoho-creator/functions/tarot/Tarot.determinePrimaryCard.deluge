@@ -1,0 +1,161 @@
+map Tarot.determinePrimaryCard(list card_ids, list reversed_statuses)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.determinePrimaryCard
+	// 函數用途：主卦代表牌判斷函數
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：根據主副卦理論（少數為主導）和牌卡優先級規則，
+	//           從 5 張牌中選出主卦代表牌：
+	//           - 計算主卦極性（逆位/正位中較少的為主導）
+	//           - 篩選出符合主卦極性的牌
+	//           - 依優先級規則選出代表牌
+	// 優先級規則：
+	//   1. 大阿爾克那 > 小阿爾克那（+10000 分）
+	//   2. 宮廷牌(11-14) > 非宮廷牌(1-10)（+1000 分）
+	//   3. 數字大 > 數字小（×100 分）
+	//   4. 火 > 水 > 風 > 土（4/3/2/1 分）
+	// 參數說明：
+	//   - card_ids (list): 5 張牌的 ID 列表
+	//   - reversed_statuses (list): 5 張牌的正逆位狀態列表（true=逆位, false=正位）
+	// 回傳格式：map - {"success": bool, "primary_polarity": string, "primary_card_id": long}
+	// 相依性：All_Tarot_Cards 表單
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	result = Map();
+	try
+	{
+		// --- 步驟 1: 計算主卦極性（少數為主導）---
+		reversed_count = 0;
+		total_cards = reversed_statuses.size();
+		for each  is_reversed in reversed_statuses
+		{
+			if(is_reversed == true)
+			{
+				reversed_count = reversed_count + 1;
+			}
+		}
+		// 判斷主卦極性
+		primary_polarity = "";
+		if(reversed_count <= total_cards / 2)
+		{
+			primary_polarity = "逆位";
+			// 逆位是少數，為主卦
+		}
+		else
+		{
+			primary_polarity = "正位";
+			// 正位是少數，為主卦
+		}
+		// --- 步驟 2: 篩選出主卦極性的牌 ---
+		primary_card_ids = List();
+		// 使用 Deluge 支援的迴圈方式
+		indices = {0,1,2,3,4};
+		for each  i in indices
+		{
+			if(i < card_ids.size())
+			{
+				card_id = card_ids.get(i);
+				is_reversed = reversed_statuses.get(i);
+				// 檢查是否符合主卦極性
+				card_matches_primary = false;
+				if(primary_polarity == "逆位" && is_reversed == true)
+				{
+					card_matches_primary = true;
+				}
+				else if(primary_polarity == "正位" && is_reversed == false)
+				{
+					card_matches_primary = true;
+				}
+				if(card_matches_primary)
+				{
+					primary_card_ids.add(card_id);
+				}
+			}
+		}
+		// --- 步驟 3: 從主卦牌中選出優先級最高的代表牌 ---
+		if(primary_card_ids.size() > 0)
+		{
+			best_card_id = null;
+			best_priority_score = -1;
+			for each  card_id in primary_card_ids
+			{
+				// 查詢牌卡詳細資訊
+				card_collection = All_Tarot_Cards[ID == card_id];
+				// 檢查是否找到牌卡
+				if(card_collection.count() == 0)
+				{
+					// 找不到牌卡，跳過此 ID
+					continue;
+				}
+				for each  card_record in card_collection
+				{
+					// 計算優先級分數
+					priority_score = 0;
+					// 1. 大阿爾克那優先（加 10000 分）
+					if(card_record.Minor_Arcana == false)
+					{
+						priority_score = priority_score + 10000;
+					}
+					// 2. 數字分數（直接加數字值 × 100）
+					if(card_record.Element_Card_Number != null)
+					{
+						priority_score = priority_score + card_record.Element_Card_Number * 100;
+					}
+					// 3. 宮廷牌加分（11-14 再加 1000 分）
+					if(card_record.Element_Card_Number != null && card_record.Element_Card_Number >= 11)
+					{
+						priority_score = priority_score + 1000;
+					}
+					// 4. 五行元素分數（火=4, 水=3, 風=2, 土=1）
+					element = "";
+					if(primary_polarity == "逆位")
+					{
+						element = card_record.Reversed_Outsight_Element;
+					}
+					else
+					{
+						element = card_record.Outsight_Element;
+					}
+					if(element == "火")
+					{
+						priority_score = priority_score + 4;
+					}
+					else if(element == "水")
+					{
+						priority_score = priority_score + 3;
+					}
+					else if(element == "風")
+					{
+						priority_score = priority_score + 2;
+					}
+					else if(element == "土")
+					{
+						priority_score = priority_score + 1;
+					}
+					// 更新最佳選擇
+					if(priority_score > best_priority_score)
+					{
+						best_priority_score = priority_score;
+						best_card_id = card_id;
+					}
+					break;
+				}
+			}
+			result.put("success",true);
+			result.put("primary_polarity",primary_polarity);
+			result.put("primary_card_id",best_card_id);
+		}
+		else
+		{
+			result.put("success",false);
+			result.put("error","沒有找到符合主卦極性的牌");
+		}
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("error","主卦分析發生錯誤：" + e);
+	}
+	return result;
+}

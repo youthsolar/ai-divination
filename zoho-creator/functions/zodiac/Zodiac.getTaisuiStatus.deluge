@@ -1,0 +1,132 @@
+map Zodiac.getTaisuiStatus(date solar_date, int query_year)
+{
+	// =============================================================================
+	// 函數名稱：Zodiac.getTaisuiStatus
+	// 函數用途：判斷犯太歲狀態
+	// 平台：Zoho Creator
+	// 命名空間：Zodiac
+	// 功能描述：根據生日和查詢年份，判斷犯太歲狀態並返回相關干支資訊。
+	//           使用結構化 Map 定義「值沖刑害破」規則，易於維護。
+	//           - 取得本命有效農曆年份（考慮農曆新年）
+	//           - 計算本命干支與流年干支
+	//           - 查詢 Sixty_GanZhi_Table 取得記錄 ID
+	//           - 比對值/沖/刑/害/破五種犯太歲關係
+	// 參數說明：
+	//   - solar_date (date): 個案的國曆生日
+	//   - query_year (int): 要查詢的年份（如 2024）
+	// 回傳格式：map - 包含以下鍵值：
+	//   - "success" (boolean): 操作是否成功
+	//   - "is_conflicting" (boolean): 是否構成犯太歲
+	//   - "conflict_type" (string): 犯太歲類型（如「本命年犯太歲」、「沖太歲」、「無犯太歲」）
+	//   - "birth_ganzhi_id" (bigint): 本命干支在 Sixty_GanZhi_Table 中的記錄 ID
+	//   - "query_year_ganzhi_id" (bigint): 流年干支在 Sixty_GanZhi_Table 中的記錄 ID
+	//   - "error" (string): 錯誤訊息（若 success 為 false）
+	// 相依性：LunarData 表單, Sixty_GanZhi_Table 表單
+	// =============================================================================
+	// 初始化回傳的 Map
+	response = Map();
+	response.put("success",false);
+	response.put("is_conflicting",false);
+	response.put("conflict_type","無犯太歲");
+	// 1. 驗證輸入參數
+	if(solar_date == null || query_year == null)
+	{
+		response.put("error","輸入的國曆生日和查詢年份不可為空。");
+		return response;
+	}
+	// 2. 獲取本命地支和本命干支 ID
+	// 2.1 獲取本命的有效農曆年份（zodiac_year），需考慮農曆新年
+	birth_year = solar_date.getYear();
+	birth_lunar_year = birth_year;
+	birth_lunar_data = LunarData[Solar_Year == birth_year];
+	if(birth_lunar_data.count() > 0)
+	{
+		if(solar_date < birth_lunar_data.Lunar_New_Year)
+		{
+			birth_lunar_year = birth_year - 1;
+		}
+	}
+	else
+	{
+		response.put("error","在 LunarData 表中找不到 " + birth_year + " 年的資料。");
+		return response;
+	}
+	// 2.2 根據本命農曆年份計算出本命干支
+	stems = {"甲","乙","丙","丁","戊","己","庚","辛","壬","癸"};
+	branches = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	birth_stem_index = (birth_lunar_year - 4) % 10;
+	birth_branch_index = (birth_lunar_year - 4) % 12;
+	birth_stem = stems.get(birth_stem_index);
+	birth_branch = branches.get(birth_branch_index);
+	birth_ganzhi = birth_stem + birth_branch;
+	// 2.3 查詢本命干支對應的記錄 ID
+	birth_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == birth_ganzhi];
+	if(birth_ganzhi_record == null)
+	{
+		response.put("error","在 Sixty_GanZhi_Table 中找不到本命干支為 '" + birth_ganzhi + "' 的記錄。");
+		return response;
+	}
+	response.put("birth_ganzhi_id",birth_ganzhi_record.ID);
+	// 3. 獲取流年地支和流年干支 ID
+	// 3.1 流年不需要考慮農曆新年，直接使用公元年份計算
+	query_stem_index = (query_year - 4) % 10;
+	query_branch_index = (query_year - 4) % 12;
+	query_stem = stems.get(query_stem_index);
+	query_branch = branches.get(query_branch_index);
+	query_ganzhi = query_stem + query_branch;
+	// 3.2 查詢流年干支對應的記錄 ID
+	query_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == query_ganzhi];
+	if(query_ganzhi_record == null)
+	{
+		response.put("error","在 Sixty_GanZhi_Table 中找不到流年干支為 '" + query_ganzhi + "' 的記錄。");
+		return response;
+	}
+	response.put("query_year_ganzhi_id",query_ganzhi_record.ID);
+	// 4. 判斷犯太歲關係
+	// 預先定義好所有地支的沖刑害破關係，查詢效率高且易於維護
+	conflict_rules = Map();
+	conflict_rules.put("子",{"值":"子","沖":"午","刑":"卯","害":"未","破":"酉"});
+	conflict_rules.put("丑",{"值":"丑","沖":"未","刑":"戌","害":"午","破":"辰"});
+	conflict_rules.put("寅",{"值":"寅","沖":"申","刑":"巳","害":"巳","破":"亥"});
+	conflict_rules.put("卯",{"值":"卯","沖":"酉","刑":"子","害":"辰","破":"午"});
+	conflict_rules.put("辰",{"值":"辰","沖":"戌","刑":"辰","害":"卯","破":"丑"});
+	conflict_rules.put("巳",{"值":"巳","沖":"亥","刑":"申","害":"寅","破":"申"});
+	conflict_rules.put("午",{"值":"午","沖":"子","刑":"午","害":"丑","破":"卯"});
+	conflict_rules.put("未",{"值":"未","沖":"丑","刑":"丑","害":"子","破":"戌"});
+	conflict_rules.put("申",{"值":"申","沖":"寅","刑":"巳","害":"亥","破":"巳"});
+	conflict_rules.put("酉",{"值":"酉","沖":"卯","刑":"酉","害":"戌","破":"子"});
+	conflict_rules.put("戌",{"值":"戌","沖":"辰","刑":"未","害":"酉","破":"未"});
+	conflict_rules.put("亥",{"值":"亥","沖":"巳","刑":"亥","害":"申","破":"寅"});
+	rules_for_query_year = conflict_rules.get(query_branch);
+	if(rules_for_query_year != null)
+	{
+		if(rules_for_query_year.get("值") == birth_branch)
+		{
+			response.put("is_conflicting",true);
+			response.put("conflict_type","本命年犯太歲");
+		}
+		else if(rules_for_query_year.get("沖") == birth_branch)
+		{
+			response.put("is_conflicting",true);
+			response.put("conflict_type","沖太歲");
+		}
+		else if(rules_for_query_year.get("刑") == birth_branch)
+		{
+			response.put("is_conflicting",true);
+			response.put("conflict_type","刑太歲");
+		}
+		else if(rules_for_query_year.get("害") == birth_branch)
+		{
+			response.put("is_conflicting",true);
+			response.put("conflict_type","害太歲");
+		}
+		else if(rules_for_query_year.get("破") == birth_branch)
+		{
+			response.put("is_conflicting",true);
+			response.put("conflict_type","破太歲");
+		}
+	}
+	// 5. 操作成功
+	response.put("success",true);
+	return response;
+}

@@ -1,0 +1,36 @@
+map Calendar.normalizeToTaipei(date dt)
+{
+	// =============================================================================
+	// 函數名稱：Calendar.normalizeToTaipei
+	// 函數用途：將日期時間正規化至台北時區（UTC+8）
+	// 平台：Zoho Creator
+	// 命名空間：Calendar
+	// 功能描述：統一的時區正規化層，確保所有曆法/節氣/八字計算使用台北時間。
+	// 參數說明：
+	//   - dt (date): 輸入的日期時間
+	// 回傳格式：map - { success:bool, value:date, error:string }
+	// 相依性：無
+	// 注意：Deluge datetime 在 Creator UI 環境中通常已帶有時區資訊。
+	//       若未來需處理 UTC 儲存的時間戳，可在此函數內進行轉換。
+	// =============================================================================
+	res = Map();
+	res.put("success",false);
+	res.put("error","");
+	try
+	{
+		if(dt == null)
+		{
+			res.put("error","dt is null");
+			return res;
+		}
+		// Deluge datetime 在 Creator UI 環境中通常已帶有時區資訊。
+		// 若後續需處理 UTC 時間戳，在此處進行轉換。
+		res.put("success",true);
+		res.put("value",dt);
+	}
+	catch(e)
+	{
+		res.put("error","normalizeToTaipei failed: " + e.toString());
+	}
+	return res;
+}

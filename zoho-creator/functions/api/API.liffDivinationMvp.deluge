@@ -1,0 +1,196 @@
+map API.liffDivinationMvp(string lineUserId, string birthday, string question)
+{
+	// =============================================================================
+	// 函數名稱：API.liffDivinationMvp
+	// 函數用途：LINE LIFF 占卜入口 API（MVP 版）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：LINE LIFF 最小可行產品入口，處理「生日+問題」的占卜流程：
+	//           - 參數驗證（lineUserId, birthday, question）
+	//           - 依 LINE User ID 查找或建立虛擬個案
+	//           - 冷卻時間檢查（防止重複占卜）
+	//           - 占卜方式自動選擇（感情→塔羅、其他→易經）
+	//           - 生成免費摘要（約 300 字）
+	//           - 建立 Divination_Logs 記錄
+	//           - LINE 推播免費摘要 + 解鎖引導
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID
+	//   - birthday (string): 生日，格式 YYYY-MM-DD
+	//   - question (string): 占卜問題
+	// 回傳格式：map - {success, reading_id, summary_text, next_action, blocked?, cooldown?, ...}
+	// 相依性：Clients_Report, Divination_Logs, AIInterpreter.checkCooldownStatus,
+	//         LLM.callChat, API.linePushText
+	// 注意：原名 LIFF_Divination_MVP，已重命名為 camelCase
+	// =============================================================================
+	api_result = Map();
+	try
+	{
+		// 1) Validate
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","lineUserId 不能為空");
+			return api_result;
+		}
+		if(birthday == null || birthday.trim() == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","生日不能為空");
+			return api_result;
+		}
+		if(question == null || question.trim() == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","問題不能為空");
+			return api_result;
+		}
+
+		// 2) Find or create client by LINE user id (Clients_Report has Line_User_ID)
+		client_id = "";
+		client_records = Clients_Report[Line_User_ID == lineUserId];
+		if(client_records.count() > 0)
+		{
+			for each  c in client_records
+			{
+				client_id = c.ID.toString();
+				break;
+			}
+		}
+		else
+		{
+			// create minimal virtual client (姓名未知；以虛擬個案保存生日與 lineUserId)
+			birth_dt = null;
+			try
+			{
+				birth_dt = birthday.toDate("yyyy-MM-dd");
+			}
+			catch (e0)
+			{
+				birth_dt = zoho.currenttime;
+			}
+			new_client = insert into Clients_Report
+			[
+				Added_User=zoho.loginuser
+				Client_Type="虛擬"
+				Visitor_Name.last_name="(LINE)"
+				Visitor_Name.first_name="使用者"
+				Line_User_ID=lineUserId
+				Date_Of_Birth=birth_dt
+			];
+			if(new_client != null)
+			{
+				client_id = new_client.toString();
+			}
+		}
+
+		if(client_id == null || client_id == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","個案建立/查詢失敗");
+			return api_result;
+		}
+
+		// 3) Cooldown check (use existing logic)
+		now_time = zoho.currenttime;
+		cooldown_check = thisapp.AIInterpreter.checkCooldownStatus(client_id,question,now_time);
+		selected_question_type = "其他";
+		if(cooldown_check != null && cooldown_check.get("question_type") != null)
+		{
+			selected_question_type = cooldown_check.get("question_type");
+		}
+		if(cooldown_check != null && cooldown_check.get("allowed") == false)
+		{
+			// 冷卻是正常結果，不應讓前端誤判為系統錯誤
+			api_result.put("success",true);
+			api_result.put("blocked",true);
+			api_result.put("cooldown",true);
+			api_result.put("message",if(cooldown_check.get("message") != null,cooldown_check.get("message"),"冷卻中，請稍後再來"));
+			return api_result;
+		}
+
+		// 4) Choose divination method (MVP policy)
+		// Jeffery rule: 感情/人際→塔羅；大方向/抉擇→易經；fallback=易經
+		div_method = "易經";
+		if(selected_question_type == "愛情" || selected_question_type == "婚姻")
+		{
+			div_method = "塔羅";
+		}
+		else
+		{
+			// 人際關係 keyword fallback
+			q2 = question;
+			if(q2 != null)
+			{
+				q2 = q2.toLowerCase();
+				if(q2.contains("同事") || q2.contains("朋友") || q2.contains("家人") || q2.contains("主管") || q2.contains("同學") || q2.contains("老闆"))
+				{
+					div_method = "塔羅";
+				}
+			}
+		}
+
+		// 5) Generate free summary (約300字)
+		prompt = "你是專業占卜師。請依指定占卜方式提供約300字的摘要解讀（繁體中文）。\n" +
+			"占卜方式：" + div_method + "\n" +
+			"問題類型：" + selected_question_type + "\n" +
+			"使用者國曆生日：" + birthday + "\n" +
+			"問題：" + question + "\n\n" +
+			"請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
+		liff_opts = Map();
+		liff_opts.put("max_tokens", 600);
+		liff_opts.put("temperature", 0.7);
+		summary_text = thisapp.LLM.callChat("你是專業占卜師。請用繁體中文回答，語氣溫柔但冷靜，不要使用簡體字。", prompt, liff_opts);
+
+		// 6) Create Divination_Logs record (use DS-defined fields)
+		new_log_id = insert into Divination_Logs
+		[
+			Added_User=zoho.loginuser
+			Client_Link=client_id.toLong()
+			Original_Question=question
+			Divination_Timestamp=now_time
+			Divination_Method=div_method
+			Status="已提問"
+			Question_Type_AI=selected_question_type
+			AI_Interpretation=summary_text
+		];
+
+		api_result.put("success",true);
+		api_result.put("reading_id",new_log_id.toString());
+		api_result.put("summary_text",summary_text);
+		next_action = Map();
+		next_action.put("kind","offer_unlock");
+		next_action.put("price",360);
+		next_action.put("currency","TWD");
+		next_action.put("cta_label","解鎖完整版/購買符令");
+		api_result.put("next_action",next_action);
+
+		// 6) Push summary to LINE (MVP: text + unlock hint)
+		try
+		{
+			base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
+			// Security: free summary link should NOT expose numeric div id. Link back to LIFF entry only.
+			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url, "（待設定 LIFF URL）"));
+			line_text = "【免費摘要】\n" + summary_text + unlock_hint;
+			push_res = thisapp.API.linePushText(lineUserId,line_text);
+			api_result.put("line_pushed", if(push_res != null && push_res.get("success") == true, true, false));
+			if(push_res != null && push_res.get("success") == false)
+			{
+				api_result.put("line_push_error", push_res.get("message"));
+			}
+		}
+		catch (pushErr)
+		{
+			api_result.put("line_pushed", false);
+			api_result.put("line_push_error", pushErr.toString());
+		}
+
+		return api_result;
+	}
+	catch (e)
+	{
+		api_result.put("success",false);
+		api_result.put("message","系統錯誤：" + e.toString());
+		return api_result;
+	}
+	return api_result;
+}

@@ -1,0 +1,136 @@
+void Training.generateVirtualClient()
+{
+	// =============================================================================
+	// 函數名稱：Training.generateVirtualClient
+	// 函數用途：批次生成虛擬個案資料（測試用）
+	// 平台：Zoho Creator
+	// 命名空間：Training
+	// 功能描述：一次性生成 5 筆虛擬客戶資料用於系統測試：
+	//           - 產生隨機生日（18-50 歲範圍）
+	//           - 隨機決定性別（女 75% / 男 25%）
+	//           - 呼叫 LLM API 生成隨機中文姓名（few-shot）
+	//           - 將虛擬個案資料寫入 Clients_Report（Client_Type="虛擬"）
+	// 參數說明：無
+	// 回傳格式：void（透過 info 輸出生成結果）
+	// 相依性：Clients_Report, thisapp.LLM.callChat
+	// =============================================================================
+	info "--- 開始批次生成 5 位虛擬個案資料 ---";
+	// 使用 for each 迴圈來執行三次
+	iterations = {1,2,3,4,5};
+	for each  i in iterations
+	{
+		info "--- 正在生成第 " + i + " 位個案 ---";
+		// --- 1. 產生隨機生日與時間 ---
+		// Deluge 沒有 random(min, max) 語法。我們用 toLong() 作為亂數種子，並透過取餘數來得到範圍內的數字。
+		// 為了在單次執行中產生多個不同的亂數，我們在每次計算後都用其結果來擾動下一次的種子。
+		// 我們也用迴圈索引 i 來擾動初始種子，確保每輪迴圈的結果都不同。
+		random_seed = zoho.currenttime.toLong() * i;
+		// a. 產生年齡在 18 到 50 歲之間的隨機年份
+		current_year = zoho.currentdate.getYear();
+		random_age = 18 + (random_seed % 33).toLong();
+		// 18 到 50 (範圍 33)
+		random_year = current_year - random_age;
+		random_seed = zoho.currenttime.toLong() + random_age;
+		// 更新種子
+		// b. 產生隨機月份和日期
+		random_month = 1 + (random_seed % 12).toLong();
+		// 1 到 12
+		random_seed = zoho.currenttime.toLong() + random_month;
+		// 更新種子
+		// 為了簡化，我們將日期限制在 1 到 28 之間，以避免處理不同月份天數的問題
+		random_day = 1 + (random_seed % 28).toLong();
+		// 1 到 28
+		random_seed = zoho.currenttime.toLong() + random_day;
+		// 更新種子
+		// c. 產生隨機時間 (0-23時, 0-59分)
+		random_hour = (random_seed % 24).toLong();
+		// 0 到 23
+		random_seed = zoho.currenttime.toLong() + random_hour;
+		// 更新種子
+		random_minute = (random_seed % 60).toLong();
+		// 0 到 59
+		// d. 組合完整的 datetime 物件
+		random_datetime_str = random_year + "-" + random_month + "-" + random_day + " " + random_hour + ":" + random_minute + ":00";
+		random_birthday = random_datetime_str.toTime("yyyy-MM-dd HH:mm:ss");
+		info "1. 已生成隨機生日: " + random_birthday;
+		// --- 2. 呼叫 LLM API 產生隨機姓名 ---
+		// a. 隨機決定要產生的姓名性別 (女性 75%, 男性 25%)
+		target_gender = "男";
+		// 預設為男性
+		random_seed = zoho.currenttime.toLong() + random_minute;
+		// 再次更新種子
+		probability_gender = 1 + (random_seed % 100).toLong();
+		// 產生 1-100 的亂數
+		if(probability_gender <= 75)
+		{
+			target_gender = "女";
+		}
+		info "2. 準備為「" + target_gender + "性」生成隨機姓名...";
+		// b. 使用 LLM.callChat 生成姓名
+		name_system = "你是一位中文命名專家。你的任務是產生聽起來自然、優雅又好聽，且符合現代的中文姓名。請避免使用過於常見的名字(如：市場名)，但同時也要避免過度小說化的人名。你的回答格式必須是「姓氏,名字」，例如「陳,宇翔」或「林,佳穎」。不要包含任何其他文字或解釋。\n\n範例：\n問：請給我一個男性的名字\n答：陳,宇翔\n問：請給我一個女性的名字\n答：林,佳穎";
+		name_user = "請給我一個" + target_gender + "性的名字";
+		name_opts = Map();
+		name_opts.put("max_tokens", 30);
+		name_opts.put("temperature", 1.0);
+		// c. 執行 API 呼叫
+		last_name = "";
+		first_name = "";
+		try
+		{
+			content_str = thisapp.LLM.callChat(name_system, name_user, name_opts).trim();
+			info "3. LLM API 回應: " + content_str;
+			// 將回傳的 "姓,名" 字串，用逗號分割成 List
+			name_list = content_str.toList(",");
+			if(name_list.size() == 2)
+			{
+				last_name = name_list.get(0);
+				first_name = name_list.get(1);
+			}
+		}
+		catch (e)
+		{
+			info "LLM API 呼叫失敗: " + e;
+		}
+		// d. 如果 API 呼叫失敗，提供一組預設的姓名以確保流程能繼續
+		if(last_name == "" || first_name == "")
+		{
+			info "API 姓名生成失敗，使用預設姓名。";
+			if(target_gender == "男")
+			{
+				last_name = "王";
+				first_name = "一飛";
+			}
+			else
+			{
+				last_name = "林";
+				first_name = "羽嬌";
+			}
+		}
+		info "4. 已生成姓名: " + last_name + " " + first_name;
+		// --- 3. 將虛擬個案資料寫入表單 ---
+		if(last_name != "" && first_name != "" && random_birthday != null)
+		{
+			try
+			{
+				insert into Clients_Report
+				[
+					Added_User=zoho.loginuser
+					Visitor_Name.last_name=last_name
+					Visitor_Name.first_name=first_name
+					Date_Of_Birth=random_birthday
+					Client_Type="虛擬"
+				]
+				info "--- 成功! --- 已建立虛擬個案: " + last_name + first_name + "，生日為 " + random_birthday;
+			}
+			catch (e)
+			{
+				info "寫入 Clients_Report 表單失敗: " + e;
+			}
+		}
+		else
+		{
+			info "--- 失敗! --- 因缺少姓名或生日資訊，無法建立個案紀錄。";
+		}
+	}
+	info "--- 批次生成 5 位虛擬個案作業完成 ---";
+}

@@ -1,0 +1,90 @@
+map Talisman.getCompleteRecommendation(string divination_log_id, string client_name)
+{
+	// =============================================================================
+	// 函數名稱：Talisman.getCompleteRecommendation
+	// 函數用途：完整符令推薦主函數，整合基礎推薦 + AI 說明
+	// 平台：Zoho Creator
+	// 命名空間：Talisman
+	// 功能描述：
+	//   - 呼叫 Talisman.getBasicRecommendation 取得基礎推薦資料
+	//   - 檢查推薦是否已達上限（>5 張）
+	//   - 從占卜記錄取得問題類型，呼叫 Talisman.generateTalismanExplanation 生成 AI 個人化說明
+	//   - 將所有資訊打包成完整推薦方案（含價格 360 元）回傳
+	// 參數說明：
+	//   - divination_log_id (string): 「占卜記錄」(Divination_Logs) 表單的紀錄 ID
+	//   - client_name (string): 客戶的稱呼，用於生成更個人化的 AI 文案
+	// 回傳格式：map - 包含完整推薦資訊
+	//   - success (boolean): 整個流程是否成功
+	//   - message (string): 描述執行結果的訊息
+	//   - recommendation_data (map): 包含所有推薦細節的子 Map，或在流程結束時為 null
+	//     - talisman_index (int): 推薦的符令編號 (1-6，6代表已完成)
+	//     - talisman_element (string): 符令的五行屬性
+	//     - hexagram_image (image): 卦象的圖片
+	//     - ai_explanation (string): AI 生成的個人化說明文字
+	//     - price (int): 符令價格
+	//   - error (string): 如果 success 為 false，此欄位會包含錯誤原因
+	// 相依性：Talisman.getBasicRecommendation, Talisman.generateTalismanExplanation, Divination_Logs 表單
+	// =============================================================================
+	final_response = Map();
+	final_response.put("success",false);
+	final_response.put("recommendation_data",null);
+	try
+	{
+		info "--- 步驟 1: 呼叫基礎推薦函數 ---";
+		basic_rec_result = thisapp.Talisman.getBasicRecommendation(divination_log_id);
+		if(basic_rec_result.get("success") == false)
+		{
+			// 如果基礎推薦失敗，直接回傳其錯誤資訊
+			final_response.put("error","獲取基礎推薦失敗：" + basic_rec_result.get("error"));
+			return final_response;
+		}
+		talisman_index = basic_rec_result.get("talisman_index");
+		// --- 步驟 2: 檢查推薦是否已達上限 ---
+		if(talisman_index > 5)
+		{
+			// 已完成所有推薦，這是一個正常的結束流程
+			final_response.put("success",true);
+			final_response.put("message","此占卜的所有符令皆已推薦完畢，感謝您的支持！");
+			return final_response;
+		}
+		info "--- 步驟 3: 呼叫 AI 生成個人化說明 ---";
+		// 從基礎推薦結果中獲取所需參數
+		hexagram_info = basic_rec_result.get("hexagram_info");
+		talisman_element = basic_rec_result.get("talisman_element");
+		// 需要從占卜記錄中獲取問題類型
+		divination_log = Divination_Logs[ID == divination_log_id.toLong()];
+		question_type = divination_log.Question_Type_AI;
+		if(question_type == null)
+		{
+			question_type = "綜合";
+			// 給一個預設值
+		}
+		ai_explanation = "系統預設推薦說明：這張 " + talisman_element + " 符令是針對您本次 " + hexagram_info.get("appearance") + " 卦象所推薦，有助於平衡您在 " + question_type + " 方面的能量。";
+		ai_result = thisapp.Talisman.generateTalismanExplanation(question_type,hexagram_info,talisman_element,client_name);
+		if(ai_result.get("success"))
+		{
+			ai_explanation = ai_result.get("explanation");
+			info "AI 說明生成成功。";
+		}
+		else
+		{
+			info "AI 說明生成失敗：" + ai_result.get("error") + "，將使用預設說明。";
+		}
+		// --- 步驟 4: 打包最終推薦結果 ---
+		recommendation_data = Map();
+		recommendation_data.put("talisman_index",talisman_index);
+		recommendation_data.put("talisman_element",talisman_element);
+		recommendation_data.put("hexagram_image",basic_rec_result.get("hexagram_image"));
+		recommendation_data.put("ai_explanation",ai_explanation);
+		recommendation_data.put("price",360);
+		final_response.put("success",true);
+		final_response.put("message","成功生成完整推薦方案。");
+		final_response.put("recommendation_data",recommendation_data);
+	}
+	catch (e)
+	{
+		final_response.put("error","在生成完整推薦過程中發生未預期錯誤：" + e);
+		info "系統錯誤：" + e;
+	}
+	return final_response;
+}

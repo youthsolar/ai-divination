@@ -1,0 +1,103 @@
+map API.generatePersonalityProfile(string client_id)
+{
+	// =============================================================================
+	// 函數名稱：API.generatePersonalityProfile
+	// 函數用途：生成個性側寫 API（寫回資料庫）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：根據個案的命理資料生成 AI 個性側寫，並將結果寫回資料庫：
+	//           - 參數驗證（個案 ID）
+	//           - 呼叫 AIInterpreter.generatePersonalityProfile 核心函數
+	//           - 將生成的個性側寫寫入 Clients_Report.Personality_Profile
+	//           - 雙重寫入驗證（直接賦值 + update 語法重試）
+	// 參數說明：
+	//   - client_id (string): 個案 ID
+	// 回傳格式：map - {success, personality_profile, character_count, message/error}
+	// 相依性：AIInterpreter.generatePersonalityProfile, Clients_Report
+	// =============================================================================
+	// 採用單一出口模式
+	api_result = Map();
+	try
+	{
+		info "=== 開始生成個性側寫 API ===";
+		info "個案 ID：" + client_id;
+		// === 步驟 1：參數驗證 ===
+		if(client_id == null || client_id == "")
+		{
+			api_result.put("success",false);
+			api_result.put("error","個案 ID 不能為空");
+			return api_result;
+		}
+		// === 步驟 2：調用核心函數生成個性側寫 ===
+		personality_result = thisapp.AIInterpreter.generatePersonalityProfile(client_id);
+		if(personality_result.get("success") == true)
+		{
+			// === 步驟 3：將個性側寫寫回資料庫 ===
+			personality_profile = personality_result.get("personality_profile");
+			character_count = personality_result.get("character_count");
+			// 更新個案記錄
+			client_id_long = client_id.toLong();
+			info "查詢個案 ID (Long)：" + client_id_long;
+			client_record = Clients_Report[ID == client_id_long];
+			if(client_record != null)
+			{
+				info "找到個案記錄，準備更新個性側寫...";
+				// 檢查命理資料是否計算完成
+				if(client_record.Full_Bazi == null || client_record.Full_Bazi == "")
+				{
+					info "警告：八字資料尚未完成，但仍繼續更新個性側寫";
+				}
+				// 使用更明確的更新方式
+				// 先嘗試直接更新
+				client_record.Personality_Profile=personality_profile;
+				// 再查詢一次確認是否寫入
+				verify_record = Clients_Report[ID == client_id_long];
+				if(verify_record.Personality_Profile == null || verify_record.Personality_Profile == "")
+				{
+					info "警告：第一次寫入失敗，嘗試使用 update 語法";
+					// 使用 update 語法重試
+					update Clients_Report[ID == client_id_long]
+					[
+						Personality_Profile=personality_profile
+					];
+					// 再次驗證
+					final_verify = Clients_Report[ID == client_id_long];
+					if(final_verify.Personality_Profile != null && final_verify.Personality_Profile != "")
+					{
+						info "個性側寫已成功寫入（使用 update 語法），字數：" + character_count.toString();
+					}
+					else
+					{
+						info "錯誤：個性側寫寫入失敗！";
+					}
+				}
+				else
+				{
+					info "個性側寫已成功寫入（直接賦值），字數：" + character_count.toString();
+				}
+				api_result.put("success",true);
+				api_result.put("personality_profile",personality_profile);
+				api_result.put("character_count",character_count);
+				api_result.put("message","個性側寫生成成功並已儲存");
+			}
+			else
+			{
+				api_result.put("success",false);
+				api_result.put("error","找不到對應的個案記錄");
+			}
+		}
+		else
+		{
+			// 核心函數執行失敗，直接回傳錯誤
+			api_result.put("success",false);
+			api_result.put("error",personality_result.get("error"));
+		}
+	}
+	catch (e)
+	{
+		api_result.put("success",false);
+		api_result.put("error","系統錯誤：" + e.toString());
+		info "generatePersonalityProfile API 執行錯誤：" + e.toString();
+	}
+	return api_result;
+}

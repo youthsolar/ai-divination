@@ -1,0 +1,462 @@
+map Tarot.tarotDivinationFunction(string client_id, string user_question)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.tarotDivinationFunction
+	// 函數用途：完整塔羅占卜流程函數
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：原 tarot_divination workflow 改寫的函數版本，
+	//           執行完整的塔羅占卜流程：
+	//           1. 問題分類與抽牌建立紀錄
+	//           2. 圖片填入與牌義強化
+	//           3. 主卦分析與符令生成
+	//           4. AI 解讀生成（透過 Flow 或備援 ChatGPT）
+	// 參數說明：
+	//   - client_id (string): 個案 ID
+	//   - user_question (string): 占卜問題
+	// 回傳格式：map - {"success": bool, "message": string, "divination_id": long,
+	//                  "primary_polarity": string, "primary_card_id": long}
+	// 相依性：AIInterpreter.classifyQuestionType, Tarot.getPositionMeanings,
+	//         Tarot.drawRandomSpread, Tarot.determinePrimaryCard,
+	//         Flow.triggerTarotFlowProcessor, Divination_Logs 表單, All_Tarot_Cards 表單
+	// 注意：原名 TarotDivinationFunction，已重命名為 camelCase
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	result = Map();
+	try
+	{
+		// 參數驗證
+		if(client_id == null || client_id == "")
+		{
+			result.put("success",false);
+			result.put("message","個案 ID 不能為空");
+			return result;
+		}
+		clientID = client_id.toLong();
+		// --- 步驟 1: 驗證參數並取得個案記錄 ---
+		// 檢查問題參數
+		if(user_question == null || user_question == "")
+		{
+			result.put("success",false);
+			result.put("message","請提供占卜問題");
+			return result;
+		}
+		// Client_Link 在 Workflow 中可以直接使用 ID，不需要記錄物件
+		// --- 步驟 2: 執行 AI 問題分類 ---
+		classification_result = thisapp.AIInterpreter.classifyQuestionType(user_question);
+		question_type = "其他";
+		if(classification_result != null && classification_result.get("success") == true && classification_result.get("question_type") != null)
+		{
+			question_type = classification_result.get("question_type");
+		}
+		// --- 步驟 3: 獲取牌位意義 ---
+		position_meanings = thisapp.Tarot.getPositionMeanings(question_type);
+		// --- 步驟 4: 執行抽牌 ---
+		tarot_results_list = thisapp.Tarot.drawRandomSpread();
+		if(tarot_results_list.size() > 0)
+		{
+			// --- 步驟 5: 建立占卜記錄 ---
+			try
+			{
+				// 加入調試信息
+				result.put("debug_info","準備插入記錄 - 個案ID: " + clientID + ", 問題: " + user_question + ", 分類: " + question_type + ", 抽到牌數: " + tarot_results_list.size());
+				insert_response = insert into Divination_Logs
+				[
+					Added_User=zoho.loginuser
+					Client_Link=clientID
+					Original_Question=user_question
+					Question_Type_AI=question_type
+					Divination_Method="塔羅"
+					Position_a_Meaning=position_meanings.get("position_1")
+					Position_b_Meaning=position_meanings.get("position_2")
+					Position_c_Meaning=position_meanings.get("position_3")
+					Position_d_Meaning=position_meanings.get("position_4")
+					Position_e_Meaning=position_meanings.get("position_5")
+					Card_1_Link=if(tarot_results_list.size() > 0,tarot_results_list.get(0).get("Card_ID"),null)
+					Card_1_Reversed=if(tarot_results_list.size() > 0,tarot_results_list.get(0).get("Is_Reversed"),false)
+					Card_2_Link=if(tarot_results_list.size() > 1,tarot_results_list.get(1).get("Card_ID"),null)
+					Card_2_Reversed=if(tarot_results_list.size() > 1,tarot_results_list.get(1).get("Is_Reversed"),false)
+					Card_3_Link=if(tarot_results_list.size() > 2,tarot_results_list.get(2).get("Card_ID"),null)
+					Card_3_Reversed=if(tarot_results_list.size() > 2,tarot_results_list.get(2).get("Is_Reversed"),false)
+					Card_4_Link=if(tarot_results_list.size() > 3,tarot_results_list.get(3).get("Card_ID"),null)
+					Card_4_Reversed=if(tarot_results_list.size() > 3,tarot_results_list.get(3).get("Is_Reversed"),false)
+					Card_5_Link=if(tarot_results_list.size() > 4,tarot_results_list.get(4).get("Card_ID"),null)
+					Card_5_Reversed=if(tarot_results_list.size() > 4,tarot_results_list.get(4).get("Is_Reversed"),false)
+				];
+				// insert_response 本身就是 ID，不需要 .get("ID")
+				new_log_id = insert_response;
+				if(new_log_id == null || new_log_id == 0)
+				{
+					result.put("success",false);
+					result.put("message","建立占卜記錄失敗：insert_response 為空");
+					result.put("insert_response",insert_response);
+					return result;
+				}
+				// 驗證記錄是否真的被建立（跨表單查詢測試）
+				verification_id = new_log_id;
+				if(verification_id != null && verification_id != 0)
+				{
+					// 按照 Workflow 環境寫法，直接查詢
+					try
+					{
+						verification_records = Divination_Logs[ID == verification_id];
+						if(verification_records.count() == 0)
+						{
+							result.put("success",false);
+							result.put("message","記錄建立後無法查詢到，可能是跨表單同步問題");
+							result.put("new_log_id",new_log_id);
+							result.put("verification_id",verification_id);
+							return result;
+						}
+						else
+						{
+							result.put("verification_success","記錄建立並成功查詢，共 " + verification_records.count() + " 筆");
+						}
+					}
+					catch (verification_error)
+					{
+						result.put("verification_warning","ID轉換失敗：" + verification_error);
+					}
+				}
+				// 加入調試信息
+				result.put("new_log_id_success",new_log_id);
+			}
+			catch (insert_error)
+			{
+				result.put("success",false);
+				result.put("message","建立占卜記錄時發生錯誤：" + insert_error);
+				return result;
+			}
+			// --- 步驟 6: 主卦分析與符令生成 ---
+			// 準備主卦分析所需的資料
+			card_ids_for_analysis = List();
+			reversed_statuses_for_analysis = List();
+			for each  tarot_result in tarot_results_list
+			{
+				card_ids_for_analysis.add(tarot_result.get("Card_ID"));
+				reversed_statuses_for_analysis.add(tarot_result.get("Is_Reversed"));
+			}
+			// 執行主卦分析
+			primary_analysis = thisapp.Tarot.determinePrimaryCard(card_ids_for_analysis,reversed_statuses_for_analysis);
+			if(primary_analysis.get("success") == true)
+			{
+				primary_polarity = primary_analysis.get("primary_polarity");
+				primary_card_id = primary_analysis.get("primary_card_id");
+				// 取得主卦牌卡的符令圖片，按照 Action2 寫法
+				primary_card_collection = All_Tarot_Cards[ID == primary_card_id];
+				primary_talisman_image = null;
+				for each  primary_card in primary_card_collection
+				{
+					if(primary_polarity == "逆位")
+					{
+						if(primary_card.Reverse_Talisman_Image != null && primary_card.Reverse_Talisman_Image != "")
+						{
+							primary_talisman_image = primary_card.Reverse_Talisman_Image;
+						}
+					}
+					else
+					{
+						if(primary_card.Upright_Talisman_Image != null && primary_card.Upright_Talisman_Image != "")
+						{
+							primary_talisman_image = primary_card.Upright_Talisman_Image;
+						}
+					}
+					break;
+				}
+				// 更新記錄的主卦資訊，按照 Action2 寫法
+				latest_divination = Divination_Logs[ID == new_log_id];
+				for each  div_record in latest_divination
+				{
+					div_record.Primary_Trend_Polarity=primary_polarity;
+					div_record.Primary_Talisman_Card_ID=primary_card_id;
+					if(primary_talisman_image != null)
+					{
+						div_record.Primary_Talisman_Image=primary_talisman_image;
+					}
+					break;
+				}
+			}
+			// --- 步驟 7: 圖片填入與牌義強化 ---
+			// 查找剛剛建立的塔羅占卜紀錄並處理圖片和強化牌位意義，按照 Action2 寫法
+			latest_divination_for_images = Divination_Logs[ID == new_log_id];
+			for each  latest_record in latest_divination_for_images
+			{
+				// 為每張牌填入正確的圖片和強化牌位意義
+				// Card 1
+				if(latest_record.Card_1_Link != null)
+				{
+					card_collection = All_Tarot_Cards[ID == latest_record.Card_1_Link];
+					for each  card_record in card_collection
+					{
+						// 填入圖片
+						latest_record.Card_1_Image=if(latest_record.Card_1_Reversed,card_record.Reversed_Image,card_record.Upright_Image);
+						// 強化牌位意義
+						base_meaning = latest_record.Position_a_Meaning;
+						if(base_meaning == null || base_meaning == "")
+						{
+							base_meaning = "牌位1意義";
+						}
+						card_name = card_record.Card_Name;
+						element = if(latest_record.Card_1_Reversed,card_record.Reversed_Outsight_Element,card_record.Outsight_Element);
+						card_meaning = if(latest_record.Card_1_Reversed,card_record.Reversed_Meaning,card_record.Upright_Meaning);
+						talisman = if(latest_record.Card_1_Reversed,card_record.Reversed_Talisman,card_record.Upright_Talisman);
+						card_description = card_record.Card_Description;
+						// 處理符令為空的情況
+						if(talisman == null || talisman == "")
+						{
+							talisman = "未知元素";
+						}
+						position_status = if(latest_record.Card_1_Reversed,"逆位","正位");
+						talisman_note = if(latest_record.Card_1_Reversed,"（但是現在是逆位的牌，要使用" + talisman + "元素來生剋）","（要使用" + talisman + "元素來生剋）");
+						// 移除符令的強制檢查，允許符令為空值時繼續執行
+						if(card_name != null && card_name != "" && element != null && element != "" && card_meaning != null && card_meaning != "" && card_description != null && card_description != "")
+						{
+							enhanced_meaning = "【" + base_meaning + "】：" + position_status + card_name + "（" + element + "元素），" + card_meaning + "，這個牌面的描述是：" + card_description + talisman_note;
+							latest_record.Position_a_Meaning=enhanced_meaning;
+						}
+						break;
+					}
+				}
+				// Card 2
+				if(latest_record.Card_2_Link != null)
+				{
+					card_collection = All_Tarot_Cards[ID == latest_record.Card_2_Link];
+					for each  card_record in card_collection
+					{
+						latest_record.Card_2_Image=if(latest_record.Card_2_Reversed,card_record.Reversed_Image,card_record.Upright_Image);
+						base_meaning = latest_record.Position_b_Meaning;
+						if(base_meaning == null || base_meaning == "")
+						{
+							base_meaning = "牌位2意義";
+						}
+						card_name = card_record.Card_Name;
+						element = if(latest_record.Card_2_Reversed,card_record.Reversed_Outsight_Element,card_record.Outsight_Element);
+						card_meaning = if(latest_record.Card_2_Reversed,card_record.Reversed_Meaning,card_record.Upright_Meaning);
+						talisman = if(latest_record.Card_2_Reversed,card_record.Reversed_Talisman,card_record.Upright_Talisman);
+						card_description = card_record.Card_Description;
+						// 處理符令為空的情況
+						if(talisman == null || talisman == "")
+						{
+							talisman = "未知元素";
+						}
+						position_status = if(latest_record.Card_2_Reversed,"逆位","正位");
+						talisman_note = if(latest_record.Card_2_Reversed,"（但是現在是逆位的牌，要使用" + talisman + "元素來生剋）","（要使用" + talisman + "元素來生剋）");
+						// 移除符令的強制檢查，允許符令為空值時繼續執行
+						if(card_name != null && card_name != "" && element != null && element != "" && card_meaning != null && card_meaning != "" && card_description != null && card_description != "")
+						{
+							enhanced_meaning = "【" + base_meaning + "】：" + position_status + card_name + "（" + element + "元素），" + card_meaning + "，這個牌面的描述是：" + card_description + talisman_note;
+							latest_record.Position_b_Meaning=enhanced_meaning;
+						}
+						break;
+					}
+				}
+				// Card 3
+				if(latest_record.Card_3_Link != null)
+				{
+					card_collection = All_Tarot_Cards[ID == latest_record.Card_3_Link];
+					for each  card_record in card_collection
+					{
+						latest_record.Card_3_Image=if(latest_record.Card_3_Reversed,card_record.Reversed_Image,card_record.Upright_Image);
+						base_meaning = latest_record.Position_c_Meaning;
+						if(base_meaning == null || base_meaning == "")
+						{
+							base_meaning = "牌位3意義";
+						}
+						card_name = card_record.Card_Name;
+						element = if(latest_record.Card_3_Reversed,card_record.Reversed_Outsight_Element,card_record.Outsight_Element);
+						card_meaning = if(latest_record.Card_3_Reversed,card_record.Reversed_Meaning,card_record.Upright_Meaning);
+						talisman = if(latest_record.Card_3_Reversed,card_record.Reversed_Talisman,card_record.Upright_Talisman);
+						card_description = card_record.Card_Description;
+						// 處理符令為空的情況
+						if(talisman == null || talisman == "")
+						{
+							talisman = "未知元素";
+						}
+						position_status = if(latest_record.Card_3_Reversed,"逆位","正位");
+						talisman_note = if(latest_record.Card_3_Reversed,"（但是現在是逆位的牌，要使用" + talisman + "元素來生剋）","（要使用" + talisman + "元素來生剋）");
+						// 移除符令的強制檢查，允許符令為空值時繼續執行
+						if(card_name != null && card_name != "" && element != null && element != "" && card_meaning != null && card_meaning != "" && card_description != null && card_description != "")
+						{
+							enhanced_meaning = "【" + base_meaning + "】：" + position_status + card_name + "（" + element + "元素），" + card_meaning + "，這個牌面的描述是：" + card_description + talisman_note;
+							latest_record.Position_c_Meaning=enhanced_meaning;
+						}
+						break;
+					}
+				}
+				// Card 4
+				if(latest_record.Card_4_Link != null)
+				{
+					card_collection = All_Tarot_Cards[ID == latest_record.Card_4_Link];
+					for each  card_record in card_collection
+					{
+						latest_record.Card_4_Image=if(latest_record.Card_4_Reversed,card_record.Reversed_Image,card_record.Upright_Image);
+						base_meaning = latest_record.Position_d_Meaning;
+						if(base_meaning == null || base_meaning == "")
+						{
+							base_meaning = "牌位4意義";
+						}
+						card_name = card_record.Card_Name;
+						element = if(latest_record.Card_4_Reversed,card_record.Reversed_Outsight_Element,card_record.Outsight_Element);
+						card_meaning = if(latest_record.Card_4_Reversed,card_record.Reversed_Meaning,card_record.Upright_Meaning);
+						talisman = if(latest_record.Card_4_Reversed,card_record.Reversed_Talisman,card_record.Upright_Talisman);
+						card_description = card_record.Card_Description;
+						// 處理符令為空的情況
+						if(talisman == null || talisman == "")
+						{
+							talisman = "未知元素";
+						}
+						position_status = if(latest_record.Card_4_Reversed,"逆位","正位");
+						talisman_note = if(latest_record.Card_4_Reversed,"（但是現在是逆位的牌，要使用" + talisman + "元素來生剋）","（要使用" + talisman + "元素來生剋）");
+						// 移除符令的強制檢查，允許符令為空值時繼續執行
+						if(card_name != null && card_name != "" && element != null && element != "" && card_meaning != null && card_meaning != "" && card_description != null && card_description != "")
+						{
+							enhanced_meaning = "【" + base_meaning + "】：" + position_status + card_name + "（" + element + "元素），" + card_meaning + "，這個牌面的描述是：" + card_description + talisman_note;
+							latest_record.Position_d_Meaning=enhanced_meaning;
+						}
+						break;
+					}
+				}
+				// Card 5
+				if(latest_record.Card_5_Link != null)
+				{
+					card_collection = All_Tarot_Cards[ID == latest_record.Card_5_Link];
+					for each  card_record in card_collection
+					{
+						latest_record.Card_5_Image=if(latest_record.Card_5_Reversed,card_record.Reversed_Image,card_record.Upright_Image);
+						base_meaning = latest_record.Position_e_Meaning;
+						if(base_meaning == null || base_meaning == "")
+						{
+							base_meaning = "牌位5意義";
+						}
+						card_name = card_record.Card_Name;
+						element = if(latest_record.Card_5_Reversed,card_record.Reversed_Outsight_Element,card_record.Outsight_Element);
+						card_meaning = if(latest_record.Card_5_Reversed,card_record.Reversed_Meaning,card_record.Upright_Meaning);
+						talisman = if(latest_record.Card_5_Reversed,card_record.Reversed_Talisman,card_record.Upright_Talisman);
+						card_description = card_record.Card_Description;
+						// 處理符令為空的情況
+						if(talisman == null || talisman == "")
+						{
+							talisman = "未知元素";
+						}
+						position_status = if(latest_record.Card_5_Reversed,"逆位","正位");
+						talisman_note = if(latest_record.Card_5_Reversed,"（但是現在是逆位的牌，要使用" + talisman + "元素來生剋）","（要使用" + talisman + "元素來生剋）");
+						// 移除符令的強制檢查，允許符令為空值時繼續執行
+						if(card_name != null && card_name != "" && element != null && element != "" && card_meaning != null && card_meaning != "" && card_description != null && card_description != "")
+						{
+							enhanced_meaning = "【" + base_meaning + "】：" + position_status + card_name + "（" + element + "元素），" + card_meaning + "，這個牌面的描述是：" + card_description + talisman_note;
+							latest_record.Position_e_Meaning=enhanced_meaning;
+						}
+						break;
+					}
+				}
+				// --- 步驟 8: Flow AI 解讀 ---
+				// 準備傳遞給 Flow 的資料
+				tarot_data = Map();
+				// 加入基本資訊
+				question_text = latest_record.Original_Question;
+				question_type_final = latest_record.Question_Type_AI;
+				// 加入所有牌位意義
+				tarot_data.put("Position_1_Meaning",latest_record.Position_a_Meaning);
+				tarot_data.put("Position_2_Meaning",latest_record.Position_b_Meaning);
+				tarot_data.put("Position_3_Meaning",latest_record.Position_c_Meaning);
+				tarot_data.put("Position_4_Meaning",latest_record.Position_d_Meaning);
+				tarot_data.put("Position_5_Meaning",latest_record.Position_e_Meaning);
+				// 加入牌卡的正逆位資訊
+				tarot_data.put("Card_1_Reversed",latest_record.Card_1_Reversed);
+				tarot_data.put("Card_2_Reversed",latest_record.Card_2_Reversed);
+				tarot_data.put("Card_3_Reversed",latest_record.Card_3_Reversed);
+				tarot_data.put("Card_4_Reversed",latest_record.Card_4_Reversed);
+				tarot_data.put("Card_5_Reversed",latest_record.Card_5_Reversed);
+				// === Thread ID 管理：查找客戶最近的 Thread ID ===
+				existing_thread_id = "";
+				if(client_id != null && client_id != "")
+				{
+					// 查找該客戶最近的占卜記錄以獲得 Thread ID
+					recent_divinations = Divination_Logs[Client_Link == clientID && Thread_ID != null && Thread_ID != ""];
+					// 手動找到最新的記錄（依據 ID，ID 越大表示越新）
+					latest_thread_record = null;
+					latest_record_id = 0;
+					if(recent_divinations.count() > 0)
+					{
+						for each  recent_divination in recent_divinations
+						{
+							current_id = recent_divination.ID;
+							if(current_id > latest_record_id)
+							{
+								latest_record_id = current_id;
+								latest_thread_record = recent_divination;
+							}
+						}
+						if(latest_thread_record != null)
+						{
+							existing_thread_id = latest_thread_record.Thread_ID;
+							info "找到現有Thread ID：" + existing_thread_id + "，支援連續對話";
+						}
+					}
+				}
+				// 檢查是否有足夠的資料進行 AI 解讀
+				result.put("ai_debug_question",question_text);
+				result.put("ai_debug_type",question_type_final);
+				result.put("ai_debug_position_a",latest_record.Position_a_Meaning);
+				result.put("ai_debug_thread_id",existing_thread_id);
+				if(question_text != null && question_text != "" && question_type_final != null && question_type_final != "" && latest_record.Position_a_Meaning != null && latest_record.Position_a_Meaning != "")
+				{
+					// 呼叫 Flow 觸發函數進行 AI 解讀
+					result.put("ai_debug_calling","正在呼叫 Flow AI 解讀");
+					flowTriggerResult = thisapp.Flow.triggerTarotFlowProcessor({"divinationId":new_log_id.toString(),"questionText":question_text,"questionType":question_type_final,"tarotSpreadData":tarot_data,"clientId":client_id,"threadId":existing_thread_id});
+					result.put("ai_debug_flow_result",flowTriggerResult);
+					// 處理 Flow 結果
+					if(flowTriggerResult.get("success") == true)
+					{
+						processingMethod = flowTriggerResult.get("processingMethod");
+						if(processingMethod == "Flow異步")
+						{
+							// Flow 異步處理：等待完成（需要後續輪詢機制）
+							latest_record.AI_Interpretation="? AI正在為您進行深度解讀，請稍候2-3分鐘...";
+							latest_record.Status="處理中";
+							result.put("processing_method","Flow異步處理");
+							result.put("message","占卜抽牌完成！AI正在進行深度解讀，預計2-3分鐘內完成。");
+						}
+						else if(processingMethod == "備援ChatGPT")
+						{
+							// ChatGPT 同步處理完成
+							interpretation_text = flowTriggerResult.get("interpretation");
+							latest_record.AI_Interpretation=interpretation_text;
+							latest_record.Status="已完成";
+							result.put("processing_method","備援ChatGPT處理");
+						}
+					}
+					else
+					{
+						// Flow 觸發失敗，使用預設訊息
+						latest_record.AI_Interpretation="很抱歉，AI解讀暫時無法使用，但您的塔羅牌已抽取完成。請稍後查看解讀結果。";
+						latest_record.Status="已提問";
+						result.put("processing_method","抽牌完成");
+					}
+				}
+				else
+				{
+					latest_record.AI_Interpretation="很抱歉，由於占卜資料不完整，無法提供完整的解讀。請重新進行占卜或聯繫客服協助。";
+					latest_record.Status="資料不完整";
+				}
+				break;
+			}
+			result.put("success",true);
+			result.put("message","塔羅占卜完成！問題：" + user_question);
+			result.put("divination_id",new_log_id);
+			result.put("primary_polarity",primary_polarity);
+			result.put("primary_card_id",primary_card_id);
+		}
+		else
+		{
+			result.put("success",false);
+			result.put("message","抽牌過程發生問題，請稍後再試");
+		}
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("message","塔羅占卜過程發生錯誤：" + e);
+	}
+	return result;
+}

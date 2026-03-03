@@ -1,0 +1,236 @@
+map OpenAI.callAssistant(string userMessage, string threadId)
+{
+	// =============================================================================
+	// 函數名稱：callAssistant
+	// 函數用途：通用介面，將用戶訊息傳遞給 OpenAI Assistant 並取得文字回應
+	// 平台：Zoho Creator
+	// 命名空間：OpenAI
+	//
+	// 功能描述：
+	// - 若 threadId 為空則自動建立新的 Thread
+	// - 將 userMessage 加入 Thread 中
+	// - 建立並執行 Assistant Run
+	// - 輪詢 Run 狀態（最多 20 次），採用動態延遲策略
+	// - 完成後取得 Assistant 的最新回應文字
+	//
+	// 參數說明：
+	// @param userMessage (string) - 訪客輸入的文字訊息
+	// @param threadId (string) - OpenAI Assistant 會話的 Thread ID；空字串則建立新會話
+	//
+	// 回傳格式：
+	// @return (map)
+	//   - success (boolean): API 呼叫是否成功
+	//   - response (string): AI Assistant 的文字回應
+	//   - threadId (string): 本次會話的 Thread ID
+	//   - errorMessage (string): 錯誤訊息（成功時為空字串）
+	//
+	// 相依性：
+	// - thisapp.variables.OpenAI.OpenAI_API_Key（組織變數）
+	// - thisapp.variables.OpenAI.OpenAI_Assistant_ID（組織變數）
+	// - OpenAI Assistants API v2（Threads / Messages / Runs）
+	//
+	// 注意：
+	// - 輪詢延遲使用計算迴圈模擬（Deluge 無 sleep 函數）
+	// - 前 3 次短延遲、4-8 次中延遲、9 次後長延遲
+	// - Run 失敗/取消/過期時立即回傳錯誤
+	// =============================================================================
+
+	// 初始化回傳結果
+	responseMap = Map();
+	responseMap.put("success",false);
+	responseMap.put("response","");
+	responseMap.put("threadId","");
+	responseMap.put("errorMessage","");
+	// 取得組織變數
+	api_key = thisapp.variables.OpenAI.OpenAI_API_Key;
+	assistant_id = thisapp.variables.OpenAI.OpenAI_Assistant_ID;
+	// 檢查必要的變數是否存在
+	if(api_key == null || api_key == "")
+	{
+		responseMap.put("errorMessage","OpenAI API Key 未設定。請檢查組織變數。");
+		return responseMap;
+	}
+	if(assistant_id == null || assistant_id == "")
+	{
+		responseMap.put("errorMessage","OpenAI Assistant ID 未設定。請檢查組織變數。");
+		return responseMap;
+	}
+	// 定義 OpenAI API 的共通 header
+	headers = Map();
+	headers.put("Authorization","Bearer " + api_key);
+	headers.put("OpenAI-Beta","assistants=v2");
+	headers.put("Content-Type","application/json");
+	thread_id_to_use = threadId;
+	// 步驟 1：判斷是否需要建立新的 Thread
+	if(thread_id_to_use == null || thread_id_to_use == "")
+	{
+		thread_create_url = "https://api.openai.com/v1/threads";
+		thread_create_response = invokeurl
+		[
+			url :thread_create_url
+			type :POST
+			headers:headers
+		];
+		if(thread_create_response.get("id") != null)
+		{
+			thread_id_to_use = thread_create_response.get("id");
+			info "callAssistant: 成功建立新 Thread, ID: " + thread_id_to_use;
+		}
+		else
+		{
+			responseMap.put("errorMessage","建立 OpenAI Thread 失敗：" + thread_create_response.tostring());
+			return responseMap;
+		}
+	}
+	else
+	{
+		info "callAssistant: 使用現有 Thread, ID: " + thread_id_to_use;
+	}
+	responseMap.put("threadId",thread_id_to_use);
+	// 步驟 2：添加用戶訊息到 Thread
+	message_add_url = "https://api.openai.com/v1/threads/" + thread_id_to_use + "/messages";
+	message_content_map = Map();
+	message_content_map.put("role","user");
+	message_content_map.put("content",userMessage);
+	message_add_response = invokeurl
+	[
+		url :message_add_url
+		type :POST
+		parameters:message_content_map.tostring()
+		headers:headers
+	];
+	if(message_add_response.get("id") == null)
+	{
+		responseMap.put("errorMessage","添加訊息到 Thread 失敗：" + message_add_response.tostring());
+		return responseMap;
+	}
+	info "callAssistant: 成功添加用戶訊息, Message ID: " + message_add_response.get("id");
+	// 步驟 3：建立並執行 Assistant Run
+	run_create_url = "https://api.openai.com/v1/threads/" + thread_id_to_use + "/runs";
+	run_body_map = Map();
+	run_body_map.put("assistant_id",assistant_id);
+	run_create_response = invokeurl
+	[
+		url :run_create_url
+		type :POST
+		parameters:run_body_map.tostring()
+		headers:headers
+	];
+	if(run_create_response.get("id") == null)
+	{
+		responseMap.put("errorMessage","建立 Assistant Run 失敗：" + run_create_response.tostring());
+		return responseMap;
+	}
+	run_id = run_create_response.get("id");
+	info "callAssistant: 成功建立 Assistant Run, ID: " + run_id;
+	// 步驟 4：輪詢 Run 狀態（最多 20 次）
+	run_status_url = "https://api.openai.com/v1/threads/" + thread_id_to_use + "/runs/" + run_id;
+	run_status = "";
+	run_completed = false;
+	retryNumbers = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+	for each  retryNum in retryNumbers
+	{
+		if(run_completed == false)
+		{
+			// 取得 Run 的狀態
+			run_check_response = invokeurl
+			[
+				url :run_status_url
+				type :GET
+				headers:headers
+			];
+			run_status = run_check_response.get("status");
+			info "callAssistant: Run ID: " + run_id + ", 重試第 " + retryNum + " 次，狀態: " + run_status;
+			if(run_status == "completed")
+			{
+				run_completed = true;
+				info "callAssistant: Assistant Run 成功完成";
+			}
+			else if(run_status == "failed" || run_status == "cancelled" || run_status == "expired")
+			{
+				// 運行失敗或被取消，立即停止輪詢
+				responseMap.put("errorMessage","Assistant Run 失敗，狀態：" + run_status + ", 錯誤詳情: " + run_check_response.tostring());
+				return responseMap;
+			}
+			else
+			{
+				// 動態延遲：根據重試次數調整等待時間
+				if(retryNum <= 3)
+				{
+					// 前 3 次：短延遲（約 2-3 秒）
+					for each  delayNum in {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20}
+					{
+						temp_calc = retryNum * delayNum + 100;
+						temp_string = "waiting_" + temp_calc.toString();
+					}
+				}
+				else if(retryNum <= 8)
+				{
+					// 第 4-8 次：中等延遲（約 5-6 秒）
+					for each  delayNum in {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40}
+					{
+						temp_calc = retryNum * delayNum + 200;
+						temp_string = "waiting_" + temp_calc.toString();
+						temp_list = {temp_calc,temp_calc + 1,temp_calc + 2};
+					}
+				}
+				else
+				{
+					// 第 9 次以後：長延遲（約 8-10 秒）
+					for each  delayNum in {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60}
+					{
+						temp_calc = retryNum * delayNum + 300;
+						temp_string = "waiting_" + temp_calc.toString();
+						temp_list = {temp_calc,temp_calc + 1,temp_calc + 2,temp_calc + 3,temp_calc + 4};
+						temp_map = Map();
+						temp_map.put("delay",temp_calc);
+					}
+				}
+				info "callAssistant: 延遲完成，準備下次狀態檢查";
+			}
+		}
+	}
+	// 檢查最終 Run 狀態
+	if(run_completed == false)
+	{
+		responseMap.put("errorMessage","Assistant Run 超時未完成，最終狀態：" + run_status);
+		return responseMap;
+	}
+	// 步驟 5：取得 Assistant 的回應
+	messages_url = "https://api.openai.com/v1/threads/" + thread_id_to_use + "/messages";
+	messages_response = invokeurl
+	[
+		url :messages_url
+		type :GET
+		headers:headers
+	];
+	if(messages_response.get("data") != null && messages_response.get("data").size() > 0)
+	{
+		// 尋找最新的 Assistant 回應
+		for each  message_item in messages_response.get("data")
+		{
+			if(message_item.get("role") == "assistant")
+			{
+				content_array = message_item.get("content");
+				if(content_array != null && content_array.size() > 0)
+				{
+					// 提取文字內容
+					text_content = content_array.get(0).get("text").get("value");
+					responseMap.put("response",text_content);
+					responseMap.put("success",true);
+					break;
+				}
+			}
+		}
+		// 如果沒有找到 Assistant 回應
+		if(responseMap.get("success") == false)
+		{
+			responseMap.put("errorMessage","未在回應中找到 Assistant 的訊息");
+		}
+	}
+	else
+	{
+		responseMap.put("errorMessage","未能取得訊息列表：" + messages_response.tostring());
+	}
+	return responseMap;
+}

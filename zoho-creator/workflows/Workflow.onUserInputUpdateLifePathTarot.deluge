@@ -1,0 +1,44 @@
+// 此腳本取自 DS 檔案的 workflow/form 區塊，用於 Creator IDE 表單事件
+// 原始 DS 位置: workflow > form > Bazi_Constellation_Zodiac (Clients_Report)
+// 觸發事件: on add or edit > on success > actions (第8段)
+//
+// [WORKFLOW]
+// Form: Clients_Report (個案報告)
+// Trigger: On User Input (當使用者輸入時)
+// Field: Date_Of_Birth (出生日期)
+// -----------------------------------------------------------------------------
+// Description:
+// 當使用者在「個案報告」表單中填寫或修改「出生日期」欄位時，
+// 此工作流會自動觸發，調用核心函數 Tarot.getLifePathTarot() 來計算本命塔羅牌陣，
+// 並將結果更新到對應的四個Lookup欄位中。
+// 如果「出生日期」被清空，此腳本也會一併清空相關的塔羅牌欄位。
+// -----------------------------------------------------------------------------
+// 檢查生日欄位是否有值
+if(input.Date_Of_Birth != null)
+{
+	// 呼叫我們的核心函數來計算三張牌
+	tarot_results = thisapp.Tarot.getLifePathTarot(input.Date_Of_Birth);
+	// 將函數回傳的ID更新到對應的Lookup欄位中
+	// 請確保以下的 Deluge 名稱與您在表單中建立的 Lookup 欄位相符
+	// 更新本命塔羅 (來自"本世功課")
+	input.Ben_Ming_Tarot = tarot_results.get("本世功課_ID");
+	// 更新現狀塔羅 (來自"時事地")
+	input.Xian_Zhuang_Tarot = tarot_results.get("時事地_ID");
+	// 更新業力塔羅 (來自"業力因果")
+	input.Ye_Li_Tarot = tarot_results.get("業力因果_ID");
+	// 關於 "天緣塔羅":
+	// 目前的核心函數尚未包含計算第四張牌的邏輯。
+	// 在其計算規則確定後，我們可以在 Tarot.getLifePathTarot 中增加邏輯，
+	// 並在此處增加一行 "input.Tian_Yuan_Tarot = tarot_results.get("天緣塔羅_ID");" 即可。
+	input.Tian_Yuan_Tarot = null;
+	info "本命塔羅牌陣已自動更新";
+}
+else
+{
+	// 如果生日被清空，也清空對應的塔羅牌欄位
+	input.Ben_Ming_Tarot = null;
+	input.Xian_Zhuang_Tarot = null;
+	input.Ye_Li_Tarot = null;
+	input.Tian_Yuan_Tarot = null;
+	info "生日已清除，本命塔羅牌陣已重設";
+}

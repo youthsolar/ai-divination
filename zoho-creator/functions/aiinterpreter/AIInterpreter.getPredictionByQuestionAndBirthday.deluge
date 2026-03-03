@@ -1,0 +1,238 @@
+string AIInterpreter.getPredictionByQuestionAndBirthday(string question, date solarDateTime, string clientId)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.getPredictionByQuestionAndBirthday
+	// 函數用途：易經占卜核心預測函數（LLM 同步版）
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：根據問題與出生日期時間進行完整易經占卜流程：
+	//           - 參數驗證（問題、時間、個案 ID 皆必要）
+	//           - 根據時間產生爻碼並查詢卦象資料
+	//           - 冷卻機制檢查（觸發則安撫拒絕，不消耗 token）
+	//           - 收集個案命理資料（八字、星座、生肖、星宿、太歲）
+	//           - 組裝完整 AI Prompt（含規範、個性線索、卦象總覽）
+	//           - 呼叫 LLM.callChat 同步取得回應並儲存占卜記錄
+	// 參數說明：
+	//   - question (string): 占卜問題
+	//   - solarDateTime (date): 起卦時間（陽曆日期時間）
+	//   - clientId (string): 個案 ID（必要，用於冷卻機制與記錄）
+	// 回傳格式：string - AI 占卜解讀文字
+	// 相依性：GuaCalculator.bitToHexagramCode, Hexagram.getHexagramByYaoCode,
+	//         AIInterpreter.checkCooldownStatus, LLM.callChat,
+	//         Clients_Report, Divination_Logs, Zodiac_Signs, Earthly_Branches,
+	//         Twenty_Eight_Lunar_Mansions 表單
+	// 注意：
+	//   - 原名 getPredictionByQuestionAndBirthday_v2，已重命名
+	//   - Bug #4 修正 — 空 clientId 前置擋回
+	//   - 已從 OpenAI Assistants API v2（Thread-based）遷移至 LLM.callChat（同步）
+	//   - Thread_ID 欄位已棄用（deprecated），不再寫入新記錄
+	// =============================================================================
+	finalResult = "";
+	try
+	{
+		// 步驟 1: 參數驗證
+		if(question == null || question.trim() == "")
+		{
+			finalResult = "抱歉，占卜問題不能為空，請重新輸入您的問題。";
+		}
+		else if(solarDateTime == null)
+		{
+			finalResult = "抱歉，起卦時間無效，請檢查日期時間設定。";
+		}
+		else if(clientId == null || clientId.trim() == "")
+		{
+			// Bug #4 修正：空 clientId 前置擋回，不繞過冷卻機制
+			finalResult = "為了讓占卜更準確、也保護你不被情緒牽著走，我需要先確認你的身份。請先完成資料綁定後再提問。";
+		}
+		else
+		{
+			// 參數驗證通過，開始執行主要邏輯
+			// 初始化所需變數
+			yaoCode = "";
+			hexData = Map();
+			final_interpretation = "";
+			prompt = "";
+			error_message = "";
+			recent_logs = List();
+			divination_record = Map();
+			new_log = Map();
+			// 步驟 2: 根據生日時間，產生爻碼並獲取對應的卦象資料
+			yaoCode = thisapp.GuaCalculator.bitToHexagramCode(solarDateTime);
+			hexData = thisapp.Hexagram.getHexagramByYaoCode(yaoCode);
+			// 如果回傳的 map 中不包含 "卦名" (appearance)，代表查詢失敗
+			if(hexData.get("appearance") == null)
+			{
+				finalResult = "抱歉，系統無法根據您提供的時間找到對應的卦象資料 (爻碼: " + yaoCode + ")。請稍後再試。";
+			}
+			else
+			{
+				info "成功獲取卦象資料 - 卦名：" + hexData.get("appearance") + "，爻碼：" + yaoCode;
+				// 步驟 2.5: 冷卻機制檢查（觸發則安撫但不占卜；並直接 return，節省 token）
+				cooldown_check = Map();
+				selected_question_type = "";
+				if(clientId != null && clientId != "")
+				{
+					cooldown_check = thisapp.AIInterpreter.checkCooldownStatus(clientId,question,solarDateTime);
+					if(cooldown_check != null && cooldown_check.get("question_type") != null)
+					{
+						selected_question_type = cooldown_check.get("question_type");
+					}
+					if(cooldown_check != null && cooldown_check.get("allowed") == false)
+					{
+						finalResult = if(cooldown_check.get("message") != null,cooldown_check.get("message"),"我知道你很在意這件事，但我們需要先冷靜一下再占卜。稍後再回來，我會陪你看。");
+						// 記錄冷卻拒絕（不呼叫 AI，節省 token）
+						new_log = insert into Divination_Logs
+						[
+							Client_Link=clientId.toLong()
+							Original_Question=question
+							Divination_Timestamp=solarDateTime
+							Divination_Method="易經"
+							Status="冷卻拒絕"
+							Question_Type_AI=selected_question_type
+							Added_User=zoho.loginuser
+						];
+						return finalResult;
+					}
+				}
+				// 步驟 2.6: 收集個性線索（讓 AI 自動決定語氣；不讓使用者選）
+				persona_text = "";
+				if(clientId != null && clientId != "")
+				{
+					client_records = Clients_Report[ID == clientId.toLong()];
+					if(client_records.count() > 0)
+					{
+						client_info = null;
+						for each  c in client_records
+						{
+							client_info = c;
+							break;
+						}
+						if(client_info != null)
+						{
+							persona_text = persona_text + "- 八字：" + if(client_info.Full_Bazi != null,client_info.Full_Bazi,"") + "\n";
+							zodiac_name = "";
+							if(client_info.Zodiac_Signs != null)
+							{
+								zodiac_records = Zodiac_Signs[ID == client_info.Zodiac_Signs];
+								for each  z in zodiac_records
+								{
+									zodiac_name = z.Sign_Name;
+									break;
+								}
+							}
+							persona_text = persona_text + "- 星座：" + zodiac_name + "\n";
+							chinese_zodiac_name = "";
+							if(client_info.Chinese_Zodiac != null)
+							{
+								cz_records = Earthly_Branches[ID == client_info.Chinese_Zodiac];
+								for each  cz in cz_records
+								{
+									chinese_zodiac_name = cz.Chinese_Zodiac;
+									break;
+								}
+							}
+							persona_text = persona_text + "- 生肖：" + chinese_zodiac_name + "\n";
+							lunar_mansion_name = "";
+							if(client_info.Twenty_Eight_Lunar_Mansions != null)
+							{
+								mansion_records = Twenty_Eight_Lunar_Mansions[ID == client_info.Twenty_Eight_Lunar_Mansions];
+								for each  m in mansion_records
+								{
+									lunar_mansion_name = m.Full_Name;
+									break;
+								}
+							}
+							persona_text = persona_text + "- 星宿：" + lunar_mansion_name + "\n";
+							persona_text = persona_text + "- 太歲：" + if(client_info.Taisui_Conflict_Status != null,client_info.Taisui_Conflict_Status,"") + "\n";
+							// 若已有個性側寫文字，優先引用前 200 字作為摘要（減少 AI 從八字重新推斷的工作量）
+							personality_profile_text = client_info.Personality_Profile.toString();
+							if(personality_profile_text != null && personality_profile_text.length() > 50)
+							{
+								persona_text = "【個性側寫摘要（優先參考）】\n" + personality_profile_text.subString(0,200) + "\n\n" + persona_text;
+							}
+						}
+					}
+				}
+				// 步驟 3: 組裝準備發送給 AI 的 Prompt（不再使用 Thread，改為同步呼叫）
+				prompt = "【重要規範】\n";
+				prompt = prompt + "1) 請使用繁體中文（禁用簡體）。\n";
+				prompt = prompt + "2) 不要反問使用者要哪種語氣；語氣由你根據命理個性線索自動決定，並保持一致。\n";
+				prompt = prompt + "3) 你的語氣只能從以下四種中擇一（不要告訴使用者你選了哪一種）：\n";
+				prompt = prompt + "   - comforting_guardian：溫柔安撫、給界線、讓人冷靜\n";
+				prompt = prompt + "   - clear_direct：清晰直白、條列、少形容詞\n";
+				prompt = prompt + "   - poetic_mystic：有靈性意象但不浮誇、句子短\n";
+				prompt = prompt + "   - playful_light：輕鬆但不嘲諷、不油、不傷人\n\n";
+				if(persona_text != null && persona_text.trim() != "")
+				{
+					prompt = prompt + "【個性線索（用來決定語氣，不要在回覆中直接列出原始線索）】\n" + persona_text + "\n";
+				}
+				prompt = prompt + "【任務】請幫我解讀下面的易經占卜結果，並針對問題給出詳盡建議。\n\n";
+				prompt = prompt + "【占卜問題】\n" + question + "\n\n";
+				prompt = prompt + "【爻碼】\n" + yaoCode + "\n\n";
+				prompt = prompt + "【卦象總覽】\n";
+				prompt = prompt + "- 卦名（象形）: " + hexData.get("appearance") + "\n";
+				prompt = prompt + "- 上卦象: " + hexData.get("up_appearance") + "\n";
+				prompt = prompt + "- 下卦象: " + hexData.get("down_appearance") + "\n";
+				prompt = prompt + "- 五行: " + hexData.get("five_elements") + "\n";
+				prompt = prompt + "- 生死論: " + hexData.get("life_and_death") + "\n\n";
+				prompt = prompt + "【爻象詳情】\n";
+				prompt = prompt + "- 爻辭總論: " + hexData.get("yao_article") + "\n";
+				prompt = prompt + "- 爻辭解釋: " + hexData.get("yao_comment") + "\n";
+				prompt = prompt + "- 願望爻: " + hexData.get("yao_wish") + "\n";
+				prompt = prompt + "- 感情爻: " + hexData.get("yao_love") + "\n";
+				prompt = prompt + "- 事業爻: " + hexData.get("yao_work") + "\n";
+				prompt = prompt + "- 商業爻: " + hexData.get("yao_business") + "\n";
+				prompt = prompt + "- 學業爻: " + hexData.get("yao_study") + "\n";
+				prompt = prompt + "- 旅遊爻: " + hexData.get("yao_travel") + "\n\n";
+				prompt = prompt + "【符令圖示】\n";
+				prompt = prompt + hexData.get("symbol_1") + " " + hexData.get("symbol_2") + " " + hexData.get("symbol_3") + "\n";
+				prompt = prompt + hexData.get("symbol_4") + " " + hexData.get("symbol_5") + "\n\n";
+				prompt = prompt + "請根據以上所有資訊，綜合易經理論與爻辭細節，給出至少三段、每段 3～5 句的深度分析與建議。\n";
+				prompt = prompt + "請直接給結論與可行建議，少一點空泛形容；不要要求使用者選語氣，也不要在回覆中提到 toneKey。";
+				info "AI Prompt 構建完成，長度：" + prompt.length().toString();
+				// 步驟 4: 呼叫 LLM.callChat（同步，取代舊版 OpenAI Assistants API）
+				opts = Map();
+				opts.put("max_tokens", 4096);
+				opts.put("temperature", 0.7);
+				final_interpretation = thisapp.LLM.callChat("", prompt, opts);
+				// 步驟 5: 處理 AI 回應
+				if(final_interpretation != null && final_interpretation.trim() != "" && !final_interpretation.contains("系統錯誤：") && !final_interpretation.contains("AI 服務錯誤") && !final_interpretation.contains("LLM API Key 未設定"))
+				{
+					info "AI 回應成功，字數：" + final_interpretation.length().toString();
+					// 步驟 6: 儲存占卜記錄（Thread_ID 已棄用，不再寫入）
+					if(clientId != null && clientId != "")
+					{
+						new_log = insert into Divination_Logs
+						[
+							Client_Link=clientId.toLong()
+							Original_Question=question
+							AI_Interpretation=final_interpretation
+							Divination_Timestamp=solarDateTime
+							Divination_Method="易經"
+							Status="已提問"
+							Question_Type_AI=selected_question_type
+							Added_User=zoho.loginuser
+						];
+						info "占卜記錄已儲存，記錄ID：" + new_log.get("ID");
+					}
+					finalResult = final_interpretation;
+				}
+				else
+				{
+					// AI 調用失敗
+					info "AI 調用失敗：" + final_interpretation;
+					finalResult = "很抱歉，AI 占卜服務暫時無法使用。請稍後再試，或聯繫客服協助。";
+				}
+			}
+			// hexData else block end
+		}
+		// 參數驗證 else block end
+	}
+	catch (e)
+	{
+		// 捕獲所有未預期的錯誤
+		info "getPredictionByQuestionAndBirthday 執行錯誤：" + e;
+		finalResult = "很抱歉，占卜過程中發生系統錯誤。請稍後再試，或聯繫客服協助。錯誤代碼：" + e;
+	}
+	return finalResult;
+}

@@ -1,0 +1,67 @@
+map Bazi.getDivinationTimeDetails()
+{
+	// =============================================================================
+	// 函數名稱：Bazi.getDivinationTimeDetails
+	// 函數用途：取得當前時間點的完整命理資訊
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：自動抓取當前伺服器時間，依序呼叫農曆和八字計算函數，
+	//           將所有結果組合到一個完整的 Map 中回傳。
+	//           - 獲取 zoho.currenttime 並套用子時換日
+	//           - 呼叫 calculateLunarDetails 計算農曆資訊
+	//           - 依序呼叫四柱計算函數取得完整八字
+	// 參數說明：無
+	// 回傳格式：map - 包含當下時間點的完整農曆和八字資訊：
+	//   - 農曆資訊（lunar_year, lunar_month, is_leap_month 等）
+	//   - "year_pillar_details" (map): 年柱詳情
+	//   - "month_pillar_details" (map): 月柱詳情
+	//   - "day_pillar_details" (map): 日柱詳情
+	//   - "hour_pillar_details" (map): 時柱詳情
+	// 相依性：LunarData.getConstants, LunarAI.calculateLunarDetails,
+	//         Calendar.normalizeToTaipei, Calendar.applyZiHourDayRollover,
+	//         Bazi.calculatePreciseYearPillar, Bazi.calculatePreciseMonthPillar,
+	//         Bazi.calculatePreciseDayPillar, Bazi.calculatePreciseHourPillar
+	// 注意：已修正 Bug #3（catch 區塊加入 info 日誌）
+	// =============================================================================
+	// 步驟 1: 獲取共享的農曆常數資料庫。
+	lunar_constants = thisapp.LunarData.getConstants();
+	// 步驟 2: 獲取當前伺服器時間作為占卜時間點。
+	now_datetime = zoho.currenttime;
+	// 子時換日政策：23:00–23:59 視為隔日，確保節氣/日柱邊界一致
+	effective_now = now_datetime;
+	try
+	{
+		norm_now = thisapp.Calendar.normalizeToTaipei(now_datetime);
+		if(norm_now.get("success"))
+		{
+			zr_now = thisapp.Calendar.applyZiHourDayRollover(norm_now.get("value"));
+			if(zr_now.get("success"))
+			{
+				effective_now = zr_now.get("value");
+			}
+		}
+	}
+	catch(_e_now)
+	{
+		// Bug #3 修正：記錄 Calendar fallback 日誌
+		info "Bazi.getDivinationTimeDetails: Calendar fallback - " + _e_now;
+		effective_now = now_datetime;
+	}
+	// 步驟 3: 呼叫核心引擎，計算占卜日的農曆資訊。
+	divination_lunar_map = thisapp.LunarAI.calculateLunarDetails(effective_now,lunar_constants);
+	// 步驟 4: 呼叫精確計算函數取得完整四柱八字資訊。
+	year_pillar = thisapp.Bazi.calculatePreciseYearPillar(effective_now);
+	month_pillar = thisapp.Bazi.calculatePreciseMonthPillar(effective_now);
+	day_pillar = thisapp.Bazi.calculatePreciseDayPillar(effective_now);
+	hour_pillar = thisapp.Bazi.calculatePreciseHourPillar(effective_now);
+	// 步驟 5: 組合最終結果。
+	final_result = Map();
+	// 先放入所有農曆資訊（如 lunar_year, lunar_month, is_leap_month 等）。
+	final_result.putAll(divination_lunar_map);
+	// 再分別放入四柱的詳細結果 Map。
+	final_result.put("year_pillar_details",year_pillar);
+	final_result.put("month_pillar_details",month_pillar);
+	final_result.put("day_pillar_details",day_pillar);
+	final_result.put("hour_pillar_details",hour_pillar);
+	return final_result;
+}

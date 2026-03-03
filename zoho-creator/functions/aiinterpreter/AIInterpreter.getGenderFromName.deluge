@@ -1,0 +1,65 @@
+void AIInterpreter.getGenderFromName(int clientID)
+{
+	// =============================================================================
+	// 函數名稱：AIInterpreter.getGenderFromName
+	// 函數用途：AI 性別預測函數
+	// 平台：Zoho Creator
+	// 命名空間：AIInterpreter
+	// 功能描述：根據指定的個案 ID，取得姓名並呼叫 AI 預測性別：
+	//           - 使用 few-shot 範例引導 AI 精準判斷
+	//           - 成功預測後直接更新個案的「性別」欄位
+	//           - 僅回傳「男」或「女」，無其他文字
+	// 參數說明：
+	//   - clientID (int): 個案表單的記錄 ID
+	// 回傳格式：void（無回傳值，直接更新表單）
+	// 相依性：Clients_Report 表單、thisapp.LLM.callChat
+	// =============================================================================
+	// 1. 根據 ID 獲取個案紀錄
+	client_record = Clients_Report[ID == clientID];
+	if(client_record == null)
+	{
+		info "getGenderFromName 錯誤: 找不到 ID 為 " + clientID + " 的個案。";
+		return;
+	}
+	// 2. 獲取姓名
+	last_name = ifnull(client_record.Visitor_Name.last_name,"");
+	first_name = ifnull(client_record.Visitor_Name.first_name,"");
+	full_name = last_name + first_name;
+	if(full_name.trim() == "")
+	{
+		info "getGenderFromName 警告: 個案 " + clientID + " 沒有姓名，無法預測性別。";
+		return;
+	}
+	info "準備為「" + full_name + "」預測性別...";
+	// 3. 呼叫 AI 預測性別（few-shot 範例內嵌於 system prompt）
+	system_prompt = "你是一位分析中文姓名的專家。請根據提供的姓名來判斷這個人的性別。你的回答必須只能是「男」或「女」，不要有任何其他文字、標點符號或解釋。\n\n範例：\n- 王宇翔 → 男\n- 林佳穎 → 女";
+	user_prompt = "請根據姓名「" + full_name + "」來判斷這個人的性別。";
+	opts = Map();
+	opts.put("max_tokens", 5);
+	opts.put("temperature", 0.0);
+	// 4. 執行 AI 呼叫並更新欄位
+	predicted_gender = "";
+	try
+	{
+		content_str = thisapp.LLM.callChat(system_prompt, user_prompt, opts).trim();
+		info "AI 性別預測回應: " + content_str;
+		if(content_str == "男" || content_str == "女")
+		{
+			predicted_gender = content_str;
+		}
+	}
+	catch (e)
+	{
+		info "AI 性別預測呼叫失敗: " + e;
+	}
+	// 5. 如果成功，則更新紀錄
+	if(predicted_gender != "")
+	{
+		client_record.Clients_Gender=predicted_gender;
+		info "成功為 " + full_name + " 更新性別為: " + predicted_gender;
+	}
+	else
+	{
+		info "無法從 AI 回應中解析出有效性別，跳過更新。";
+	}
+}

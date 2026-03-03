@@ -1,0 +1,35 @@
+string LunarAI.getSolarDateTimeBazi(date solarDate)
+{
+	// =============================================================================
+	// 函數名稱：getSolarDateTimeBazi
+	// 函數用途：將指定國曆日期轉換為四柱八字字串
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	//
+	// 功能描述：
+	// - 將傳入的國曆日期先轉成農曆 Map
+	// - 再計算該日期的四柱八字
+	// - 組成「年柱 月柱 日柱 時柱」字串回傳
+	//
+	// 參數說明：
+	// @param solarDate (date) - 國曆日期時間
+	//
+	// 回傳格式：
+	// @return (string) - 四柱八字字串，空格分隔
+	//
+	// 相依性：
+	// - thisapp.LunarAI.solarToLunar（國曆轉農曆）
+	// - thisapp.LunarAI.convertToBaZi（農曆轉八字）
+	// =============================================================================
+
+	// 將傳入的國曆生日轉成農曆 Map
+	lunarMap = thisapp.LunarAI.solarToLunar(solarDate);
+	// [BUG FIX] solarToLunar 回傳 {"生日": {...}, "占卜日": {...}} 巢狀結構，
+	//           需先取出 "生日" 子 Map 才能傳給 convertToBaZi
+	//           （原始 DS 直接傳整個 lunarMap 導致 null.toLong() crash）
+	birthdayLunar = lunarMap.get("生日");
+	// 呼叫 convertToBaZi 計算四柱
+	baziMap = thisapp.LunarAI.convertToBaZi(solarDate,birthdayLunar);
+	// 組成「年柱 月柱 日柱 時柱」字串並回傳
+	return baziMap.get("year_pillar") + " " + baziMap.get("month_pillar") + " " + baziMap.get("day_pillar") + " " + baziMap.get("hour_pillar");
+}

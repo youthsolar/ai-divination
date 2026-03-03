@@ -1,0 +1,136 @@
+string ECPay.generateCheckoutFormProduction(map orderInfo)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.generateCheckoutFormProduction
+	// 函數用途：生產環境綠界金流付款表單 HTML 生成
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：使用生產環境金鑰生成綠界付款確認頁面 HTML。
+	//           - 從 ECPay 變數讀取生產環境 merchantID/hashKey/hashIV
+	//           - 準備付款參數（支援自訂 returnURL 和 clientBackURL）
+	//           - 計算 CheckMacValue 簽章
+	//           - 生成含訂單資訊和 JavaScript 自動提交的 HTML 頁面
+	// 參數說明：
+	//   - orderInfo (map): 訂單資訊
+	//     - merchantTradeNo (string): 商店訂單編號
+	//     - totalAmount (number): 交易金額
+	//     - itemName (string): 商品名稱
+	//     - tradeDesc (string): 交易描述
+	//     - returnURL (string, 可選): 回調 URL
+	//     - clientBackURL (string, 可選): 客戶返回頁面
+	// 回傳格式：string - 完整的 HTML 付款頁面
+	// 相依性：ECPay.generateCheckMacValue, ECPay 生產環境變數
+	// 注意：原函數名為 generateCheckoutForm_Production，已改為 camelCase；
+	//       內部呼叫已更新（generateCheckMacValue_private → generateCheckMacValue）
+	// =============================================================================
+	// --- 取得生產環境金鑰 ---
+	merchantID = thisapp.variables.ECPay.merchantID_Production;
+	hashKey = thisapp.variables.ECPay.hashKey_Production;
+	hashIV = thisapp.variables.ECPay.hashIV_Production;
+	if(merchantID == null || hashKey == null || hashIV == null)
+	{
+		info "錯誤：生產環境 ECPay 變數未設定";
+		return "錯誤：請先設定生產環境金鑰";
+	}
+	// --- 準備付款參數 ---
+	params = Map();
+	params.put("MerchantID",merchantID);
+	params.put("MerchantTradeNo",orderInfo.get("merchantTradeNo"));
+	params.put("MerchantTradeDate",zoho.currenttime.toString("yyyy/MM/dd HH:mm:ss"));
+	params.put("PaymentType","aio");
+	params.put("TotalAmount",orderInfo.get("totalAmount"));
+	params.put("TradeDesc",orderInfo.get("tradeDesc"));
+	params.put("ItemName",orderInfo.get("itemName"));
+	return_url = orderInfo.get("returnURL");
+	if(return_url == null || return_url == "")
+	{
+		return_url = if(thisapp.variables.ECPay.ReturnURL_Production != null,thisapp.variables.ECPay.ReturnURL_Production.toString(),"");
+	}
+	params.put("ReturnURL",return_url);
+	params.put("ChoosePayment","Credit");
+	params.put("EncryptType",1);
+	// 客戶返回頁面（付款完成後的跳轉頁面）
+	clientBackURL = orderInfo.get("clientBackURL");
+	if(clientBackURL == null || clientBackURL == "")
+	{
+		clientBackURL = if(thisapp.variables.ECPay.ClientBackURL_Production != null,thisapp.variables.ECPay.ClientBackURL_Production.toString(),"");
+	}
+	params.put("ClientBackURL",clientBackURL);
+	// --- 計算 CheckMacValue ---
+	checkMacValue = thisapp.ECPay.generateCheckMacValue(params,hashKey,hashIV);
+	params.put("CheckMacValue",checkMacValue);
+	// --- 生成付款確認頁面 HTML ---
+	html = "<!DOCTYPE html>";
+	html = html + "<html lang=\"zh-Hant\">";
+	html = html + "<head>";
+	html = html + "<meta charset=\"UTF-8\">";
+	html = html + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+	html = html + "<title>訂單確認 - " + orderInfo.get("merchantTradeNo") + "</title>";
+	html = html + "<style>";
+	html = html + "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f8f9fa; padding: 20px; box-sizing: border-box; }";
+	html = html + ".container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }";
+	html = html + "h1 { color: #333; margin-bottom: 30px; font-size: 28px; }";
+	html = html + ".order-info { background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 30px; text-align: left; }";
+	html = html + ".info-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e9ecef; }";
+	html = html + ".info-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }";
+	html = html + ".info-label { font-weight: 600; color: #555; }";
+	html = html + ".info-value { color: #333; }";
+	html = html + ".total-amount { font-size: 32px; font-weight: bold; color: #007bff; margin: 30px 0; }";
+	html = html + ".button { background-color: #28a745; color: white; border: none; padding: 18px 40px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: all 0.3s; display: inline-block; text-decoration: none; }";
+	html = html + ".button:hover { background-color: #218838; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3); }";
+	html = html + ".security-note { display: flex; align-items: center; justify-content: center; margin-top: 25px; font-size: 14px; color: #6c757d; }";
+	html = html + ".lock-icon { margin-right: 8px; }";
+	html = html + ".footer { font-size: 12px; color: #999; margin-top: 30px; }";
+	html = html + "</style>";
+	html = html + "</head>";
+	html = html + "<body>";
+	html = html + "<div class=\"container\">";
+	html = html + "<h1>訂單確認</h1>";
+	html = html + "<div class=\"order-info\">";
+	html = html + "<div class=\"info-row\">";
+	html = html + "<span class=\"info-label\">訂單編號</span>";
+	html = html + "<span class=\"info-value\">" + orderInfo.get("merchantTradeNo") + "</span>";
+	html = html + "</div>";
+	html = html + "<div class=\"info-row\">";
+	html = html + "<span class=\"info-label\">商品名稱</span>";
+	html = html + "<span class=\"info-value\">" + orderInfo.get("itemName") + "</span>";
+	html = html + "</div>";
+	html = html + "<div class=\"info-row\">";
+	html = html + "<span class=\"info-label\">商品描述</span>";
+	html = html + "<span class=\"info-value\">" + orderInfo.get("tradeDesc") + "</span>";
+	html = html + "</div>";
+	html = html + "</div>";
+	html = html + "<div class=\"total-amount\">NT$ " + orderInfo.get("totalAmount") + "</div>";
+	html = html + "<button class=\"button\" onclick=\"goToECPay()\">確認付款</button>";
+	html = html + "<div class=\"security-note\">";
+	html = html + "<svg class=\"lock-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg>";
+	html = html + "安全加密連線，由綠界科技提供金流服務";
+	html = html + "</div>";
+	html = html + "<div class=\"footer\">點擊確認付款後，您將被導向至綠界科技的安全付款頁面</div>";
+	html = html + "</div>";
+	// JavaScript 自動提交表單
+	html = html + "<script>";
+	html = html + "function goToECPay() {";
+	html = html + " var params = " + params.toString() + ";";
+	html = html + " var form = document.createElement('form');";
+	html = html + " form.method = 'post';";
+	// 生產環境 URL
+	html = html + " form.action = 'https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5';";
+	html = html + " form.style.display = 'none';";
+	html = html + " for (var key in params) {";
+	html = html + "  if (params.hasOwnProperty(key)) {";
+	html = html + "   var hiddenField = document.createElement('input');";
+	html = html + "   hiddenField.type = 'hidden';";
+	html = html + "   hiddenField.name = key;";
+	html = html + "   hiddenField.value = params[key];";
+	html = html + "   form.appendChild(hiddenField);";
+	html = html + "  }";
+	html = html + " }";
+	html = html + " document.body.appendChild(form);";
+	html = html + " form.submit();";
+	html = html + "}";
+	html = html + "</script>";
+	html = html + "</body>";
+	html = html + "</html>";
+	return html;
+}

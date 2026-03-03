@@ -1,0 +1,137 @@
+map API.getTalismanByToken(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.getTalismanByToken
+	// 函數用途：符令交付頁 Token 驗證與內容取得
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收 Delivery Token，驗證有效性後回傳符令內容
+	// - 驗證順序：token 存在 → 已付款 → 未過期 → 回傳內容
+	//
+	// 參數說明：
+	// @param payload (map) - HTTP POST body（JSON）
+	//   - token : string，Delivery Token（付款完成後由 API.ecPayReturn 生成的 SHA256 字串）
+	//
+	// 回傳格式：
+	// @return (map)
+	//   成功  → { ok: true, item_name, description, hexagram_content, purchased_at, expires_at }
+	//   過期  → { ok: false, reason: "expired", expires_at }
+	//   無效  → { ok: false, reason: "not_found" }
+	//   未付款 → { ok: false, reason: "not_paid", status }
+	//   空 token → { ok: false, reason: "missing_token" }
+	//
+	// 相依性：
+	//   - Talisman_Purchases（欄位：Delivery_Token, Status, Delivery_Token_ExpiresAt,
+	//     Item_Name_Chinese, Description_Chinese, Main_Hexagram_Content, Purchase_Timestamp）
+	//
+	// 注意：
+	//   - Token 有效期 7 天（Delivery_Token_ExpiresAt 欄位）
+	//   - 只能查看已付款（Status == "Paid"）的訂單
+	//   - 此函數為 Public endpoint，安全性靠 token 隨機性（SHA256 不可猜）
+	//   - 呼叫者：TalismanDelivery.htmlpage（透過 get_talisman_by_token endpoint）
+	// 注意：原名 GetTalismanByToken，已重命名為 camelCase
+	// =============================================================================
+
+	resp = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：解析並驗證 token
+		// ────────────────────────────────────────────────────────────────────
+		token = "";
+		if(payload != null && payload.get("token") != null)
+		{
+			token = payload.get("token").toString().trim();
+		}
+
+		if(token == "")
+		{
+			resp.put("ok",false);
+			resp.put("reason","missing_token");
+			resp.put("message","連結無效，請確認您的付款確認訊息中的連結是否完整。");
+			return resp;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：查詢訂單（by Delivery_Token）
+		// ────────────────────────────────────────────────────────────────────
+		orders = Talisman_Purchases[Delivery_Token == token];
+		found = false;
+
+		for each  o in orders
+		{
+			found = true;
+
+			// ────────────────────────────────────────────────────────────────
+			// 步驟 3：確認付款狀態必須為 "Paid"
+			//   Pending/Failed 等狀態一律拒絕，避免未付款者取得符令
+			// ────────────────────────────────────────────────────────────────
+			orderStatus = if(o.Status != null, o.Status.toString(), "");
+			if(orderStatus != "Paid")
+			{
+				resp.put("ok",false);
+				resp.put("reason","not_paid");
+				resp.put("status",orderStatus);
+				resp.put("message","此訂單尚未完成付款，如有疑問請聯繫客服。");
+				return resp;
+			}
+
+			// ────────────────────────────────────────────────────────────────
+			// 步驟 4：確認 Token 是否在 7 天有效期內
+			//   Delivery_Token_ExpiresAt 由 API.ecPayReturn 生成（付款時 + 7天）
+			// ────────────────────────────────────────────────────────────────
+			expiresAt = o.Delivery_Token_ExpiresAt;
+			now = zoho.currenttime;
+			if(expiresAt != null && now > expiresAt)
+			{
+				resp.put("ok",false);
+				resp.put("reason","expired");
+				resp.put("expires_at",expiresAt.toString("yyyy-MM-dd HH:mm:ss"));
+				resp.put("message","此符令連結已過期（有效期 7 天）。如需重新取得，請透過 LINE 聯繫我們。");
+				return resp;
+			}
+
+			// ────────────────────────────────────────────────────────────────
+			// 步驟 5：組合符令內容並回傳
+			//   若欄位為 null，使用安全預設值（避免前端 undefined 錯誤）
+			// ────────────────────────────────────────────────────────────────
+			itemName        = if(o.Item_Name_Chinese != null,    o.Item_Name_Chinese.toString(),                          "符令");
+			description     = if(o.Description_Chinese != null,  o.Description_Chinese.toString(),                        "");
+			hexagramContent = if(o.Main_Hexagram_Content != null, o.Main_Hexagram_Content.toString(),                     "");
+			purchaseTime    = if(o.Purchase_Timestamp != null,   o.Purchase_Timestamp.toString("yyyy-MM-dd HH:mm:ss"),    "");
+			expiryStr       = if(expiresAt != null,              expiresAt.toString("yyyy-MM-dd"),                        "");
+
+			resp.put("ok",true);
+			resp.put("item_name",itemName);
+			resp.put("description",description);
+			resp.put("hexagram_content",hexagramContent);
+			resp.put("purchased_at",purchaseTime);
+			resp.put("expires_at",expiryStr);
+			resp.put("message","符令已為您準備好，請在有效期內使用。");
+			break;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：Token 不存在（查無訂單）
+		// ────────────────────────────────────────────────────────────────────
+		if(!found)
+		{
+			resp.put("ok",false);
+			resp.put("reason","not_found");
+			resp.put("message","找不到此符令，請確認連結是否正確，或聯繫客服協助。");
+		}
+
+		return resp;
+	}
+	catch (e)
+	{
+		// 系統層例外
+		resp.put("ok",false);
+		resp.put("reason","error");
+		resp.put("message","系統暫時無法取得符令，請稍後重試。（錯誤：" + e + ")");
+		return resp;
+	}
+	return resp;
+}

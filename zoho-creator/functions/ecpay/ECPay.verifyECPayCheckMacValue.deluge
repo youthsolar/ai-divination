@@ -1,0 +1,42 @@
+bool ECPay.verifyECPayCheckMacValue(map requestParamsMap, string hashKey, string hashIV)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.verifyECPayCheckMacValue
+	// 函數用途：驗證綠界 ECPay 回傳的 CheckMacValue 是否正確
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：從傳入的參數 map 中取出綠界回傳的 CheckMacValue，
+	//           排除 CheckMacValue 後重新計算簽章，比對是否一致。
+	// 參數說明：
+	//   - requestParamsMap (map): 從綠界 ReturnURL 或 NotifyURL 收到的所有參數
+	//   - hashKey (string): 綠界後台的 HashKey
+	//   - hashIV (string): 綠界後台的 HashIV
+	// 回傳格式：bool - 驗證成功回傳 true，失敗回傳 false
+	// 相依性：ECPay.generateCheckMacValue
+	// 注意：內部呼叫已更新（generateCheckMacValue_private → generateCheckMacValue）
+	// =============================================================================
+	// 1. 取出綠界回傳的 CheckMacValue
+	if(!requestParamsMap.containKey("CheckMacValue"))
+	{
+		// 如果連 CheckMacValue 都沒有，直接視為驗證失敗
+		return false;
+	}
+	ecpayCheckMacValue = requestParamsMap.get("CheckMacValue");
+	// 2. 準備用於計算的參數 map（排除 CheckMacValue）
+	paramsForVerification = requestParamsMap.toMap();
+	// 複製一份以避免修改到原始傳入的 map
+	paramsForVerification.remove("CheckMacValue");
+	// 3. 重新計算一次 CheckMacValue
+	ourCheckMacValue = thisapp.ECPay.generateCheckMacValue(paramsForVerification,hashKey,hashIV);
+	// 4. 比對結果
+	if(ourCheckMacValue == ecpayCheckMacValue)
+	{
+		return true;
+	}
+	else
+	{
+		// 方便 debug，記錄日誌
+		info "ECPay CheckMacValue 驗證失敗。本地計算值: " + ourCheckMacValue + ", ECPay 回傳值: " + ecpayCheckMacValue;
+		return false;
+	}
+}

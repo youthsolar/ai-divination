@@ -1,0 +1,459 @@
+map API.createClientProfile(string lastName, string firstName, string phoneNumber, string email, string dateOfBirth, string timeOfBirth, string salesiqVisitorId)
+{
+	// =============================================================================
+	// 函數名稱：API.createClientProfile
+	// 函數用途：建立個案檔案並觸發命理運算 API
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：接收個案基本資料，建立 Clients_Report 記錄，並觸發後續命理計算：
+	//           - 參數驗證（姓名、Email、出生日期）
+	//           - 日期格式轉換（8碼西元/6-7碼民國年/4碼時間）
+	//           - 依 SalesIQ Visitor ID 查找現有個案或新建記錄
+	//           - 手動觸發命理計算（星座、生肖、星宿、性別預測、八字、農曆、太歲、本命塔羅）
+	// 參數說明：
+	//   - lastName (string): 姓氏
+	//   - firstName (string): 名字
+	//   - phoneNumber (string): 手機號碼
+	//   - email (string): 電子郵件
+	//   - dateOfBirth (string): 出生日期（支援 YYYYMMDD / 民國年 YYYMMDD / YYYY-MM-DD）
+	//   - timeOfBirth (string): 出生時間（支援 HHMM / HH:MM）
+	//   - salesiqVisitorId (string): Zoho SalesIQ 訪客 ID
+	// 回傳格式：map - {success, message, client_id, client_name, is_existing_client, ...}
+	// 相依性：Clients_Report, Zodiac.*, Star.getLunarMansion, Bazi.preciseBaziCalculator,
+	//         LunarAI.solarToLunar, Tarot.getLifePathTarot, thisapp.LLM.callChat
+	// 注意：原名 CreateClientProfile，已重命名為 camelCase
+	// =============================================================================
+	// 採用單一出口模式
+	api_result = Map();
+	try
+	{
+		info "=== 開始建立個案檔案 ===";
+		info "姓名：" + lastName + firstName + "（順序：姓→名）";
+		info "聯絡方式：" + phoneNumber + " / " + email;
+		info "生日：" + dateOfBirth + " " + timeOfBirth;
+		info "SalesIQ 訪客 ID：" + salesiqVisitorId;
+		// === 步驟 1：參數驗證 ===
+		if(lastName == null || lastName == "" || firstName == null || firstName == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","姓名資訊不完整（需要姓氏和名字）");
+			return api_result;
+		}
+		if(email == null || email == "" || !email.contains("@"))
+		{
+			api_result.put("success",false);
+			api_result.put("message","電子郵件格式錯誤");
+			return api_result;
+		}
+		if(dateOfBirth == null || dateOfBirth == "")
+		{
+			api_result.put("success",false);
+			api_result.put("message","出生日期不能為空");
+			return api_result;
+		}
+		// === 步驟 2：日期時間格式處理 ===
+		formatted_date = dateOfBirth;
+		// 處理 8 碼生日格式 (19741115 → 1974-11-15)
+		if(dateOfBirth.length() == 8 && dateOfBirth.isNumber())
+		{
+			year = dateOfBirth.substring(0,4);
+			month = dateOfBirth.substring(4,6);
+			day = dateOfBirth.substring(6,8);
+			formatted_date = year + "-" + month + "-" + day;
+			info "日期格式轉換（8碼）：" + dateOfBirth + " → " + formatted_date;
+		}
+		// 處理 6 碼或 7 碼民國年格式 (761112 → 1987-11-12, 1001112 → 2011-11-12)
+		else if(dateOfBirth.length() == 6 || dateOfBirth.length() == 7 && dateOfBirth.isNumber())
+		{
+			roc_year_length = dateOfBirth.length() - 4;
+			// 6碼=2位年, 7碼=3位年
+			roc_year = dateOfBirth.substring(0,roc_year_length).toNumber();
+			month = dateOfBirth.substring(roc_year_length,roc_year_length + 2);
+			day = dateOfBirth.substring(roc_year_length + 2,roc_year_length + 4);
+			// 民國年轉西元年（民國元年 = 1912）
+			year = (roc_year + 1911).toString();
+			formatted_date = year + "-" + month + "-" + day;
+			info "日期格式轉換（民國" + roc_year + "年）：" + dateOfBirth + " → " + formatted_date;
+		}
+		else
+		{
+			info "警告：無法解析的日期格式：" + dateOfBirth;
+			api_result.put("success",false);
+			api_result.put("message","日期格式錯誤，請使用8碼西元年(19880712)或6-7碼民國年(770712)");
+			return api_result;
+		}
+		// 處理 4 碼時間格式 (2103 → 21:03)
+		formatted_time = if(timeOfBirth != null,timeOfBirth,"12:00");
+		if(timeOfBirth != null && timeOfBirth.length() >= 3 && timeOfBirth.isNumber())
+		{
+			if(timeOfBirth.length() == 4)
+			{
+				hour = timeOfBirth.substring(0,2);
+				minute = timeOfBirth.substring(2,4);
+				formatted_time = hour + ":" + minute;
+			}
+			else if(timeOfBirth.length() == 3)
+			{
+				hour = "0" + timeOfBirth.substring(0,1);
+				minute = timeOfBirth.substring(1,3);
+				formatted_time = hour + ":" + minute;
+			}
+			info "時間格式轉換：" + timeOfBirth + " → " + formatted_time;
+		}
+		// 組合完整的日期時間
+		full_datetime_string = formatted_date + " " + formatted_time;
+		birth_datetime = full_datetime_string.toDateTime();
+		info "最終日期時間：" + full_datetime_string;
+		// === 步驟 3：檢查重複個案（根據 SalesIQ Visitor ID）===
+		if(salesiqVisitorId != null && salesiqVisitorId != "")
+		{
+			existing_clients = Clients_Report[SalesIQ_Visitor_ID == salesiqVisitorId];
+			if(existing_clients.count() > 0)
+			{
+				// 找到現有個案，回傳現有資料
+				existing_client = null;
+				for each  client in existing_clients
+				{
+					existing_client = client;
+					break;
+				}
+				info "發現現有個案，ID：" + existing_client.ID.toString();
+				api_result.put("success",true);
+				api_result.put("message","個案已存在");
+				api_result.put("is_existing_client",true);
+				api_result.put("client_id",existing_client.ID.toString());
+				api_result.put("client_name",existing_client.Visitor_Name.last_name + existing_client.Visitor_Name.first_name);
+				api_result.put("personality_profile_ready",existing_client.Personality_Profile != null && existing_client.Personality_Profile != "");
+				return api_result;
+			}
+		}
+		// === 步驟 4：建立新個案記錄 ===
+		info "建立新個案記錄";
+		new_client = insert into Clients_Report
+		[
+			Added_User=zoho.loginuser
+			Visitor_Name.last_name=lastName
+			Visitor_Name.first_name=firstName
+			Email=email
+			Phone_Number=phoneNumber
+			Date_Of_Birth=birth_datetime
+			Timezone_Of_Birth="(UTC+08:00) 台北 (Asia/Taipei)"
+			Client_Type="真實"
+			SalesIQ_Visitor_ID=if(salesiqVisitorId != null,salesiqVisitorId,"")
+		];
+		if(new_client != null)
+		{
+			client_id = new_client;
+			info "個案建立成功，ID：" + client_id.toString();
+			// === 步驟 5：手動觸發命理計算 ===
+			// 由於 API 建立的記錄不會觸發 OnEdit 系列 Workflow，
+			// 我們需要手動調用相關的計算函數來填充命理資料
+			info "開始手動觸發命理計算...";
+			try
+			{
+				// 取得剛建立的記錄以便更新
+				client_record = Clients_Report[ID == client_id];
+				// 宣告共用變數
+				bazi_result = null;
+				// 觸發星座計算
+				zodiac_result = thisapp.Zodiac.getZodiacSign(birth_datetime);
+				if(zodiac_result.get("success") == true)
+				{
+					client_record.Zodiac_Signs=zodiac_result.get("sign_id");
+					info "星座計算完成";
+				}
+				// 觸發生肖計算
+				chinese_zodiac_result = thisapp.Zodiac.getChineseZodiacSign(birth_datetime);
+				if(chinese_zodiac_result.get("success") == true)
+				{
+					client_record.Chinese_Zodiac=chinese_zodiac_result.get("zodiac_id");
+					// 同時計算虛歲
+					birth_lunar_year = chinese_zodiac_result.get("zodiac_year");
+					current_year = zoho.currentdate.getYear();
+					current_lunar_year = current_year;
+					// 判斷當前日期是否已過農曆新年
+					current_lunar_data_record = LunarData[Solar_Year == current_year];
+					if(current_lunar_data_record.count() > 0)
+					{
+						current_lunar_new_year = current_lunar_data_record.Lunar_New_Year;
+						if(zoho.currentdate < current_lunar_new_year.toDate())
+						{
+							current_lunar_year = current_year - 1;
+						}
+						// 虛歲 = 當前農曆年份 - 出生農曆年份 + 1
+						nominal_age = current_lunar_year - birth_lunar_year + 1;
+						client_record.Nominal_Age=nominal_age;
+					}
+					info "生肖和虛歲計算完成";
+				}
+				// 觸發星宿計算
+				mansion_result = thisapp.Star.getLunarMansion(birth_datetime);
+				if(mansion_result.get("success") == true)
+				{
+					mansion_name = mansion_result.get("mansion_name");
+					mansion_record = Twenty_Eight_Lunar_Mansions[Star_Name == mansion_name];
+					if(mansion_record != null)
+					{
+						client_record.Twenty_Eight_Lunar_Mansions=mansion_record.ID;
+						info "星宿計算完成";
+					}
+				}
+				// 觸發性別預測（使用 LLM）
+				if(firstName != null && firstName != "")
+				{
+					try
+					{
+						// 使用 LLM.callChat 進行性別預測
+						gender_system = "你是一個中文名字性別判斷專家。根據使用者提供的名字，判斷其最可能的性別。你的回答必須只能是「男」或「女」，不能包含任何其他標點符號、文字或解釋。\n\n範例：\n王大明 → 男\n陳淑芬 → 女\n子嘉 → 男";
+						gender_opts = Map();
+						gender_opts.put("max_tokens", 5);
+						gender_opts.put("temperature", 0.0);
+						predicted_gender = thisapp.LLM.callChat(gender_system, firstName, gender_opts).trim();
+						if(predicted_gender == "女" || predicted_gender == "男")
+						{
+							client_record.Clients_Gender=predicted_gender;
+							info "性別預測完成：" + predicted_gender;
+						}
+						else
+						{
+							client_record.Clients_Gender="男";
+							// 預設值
+							info "性別預測結果不明確，使用預設值：男";
+						}
+					}
+					catch (gender_error)
+					{
+						client_record.Clients_Gender="男";
+						// 預設值
+						info "性別預測失敗，使用預設值：男，錯誤：" + gender_error.toString();
+					}
+				}
+				// 先觸發八字計算（農曆轉換需要用到年柱）
+				bazi_result = thisapp.Bazi.preciseBaziCalculator(birth_datetime);
+				if(bazi_result.get("success") == true)
+				{
+					// 更新八字相關欄位
+					year_pillar_details = bazi_result.get("年柱詳情");
+					month_pillar_details = bazi_result.get("月柱詳情");
+					day_pillar_details = bazi_result.get("日柱詳情");
+					hour_pillar_details = bazi_result.get("時柱詳情");
+					// 組合完整八字字串
+					full_bazi_string = (year_pillar_details.get("stem") + year_pillar_details.get("branch")) + " " + (month_pillar_details.get("stem") + month_pillar_details.get("branch")) + " " + (day_pillar_details.get("stem") + day_pillar_details.get("branch")) + " " + (hour_pillar_details.get("stem") + hour_pillar_details.get("branch"));
+					client_record.Full_Bazi=full_bazi_string;
+					// 查詢並更新天干地支 Lookup 欄位
+					year_stem_record = Heavenly_Stems[Stem_Name == year_pillar_details.get("stem")];
+					year_branch_record = Earthly_Branches[Branch_Name == year_pillar_details.get("branch")];
+					month_stem_record = Heavenly_Stems[Stem_Name == month_pillar_details.get("stem")];
+					month_branch_record = Earthly_Branches[Branch_Name == month_pillar_details.get("branch")];
+					day_stem_record = Heavenly_Stems[Stem_Name == day_pillar_details.get("stem")];
+					day_branch_record = Earthly_Branches[Branch_Name == day_pillar_details.get("branch")];
+					hour_stem_record = Heavenly_Stems[Stem_Name == hour_pillar_details.get("stem")];
+					hour_branch_record = Earthly_Branches[Branch_Name == hour_pillar_details.get("branch")];
+					if(year_stem_record != null)
+					{
+						client_record.Year_Heavenly_Stem=year_stem_record.ID;
+					}
+					if(year_branch_record != null)
+					{
+						client_record.Year_Earthly_Branch=year_branch_record.ID;
+					}
+					if(month_stem_record != null)
+					{
+						client_record.Month_Heavenly_Stem=month_stem_record.ID;
+					}
+					if(month_branch_record != null)
+					{
+						client_record.Month_Earthly_Branch=month_branch_record.ID;
+					}
+					if(day_stem_record != null)
+					{
+						client_record.Day_Heavenly_Stem=day_stem_record.ID;
+					}
+					if(day_branch_record != null)
+					{
+						client_record.Day_Earthly_Branch=day_branch_record.ID;
+					}
+					if(hour_stem_record != null)
+					{
+						client_record.Hour_Heavenly_Stem=hour_stem_record.ID;
+					}
+					if(hour_branch_record != null)
+					{
+						client_record.Hour_Earthly_Branch=hour_branch_record.ID;
+					}
+					// 更新四柱組合欄位
+					year_pillar_str = bazi_result.get("年柱");
+					month_pillar_str = bazi_result.get("月柱");
+					day_pillar_str = bazi_result.get("日柱");
+					hour_pillar_str = bazi_result.get("時柱");
+					year_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == year_pillar_str];
+					month_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == month_pillar_str];
+					day_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == day_pillar_str];
+					hour_ganzhi_record = Sixty_GanZhi_Table[GanZhi_Combination == hour_pillar_str];
+					if(year_ganzhi_record != null)
+					{
+						client_record.Year_Pillar=year_ganzhi_record.ID;
+					}
+					if(month_ganzhi_record != null)
+					{
+						client_record.Month_Pillar=month_ganzhi_record.ID;
+					}
+					if(day_ganzhi_record != null)
+					{
+						client_record.Day_Pillar=day_ganzhi_record.ID;
+					}
+					if(hour_ganzhi_record != null)
+					{
+						client_record.Hour_Pillar=hour_ganzhi_record.ID;
+					}
+					info "八字計算完成";
+				}
+				// 觸發農曆生日轉換（需要用到八字的年柱）
+				try
+				{
+					solar_to_lunar_result = thisapp.LunarAI.solarToLunar(birth_datetime);
+					info "農曆轉換結果：" + solar_to_lunar_result.toString();
+					if(solar_to_lunar_result != null)
+					{
+						birthday_map = solar_to_lunar_result.get("生日");
+						if(birthday_map != null)
+						{
+							error_msg = birthday_map.get("error");
+							if(error_msg == null || error_msg == "")
+							{
+								original_lunar_text = birthday_map.get("中文日期");
+								if(original_lunar_text != null && original_lunar_text.contains(","))
+								{
+									// 從八字結果中取得年柱干支
+									if(bazi_result != null && bazi_result.get("success") == true)
+									{
+										year_pillar_details = bazi_result.get("年柱詳情");
+										if(year_pillar_details != null)
+										{
+											year_ganzhi = year_pillar_details.get("stem") + year_pillar_details.get("branch");
+											// 替換年份為干支年
+											final_lunar_string = original_lunar_text.replaceAll(original_lunar_text.toList(",").get(0) + ", ",year_ganzhi + "年 ");
+											client_record.Lunar_Birthday=final_lunar_string;
+											info "農曆生日轉換完成：" + final_lunar_string;
+										}
+										else
+										{
+											info "年柱詳情為空";
+										}
+									}
+									else
+									{
+										info "八字結果無效，無法取得年柱";
+									}
+								}
+								else
+								{
+									info "農曆日期格式不符預期：" + original_lunar_text;
+								}
+							}
+							else
+							{
+								info "農曆轉換錯誤：" + error_msg;
+							}
+						}
+						else
+						{
+							info "無法取得生日農曆資料";
+						}
+					}
+					else
+					{
+						info "農曆轉換函數回傳 null";
+					}
+				}
+				catch (lunar_error)
+				{
+					info "農曆轉換過程發生錯誤：" + lunar_error.toString();
+				}
+				// 觸發太歲計算
+				current_year_for_taisui = zoho.currentdate.getYear();
+				info "開始太歲計算，出生日期：" + birth_datetime + "，查詢年份：" + current_year_for_taisui;
+				taisui_result = thisapp.Zodiac.getTaisuiStatus(birth_datetime,current_year_for_taisui);
+				info "太歲計算結果：" + taisui_result.toString();
+				if(taisui_result.get("success") == true)
+				{
+					birth_ganzhi_id = taisui_result.get("birth_ganzhi_id");
+					query_year_ganzhi_id = taisui_result.get("query_year_ganzhi_id");
+					info "本命干支 ID：" + birth_ganzhi_id;
+					info "流年干支 ID：" + query_year_ganzhi_id;
+					// 更新「本命太歲」和「流年太歲」的 Lookup 欄位
+					client_record.Taisui_Deity_Name_Birth=birth_ganzhi_id;
+					client_record.Taisui_Deity_Name_Year=query_year_ganzhi_id;
+					info "太歲計算完成，已更新欄位";
+				}
+				else
+				{
+					info "太歲計算失敗：" + taisui_result.get("error");
+				}
+				// 觸發本命塔羅計算
+				tarot_results_map = thisapp.Tarot.getLifePathTarot(birth_datetime);
+				if(tarot_results_map != null)
+				{
+					ben_ming_tarot_id = tarot_results_map.get("Ben_Ming_Tarot_ID");
+					if(ben_ming_tarot_id != null)
+					{
+						client_record.Ben_Ming_Tarot=ben_ming_tarot_id;
+						client_record.Ben_Ming_Tarot_Image=tarot_results_map.get("Ben_Ming_Tarot_Image_Value");
+					}
+					xian_zhuang_tarot_id = tarot_results_map.get("Xian_Zhuang_Tarot_ID");
+					if(xian_zhuang_tarot_id != null)
+					{
+						client_record.Xian_Zhuang_Tarot=xian_zhuang_tarot_id;
+						client_record.Xian_Zhuang_Tarot_Image=tarot_results_map.get("Xian_Zhuang_Tarot_Image_Value");
+					}
+					ye_li_tarot_id = tarot_results_map.get("Ye_Li_Tarot_ID");
+					if(ye_li_tarot_id != null)
+					{
+						client_record.Ye_Li_Tarot=ye_li_tarot_id;
+						client_record.Ye_Li_Tarot_Image=tarot_results_map.get("Ye_Li_Tarot_Image_Value");
+					}
+					tian_yuan_tarot_id = tarot_results_map.get("Tian_Yuan_Tarot_ID");
+					if(tian_yuan_tarot_id != null)
+					{
+						client_record.Tian_Yuan_Tarot=tian_yuan_tarot_id;
+						client_record.Tian_Yuan_Tarot_Image=tarot_results_map.get("Tian_Yuan_Tarot_Image_Value");
+					}
+					info "本命塔羅計算完成";
+				}
+				info "命理計算觸發完成";
+			}
+			catch (calc_error)
+			{
+				info "命理計算過程中發生錯誤：" + calc_error.toString();
+				// 不影響主要流程，繼續執行
+			}
+			// === 步驟 6：準備回傳資料 ===
+			api_result.put("success",true);
+			api_result.put("message","個案建立成功，命理運算開始進行");
+			api_result.put("is_existing_client",false);
+			api_result.put("client_id",client_id.toString());
+			api_result.put("client_name",lastName + firstName);
+			api_result.put("personality_profile_ready",false);
+			// 回傳格式化後的資料供確認
+			formatted_data = Map();
+			formatted_data.put("birth_date",formatted_date);
+			formatted_data.put("birth_time",formatted_time);
+			formatted_data.put("full_datetime",full_datetime_string);
+			api_result.put("formatted_data",formatted_data);
+			info "API 回傳成功";
+		}
+		else
+		{
+			api_result.put("success",false);
+			api_result.put("message","個案記錄建立失敗");
+			info "個案記錄建立失敗";
+		}
+	}
+	catch (e)
+	{
+		api_result.put("success",false);
+		api_result.put("message","系統錯誤：" + e.toString());
+		info "createClientProfile API 執行錯誤：" + e.toString();
+	}
+	return api_result;
+}

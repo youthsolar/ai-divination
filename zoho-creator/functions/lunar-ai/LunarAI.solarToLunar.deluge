@@ -1,0 +1,44 @@
+map LunarAI.solarToLunar(date solarBirthday)
+{
+	// =============================================================================
+	// 函數名稱：solarToLunar
+	// 函數用途：國曆轉農曆（純粹轉換，兼容舊回傳格式）
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	//
+	// 功能描述：
+	// - 接收國曆日期，透過 LunarData.getConstants 取得農曆常數
+	// - 調用 calculateLunarDetails 計算生日的農曆資訊
+	// - 調用 Bazi.getDivinationTimeDetails 取得占卜日資訊（兼容舊 Workflow）
+	// - 回傳包含「生日」和「占卜日」兩個子 Map 的結果
+	//
+	// 參數說明：
+	// @param solarBirthday (date) - 國曆生日
+	//
+	// 回傳格式：
+	// @return (map) - 包含以下鍵值：
+	//   - "生日" (map): 農曆生日資訊（由 calculateLunarDetails 回傳）
+	//   - "占卜日" (map): 占卜日農曆資訊（由 Bazi.getDivinationTimeDetails 回傳）
+	//
+	// 相依性：
+	// - thisapp.LunarData.getConstants（農曆常數資料庫）
+	// - thisapp.LunarAI.calculateLunarDetails（農曆計算引擎）
+	// - thisapp.Bazi.getDivinationTimeDetails（占卜時間詳情）
+	//
+	// 注意：
+	// - 已移除所有子時換日邏輯，八字排盤的特殊規則由 Bazi 命名空間獨立處理
+	// - 此函數的農曆常數資料（日期數值）不可修改
+	// =============================================================================
+
+	// 獲取共享的農曆常數資料庫
+	lunar_constants = thisapp.LunarData.getConstants();
+	// 直接使用傳入的、未經修改的生日進行計算
+	birthday_lunar_map = thisapp.LunarAI.calculateLunarDetails(solarBirthday,lunar_constants);
+	// 為了保持對舊 Workflow 的兼容性，仍需要占卜日的 Map
+	divination_lunar_map = thisapp.Bazi.getDivinationTimeDetails();
+	// 組合最終的回傳結果
+	overall_result_map = Map();
+	overall_result_map.put("生日",birthday_lunar_map);
+	overall_result_map.put("占卜日",divination_lunar_map);
+	return overall_result_map;
+}

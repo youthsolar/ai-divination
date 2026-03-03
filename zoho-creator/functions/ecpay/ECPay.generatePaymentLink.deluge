@@ -1,0 +1,106 @@
+map ECPay.generatePaymentLink(string itemName, string itemDesc, decimal amount, string customerName, string divinationLogId)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.generatePaymentLink
+	// 函數用途：生成 ECPay 付款連結（供 SalesIQ 調用）
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：根據商品資訊和占卜紀錄 ID 生成付款連結：
+	//           - 驗證占卜紀錄是否存在
+	//           - 生成唯一訂單編號（SIQ + 時間戳）
+	//           - 建立 Talisman_Purchases 訂單記錄
+	//           - 呼叫 generateECPayCheckoutForm 生成付款 HTML
+	// 參數說明：
+	//   - itemName (string): 商品名稱（用於顯示）
+	//   - itemDesc (string): 商品描述（用於顯示）
+	//   - amount (decimal): 付款金額
+	//   - customerName (string): 客戶姓名（僅供顯示）
+	//   - divinationLogId (string): 占卜紀錄 ID（用於關聯）
+	// 回傳格式：map - 包含付款連結和訂單資訊：
+	//   - "success" (boolean), "orderNo" (string), "amount" (decimal),
+	//     "itemName" (string), "paymentHtml" (string), "message" (string)
+	//   - "error" (string): 錯誤訊息（若失敗）
+	// 相依性：ECPay.generateECPayCheckoutForm, ECPay 變數,
+	//         Divination_Logs 表單, Talisman_Purchases 表單
+	// =============================================================================
+	// --- 初始化結果 ---
+	result = Map();
+	try
+	{
+		// --- 驗證占卜紀錄是否存在 ---
+		if(divinationLogId != null && divinationLogId != "")
+		{
+			divinationRecord = Divination_Logs[ID == divinationLogId.toLong()];
+			if(divinationRecord.count() == 0)
+			{
+				result.put("success",false);
+				result.put("error","找不到對應的占卜紀錄");
+				return result;
+			}
+			// 取得第一筆紀錄
+			targetRecord = null;
+			for each  record in divinationRecord
+			{
+				targetRecord = record;
+				break;
+			}
+			clientId = targetRecord.Client_Link;
+		}
+		else
+		{
+			clientId = null;
+		}
+		// --- 生成唯一訂單編號 ---
+		timestamp = zoho.currenttime.toString("yyyyMMddHHmmss");
+		merchantTradeNo = "SIQ" + timestamp;
+		// --- 建立訂單記錄 ---
+		newOrder = insert into Talisman_Purchases
+		[
+			Added_User=zoho.loginuser
+			MerchantTradeNo=merchantTradeNo
+			Status="Pending"
+			Item_Name_Chinese=itemName
+			Description_Chinese=itemDesc
+			TradeAmt=amount
+			Divination_Log_Link=if(divinationLogId != null && divinationLogId != "",divinationLogId.toLong(),null)
+			Client_Link=clientId
+		];
+		// --- 準備付款參數 ---
+		orderInfo = Map();
+		orderInfo.put("MerchantTradeNo",merchantTradeNo);
+		orderInfo.put("MerchantTradeDate",zoho.currenttime.toString("yyyy/MM/dd HH:mm:ss"));
+		orderInfo.put("TotalAmount",amount.toString());
+		orderInfo.put("ItemName","AI-Divination-Service");
+		// 英文用於簽章
+		orderInfo.put("TradeDesc","Service-" + merchantTradeNo);
+		// 英文用於簽章
+		orderInfo.put("ReturnURL","https://ecpay-webhook-proxy-ptmk.vercel.app/api/webhook");
+		orderInfo.put("ClientBackURL","https://www.google.com");
+		// 付款完成後跳轉
+		orderInfo.put("ChoosePayment","Credit");
+		// 只允許信用卡付款
+		// --- 獲取 ECPay 設定 ---
+		merchantID = thisapp.variables.ECPay.merchantID.toString();
+		hashKey = thisapp.variables.ECPay.hashKey.toString();
+		hashIV = thisapp.variables.ECPay.hashIV.toString();
+		checkoutUrl = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
+		// 測試環境
+		// --- 生成付款 HTML ---
+		paymentHtml = thisapp.ECPay.generateECPayCheckoutForm(merchantID,hashKey,hashIV,checkoutUrl,orderInfo);
+		// --- 組織回傳結果 ---
+		result.put("success",true);
+		result.put("orderNo",merchantTradeNo);
+		result.put("amount",amount);
+		result.put("itemName",itemName);
+		result.put("paymentHtml",paymentHtml);
+		result.put("message","付款連結已生成");
+		info "成功生成付款連結：" + merchantTradeNo;
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("error","生成付款連結失敗：" + e.toString());
+		info "生成付款連結失敗：" + e.toString();
+	}
+	return result;
+}

@@ -1,0 +1,100 @@
+map Tarot.getPositionMeanings(string question_type)
+{
+	// =============================================================================
+	// 函數名稱：Tarot.getPositionMeanings
+	// 函數用途：塔羅牌陣牌位意義定義
+	// 平台：Zoho Creator
+	// 命名空間：Tarot
+	// 功能描述：根據問題類型回傳五張牌牌陣中每個牌位的具體意義：
+	//           - 支援 7 種問題類型：愛情、婚姻、工作、財運、健康、入煞、其他
+	//           - 每種類型有專屬的牌位定義（涵蓋時間軸與影響因子分析）
+	//           - 未知類型使用通用牌陣（過去→現在→核心→外在→未來）
+	//           - 附帶元數據：question_type, spread_name, total_cards
+	// 參數說明：
+	//   - question_type (string): 問題類型（愛情、婚姻、工作、財運、健康、入煞、其他）
+	// 回傳格式：map - {"position_1": string, ..., "position_5": string, "question_type": string, ...}
+	// 相依性：無
+	// =============================================================================
+	// 建立最終回傳的 Map，採用單一出口模式
+	position_meanings = Map();
+	try
+	{
+		// --- 根據問題類型定義牌位意義 ---
+		if(question_type == "愛情")
+		{
+			position_meanings.put("position_1","內心狀態");
+			position_meanings.put("position_2","對方心意");
+			position_meanings.put("position_3","關係現況");
+			position_meanings.put("position_4","阻礙因素");
+			position_meanings.put("position_5","未來發展");
+		}
+		else if(question_type == "婚姻")
+		{
+			position_meanings.put("position_1","婚姻基礎");
+			position_meanings.put("position_2","溝通狀況");
+			position_meanings.put("position_3","家庭和諧");
+			position_meanings.put("position_4","挑戰考驗");
+			position_meanings.put("position_5","長遠展望");
+		}
+		else if(question_type == "工作")
+		{
+			position_meanings.put("position_1","個人能力");
+			position_meanings.put("position_2","工作環境");
+			position_meanings.put("position_3","目前狀況");
+			position_meanings.put("position_4","成長機會");
+			position_meanings.put("position_5","事業前景");
+		}
+		else if(question_type == "財運")
+		{
+			position_meanings.put("position_1","財務現況");
+			position_meanings.put("position_2","收入來源");
+			position_meanings.put("position_3","支出管理");
+			position_meanings.put("position_4","投資機會");
+			position_meanings.put("position_5","財富累積");
+		}
+		else if(question_type == "健康")
+		{
+			position_meanings.put("position_1","身體狀況");
+			position_meanings.put("position_2","心理狀態");
+			position_meanings.put("position_3","生活習慣");
+			position_meanings.put("position_4","注意事項");
+			position_meanings.put("position_5","康復建議");
+		}
+		else if(question_type == "入煞")
+		{
+			position_meanings.put("position_1","靈性狀態");
+			position_meanings.put("position_2","負能影響");
+			position_meanings.put("position_3","防護能力");
+			position_meanings.put("position_4","化解方法");
+			position_meanings.put("position_5","淨化指引");
+		}
+		else
+		{
+			// "其他" 或未知類型
+			// 通用牌陣：適用於各種問題的萬能牌位
+			position_meanings.put("position_1","過去影響");
+			position_meanings.put("position_2","現在狀況");
+			position_meanings.put("position_3","核心問題");
+			position_meanings.put("position_4","外在因素");
+			position_meanings.put("position_5","未來指引");
+		}
+		// 加入元數據
+		position_meanings.put("question_type",question_type);
+		position_meanings.put("spread_name","專業五牌陣");
+		position_meanings.put("total_cards",5);
+	}
+	catch (e)
+	{
+		// 發生錯誤時使用預設的通用牌陣
+		position_meanings.put("position_1","過去影響");
+		position_meanings.put("position_2","現在狀況");
+		position_meanings.put("position_3","核心問題");
+		position_meanings.put("position_4","外在因素");
+		position_meanings.put("position_5","未來指引");
+		position_meanings.put("question_type","其他");
+		position_meanings.put("spread_name","通用五牌陣");
+		position_meanings.put("total_cards",5);
+		position_meanings.put("error","使用預設牌陣：" + e);
+	}
+	return position_meanings;
+}

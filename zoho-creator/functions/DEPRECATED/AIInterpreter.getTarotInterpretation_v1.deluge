@@ -1,0 +1,233 @@
+map AIInterpreter.getTarotInterpretation(string question_text, string question_type, map tarot_spread_data)
+{
+	// =============================================================================
+	// ⚠️ 已廢棄：此函數已標記為廢棄，不應在生產環境中使用。
+	// 原函數用途：商業化塔羅牌 AI 個人化解讀函數（v1 版本，500 字）
+	// 廢棄原因：已被 getTarotInterpretation（原 _v2）取代，無任何 caller
+	// 封存日期：2026-02-25
+	// =============================================================================
+	// 可調整參數區域（供日後測試調整）：
+	commercial_ratio = 0.1;
+	// 商業化比例：10%
+	creativity_temperature = 0.7;
+	// 創意溫度：0.7
+	target_word_count = 500;
+	// 目標字數：500字
+	// 建立最終回傳的 Map，採用單一出口模式
+	final_response = Map();
+	try
+	{
+		// --- 步驟 1: 驗證輸入參數 ---
+		if(question_text == null || question_text.trim() == "" || question_type == null || question_type.trim() == "" || tarot_spread_data == null)
+		{
+			final_response.put("success",false);
+			final_response.put("error","輸入參數不完整或塔羅牌陣資料無效");
+			final_response.put("interpretation","很抱歉，目前無法為您提供塔羅解讀，請稍後再試。");
+			return final_response;
+		}
+		// --- 步驟 2: 主副卦分析（核心創新邏輯）---
+		// 從tarot_spread_data中提取五張牌的正逆位資訊
+		reversed_cards = list();
+		upright_cards = list();
+		all_reversed_status = list();
+		// 提取五張牌的正逆位狀態
+		card_1_reversed = tarot_spread_data.get("Card_1_Reversed");
+		card_2_reversed = tarot_spread_data.get("Card_2_Reversed");
+		card_3_reversed = tarot_spread_data.get("Card_3_Reversed");
+		card_4_reversed = tarot_spread_data.get("Card_4_Reversed");
+		card_5_reversed = tarot_spread_data.get("Card_5_Reversed");
+		all_reversed_status.add(card_1_reversed);
+		all_reversed_status.add(card_2_reversed);
+		all_reversed_status.add(card_3_reversed);
+		all_reversed_status.add(card_4_reversed);
+		all_reversed_status.add(card_5_reversed);
+		// 提取牌位意義
+		position_meanings = list();
+		position_meanings.add(tarot_spread_data.get("Position_1_Meaning"));
+		position_meanings.add(tarot_spread_data.get("Position_2_Meaning"));
+		position_meanings.add(tarot_spread_data.get("Position_3_Meaning"));
+		position_meanings.add(tarot_spread_data.get("Position_4_Meaning"));
+		position_meanings.add(tarot_spread_data.get("Position_5_Meaning"));
+		// 統計正逆位數量
+		reversed_count = 0;
+		upright_count = 0;
+		total_cards = 5;
+		for each  is_reversed in all_reversed_status
+		{
+			if(is_reversed == true)
+			{
+				reversed_count = reversed_count + 1;
+			}
+			else
+			{
+				upright_count = upright_count + 1;
+			}
+		}
+		// 確定主副卦（少數為主，多數為輔）
+		primary_trend = "";
+		secondary_trend = "";
+		primary_description = "";
+		secondary_description = "";
+		if(reversed_count < upright_count)
+		{
+			// 逆位牌較少，所以逆位為主卦
+			primary_trend = "逆位";
+			secondary_trend = "正位";
+			primary_description = "少數逆位牌主導整體運勢走向，顯示需要深度轉化的核心議題";
+			secondary_description = "多數正位牌提供穩定的支持能量，形成變革的基礎";
+		}
+		else if(reversed_count > upright_count)
+		{
+			// 正位牌較少，所以正位為主卦
+			primary_trend = "正位";
+			secondary_trend = "逆位";
+			primary_description = "少數正位牌主導整體運勢走向，代表突破困境的關鍵力量";
+			secondary_description = "多數逆位牌揭示需要面對的挑戰，但已有明確的解決方向";
+		}
+		else
+		{
+			// 正逆位數量相等
+			primary_trend = "平衡";
+			secondary_trend = "平衡";
+			primary_description = "正逆位完美平衡的和諧狀態，顯示內在力量的均衡發展";
+			secondary_description = "各種能量相互制衡，需要智慧地維持現狀並尋求突破點";
+		}
+		// 記錄主副卦的牌卡資訊（供後續詳細分析使用）
+		primary_cards_info = list();
+		secondary_cards_info = list();
+		card_index = 0;
+		for each  is_reversed in all_reversed_status
+		{
+			card_info = Map();
+			card_info.put("position",card_index + 1);
+			card_info.put("is_reversed",is_reversed);
+			card_info.put("meaning",position_meanings.get(card_index));
+			if((primary_trend == "逆位" && is_reversed == true) || (primary_trend == "正位" && is_reversed == false) || primary_trend == "平衡")
+			{
+				primary_cards_info.add(card_info);
+			}
+			else
+			{
+				secondary_cards_info.add(card_info);
+			}
+			card_index = card_index + 1;
+		}
+		// --- 步驟 3: 五行權重計算（基於時間軸）---
+		// 定義牌位的時間軸權重
+		position_weights = list();
+		position_weights.add(0.1);
+		// 牌位1：過去影響 - 低權重
+		position_weights.add(0.2);
+		// 牌位2：現在狀況 - 中權重
+		position_weights.add(0.3);
+		// 牌位3：核心問題 - 高權重（現狀重點）
+		position_weights.add(0.2);
+		// 牌位4：外在因素 - 中權重
+		position_weights.add(0.2);
+		// 牌位5：未來指引 - 中權重（未來重點）
+		// 提取並分析五行元素（暫時用模擬資料）
+		primary_elements = list();
+		primary_elements.add("金");
+		// 暫時的模擬推薦
+		// --- 步驟 4: 建立商業化 AI Prompt ---
+		spread_content = "";
+		// 構建結構化的牌陣描述
+		spread_content = spread_content + "客戶問題：" + question_text + "\n";
+		spread_content = spread_content + "問題類型：" + question_type + "\n\n";
+		// 主副卦分析結果
+		spread_content = spread_content + "=== 主副卦運勢分析 ===\n";
+		spread_content = spread_content + "主卦趨勢：" + primary_trend + "（共" + if(primary_trend == "逆位",reversed_count,if(primary_trend == "正位",upright_count,5)) + "張牌）\n";
+		spread_content = spread_content + "主卦描述：" + primary_description + "\n";
+		spread_content = spread_content + "副卦能量：" + secondary_trend + "（共" + if(secondary_trend == "逆位",reversed_count,if(secondary_trend == "正位",upright_count,0)) + "張牌）\n";
+		spread_content = spread_content + "副卦描述：" + secondary_description + "\n\n";
+		// 加入五張牌的詳細資訊（強調現狀和未來）
+		spread_content = spread_content + "=== 詳細牌陣資訊（時間軸權重：現狀及未來為重）===\n";
+		position_labels = {"牌位1（過去影響）","牌位2（現在狀況）","牌位3（核心問題）","牌位4（外在因素）","牌位5（未來指引）"};
+		position_importance = {"低權重","中權重","高權重","中權重","中權重"};
+		card_index = 0;
+		for each  meaning in position_meanings
+		{
+			if(meaning != null && meaning != "")
+			{
+				reversed_status = all_reversed_status.get(card_index);
+				trend_mark = if(reversed_status,"【逆位】","【正位】");
+				importance_mark = "（" + position_importance.get(card_index) + "）";
+				spread_content = spread_content + position_labels.get(card_index) + trend_mark + importance_mark + "：\n" + meaning + "\n\n";
+			}
+			card_index = card_index + 1;
+		}
+		// 商業化指導（10%比例的推薦內容）
+		commercial_guidance = "在解讀的最後50字左右，根據主卦顯示的五行需求，溫和地建議客戶考慮透過相應的五行靈性工具來輔助能量平衡。語調要自然而溫和，如：「建議考慮」、「可以嘗試」、「有助於平衡」等，避免強硬推銷。";
+		// 主副卦分析指導
+		primary_analysis_guidance = "請特別著重分析主卦（" + primary_trend + "）的深層含義，這些" + if(primary_trend == "逆位","逆位","正位") + "牌雖然數量較少，但主導整體運勢發展。請結合牌面描述深入解讀，並說明為何這些牌具有決定性影響。";
+		secondary_analysis_guidance = "副卦（" + secondary_trend + "）的" + if(secondary_trend == "逆位","逆位","正位") + "牌提供輔助能量，請說明它們如何支持或平衡主卦的運勢走向。";
+		// 建立精密的 AI Prompt
+		ai_prompt = "你是一位擁有30年經驗的專業塔羅牌占卜師，精通主副卦分析法，以仙氣飄飄的高維靈魂語調來回答。\n\n" + "重要指令：請務必使用繁體中文回答，嚴格避免簡體字。特別注意：使用「個」不用「个」、「裡」不用「里」、「資訊」不用「信息」、「網絡」不用「网络」。\n\n" + "請根據以下塔羅牌陣為客戶提供深度的個人化解讀：\n\n" + spread_content + "\n=== 解讀指導 ===\n" + primary_analysis_guidance + "\n" + secondary_analysis_guidance + "\n\n" + "請按以下結構提供一個500字的專業塔羅解讀：\n" + "1. 開場感受（50字）：對客戶問題表達同理心，點出整體牌陣的核心訊息\n" + "2. 主卦深度分析（250字）：詳細分析主導趨勢，解釋為何少數牌具有決定性影響，結合具體牌面描述\n" + "3. 副卦輔助說明（100字）：說明輔助能量如何平衡或支持主卦，強調時間軸的現狀與未來重點\n" + "4. 五行調和建議（50字）：" + commercial_guidance + "\n" + "5. 正面展望（50字）：以溫暖智慧的語調給予鼓勵和指引\n\n" + "創意參數：以0.7的創意溫度平衡專業性與靈感表達。語調要溫暖、智慧且具有靈性深度。";
+		// --- 步驟 5: 呼叫 OpenAI API ---
+		messages = list();
+		// 設定系統提示
+		systemMsg = Map();
+		systemMsg.put("role","system");
+		systemMsg.put("content","你是一位擁有30年經驗的專業塔羅牌占卜師，以仙氣飄飄的高維靈魂語調來回答。請使用繁體中文，絕對避免簡體字符。");
+		messages.add(systemMsg);
+		// 用戶訊息
+		userMsg = Map();
+		userMsg.put("role","user");
+		userMsg.put("content",ai_prompt);
+		messages.add(userMsg);
+		// 組合完整的請求 payload
+		openai_request = Map();
+		openai_request.put("model",thisapp.variables.OpenAI.OpenAI_Model);
+		openai_request.put("messages",messages);
+		openai_request.put("temperature",creativity_temperature);
+		// 使用可調整的創意溫度
+		openai_request.put("max_tokens",1000);
+		// 增加到1000以確保500字輸出
+		// 設定請求標頭
+		headers = Map();
+		headers.put("Authorization","Bearer " + thisapp.variables.OpenAI.OpenAI_API_Key);
+		headers.put("Content-Type","application/json");
+		// 呼叫 OpenAI API
+		openai_response = postUrl(thisapp.variables.OpenAI.OpenAI_API_URL,openai_request.toString(),headers);
+		// --- 步驟 6: 處理 API 回應 ---
+		if(openai_response.get("choices") != null && openai_response.get("choices").size() > 0)
+		{
+			ai_interpretation = openai_response.get("choices").get(0).get("message").get("content");
+			if(ai_interpretation != null && ai_interpretation.trim() != "")
+			{
+				// 清理回應文字
+				clean_interpretation = ai_interpretation.trim();
+				// 計算字數（中文字符估算）
+				word_count = clean_interpretation.length() / 2;
+				final_response.put("success",true);
+				final_response.put("interpretation",clean_interpretation);
+				final_response.put("word_count",word_count);
+				final_response.put("primary_trend",primary_trend);
+				final_response.put("secondary_trend",secondary_trend);
+				final_response.put("recommended_elements",primary_elements);
+				final_response.put("commercial_ratio",commercial_ratio);
+				final_response.put("creativity_temperature",creativity_temperature);
+			}
+			else
+			{
+				final_response.put("success",false);
+				final_response.put("error","AI 回應為空");
+				final_response.put("interpretation","感謝您的信任。這次的塔羅牌陣顯示了豐富的訊息，建議您靜心思考每張牌的含義，相信內在的智慧會為您指引方向。");
+			}
+		}
+		else
+		{
+			final_response.put("success",false);
+			final_response.put("error","OpenAI API 回應格式異常");
+			final_response.put("interpretation","感謝您的信任。這次的塔羅牌陣顯示了豐富的訊息，建議您靜心思考每張牌的含義，相信內在的智慧會為您指引方向。");
+		}
+	}
+	catch (e)
+	{
+		// 發生錯誤時的預設回應
+		final_response.put("success",false);
+		final_response.put("error","處理過程發生錯誤：" + e);
+		final_response.put("interpretation","親愛的朋友，宇宙的能量此刻正在為您重新排列。請稍後再次嘗試，或者靜心冥想您抽到的牌卡，答案會在寧靜中浮現。");
+	}
+	return final_response;
+}

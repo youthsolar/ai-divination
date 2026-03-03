@@ -1,0 +1,153 @@
+map LunarAI.getHourPillar(int input_hour, string day_heavenly_stem)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getHourPillar
+	// 函數用途：計算八字時柱
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：根據輸入的小時（0-23）和日天干，透過五鼠遁時法計算時柱干支。
+	// 參數說明：
+	//   - input_hour (int): 小時（0-23）
+	//   - day_heavenly_stem (string): 日天干（如「甲」）
+	// 回傳格式：Map - { 時柱干支, 時干, 時支, 錯誤 }
+	// 相依性：無（純計算）
+	// 注意：使用五鼠遁時訣決定子時天干起點
+	// =============================================================================
+	// 初始化返回結果的 Map
+	result_map = Map();
+	result_map.put("時柱干支","");
+	result_map.put("時干","");
+	result_map.put("時支","");
+	result_map.put("錯誤","");
+	// 基礎資料驗證
+	if(input_hour < 0 || input_hour > 23)
+	{
+		result_map.put("錯誤","輸入的小時 (" + input_hour + ") 不在有效範圍 0-23 之間。");
+		return result_map;
+	}
+	// 天干對應表 (文字 -> 序數)
+	heavenly_stem_to_index_map = Map();
+	heavenly_stem_to_index_map.put("甲",1);
+	heavenly_stem_to_index_map.put("乙",2);
+	heavenly_stem_to_index_map.put("丙",3);
+	heavenly_stem_to_index_map.put("丁",4);
+	heavenly_stem_to_index_map.put("戊",5);
+	heavenly_stem_to_index_map.put("己",6);
+	heavenly_stem_to_index_map.put("庚",7);
+	heavenly_stem_to_index_map.put("辛",8);
+	heavenly_stem_to_index_map.put("壬",9);
+	heavenly_stem_to_index_map.put("癸",10);
+	// 天干對應表 (序數 -> 文字)
+	index_to_heavenly_stem_map = Map();
+	index_to_heavenly_stem_map.put(1,"甲");
+	index_to_heavenly_stem_map.put(2,"乙");
+	index_to_heavenly_stem_map.put(3,"丙");
+	index_to_heavenly_stem_map.put(4,"丁");
+	index_to_heavenly_stem_map.put(5,"戊");
+	index_to_heavenly_stem_map.put(6,"己");
+	index_to_heavenly_stem_map.put(7,"庚");
+	index_to_heavenly_stem_map.put(8,"辛");
+	index_to_heavenly_stem_map.put(9,"壬");
+	index_to_heavenly_stem_map.put(10,"癸");
+	if(!heavenly_stem_to_index_map.containKey(day_heavenly_stem))
+	{
+		result_map.put("錯誤","輸入的日天干 (" + day_heavenly_stem + ") 無效。");
+		return result_map;
+	}
+	// 小時 -> 時辰地支對應表
+	hour_to_earthly_branch_map = Map();
+	hour_to_earthly_branch_map.put(23,"子");
+	hour_to_earthly_branch_map.put(0,"子");
+	hour_to_earthly_branch_map.put(1,"丑");
+	hour_to_earthly_branch_map.put(2,"丑");
+	hour_to_earthly_branch_map.put(3,"寅");
+	hour_to_earthly_branch_map.put(4,"寅");
+	hour_to_earthly_branch_map.put(5,"卯");
+	hour_to_earthly_branch_map.put(6,"卯");
+	hour_to_earthly_branch_map.put(7,"辰");
+	hour_to_earthly_branch_map.put(8,"辰");
+	hour_to_earthly_branch_map.put(9,"巳");
+	hour_to_earthly_branch_map.put(10,"巳");
+	hour_to_earthly_branch_map.put(11,"午");
+	hour_to_earthly_branch_map.put(12,"午");
+	hour_to_earthly_branch_map.put(13,"未");
+	hour_to_earthly_branch_map.put(14,"未");
+	hour_to_earthly_branch_map.put(15,"申");
+	hour_to_earthly_branch_map.put(16,"申");
+	hour_to_earthly_branch_map.put(17,"酉");
+	hour_to_earthly_branch_map.put(18,"酉");
+	hour_to_earthly_branch_map.put(19,"戌");
+	hour_to_earthly_branch_map.put(20,"戌");
+	hour_to_earthly_branch_map.put(21,"亥");
+	hour_to_earthly_branch_map.put(22,"亥");
+	// 地支 -> 序數對應表 (1:子, ..., 12:亥)
+	earthly_branch_to_index_map = Map();
+	earthly_branch_to_index_map.put("子",1);
+	earthly_branch_to_index_map.put("丑",2);
+	earthly_branch_to_index_map.put("寅",3);
+	earthly_branch_to_index_map.put("卯",4);
+	earthly_branch_to_index_map.put("辰",5);
+	earthly_branch_to_index_map.put("巳",6);
+	earthly_branch_to_index_map.put("午",7);
+	earthly_branch_to_index_map.put("未",8);
+	earthly_branch_to_index_map.put("申",9);
+	earthly_branch_to_index_map.put("酉",10);
+	earthly_branch_to_index_map.put("戌",11);
+	earthly_branch_to_index_map.put("亥",12);
+	// 1. 根據輸入小時確定時辰地支
+	hour_earthly_branch_str = hour_to_earthly_branch_map.get(input_hour);
+	if(hour_earthly_branch_str == null)
+	{
+		result_map.put("錯誤","無法根據小時 (" + input_hour + ") 找到對應的時辰地支。");
+		return result_map;
+	}
+	result_map.put("時支",hour_earthly_branch_str);
+	hour_earthly_branch_index = earthly_branch_to_index_map.get(hour_earthly_branch_str);
+	// 2. 根據日天干確定子時的天干 (五鼠遁時訣)
+	day_heavenly_stem_index = heavenly_stem_to_index_map.get(day_heavenly_stem);
+	zishi_heavenly_stem_index = 0;
+	if(day_heavenly_stem_index == 1 || day_heavenly_stem_index == 6)
+	{
+		// 甲日或己日
+		zishi_heavenly_stem_index = 1;
+		// 子時為甲
+	}
+	else if(day_heavenly_stem_index == 2 || day_heavenly_stem_index == 7)
+	{
+		// 乙日或庚日
+		zishi_heavenly_stem_index = 3;
+		// 子時為丙
+	}
+	else if(day_heavenly_stem_index == 3 || day_heavenly_stem_index == 8)
+	{
+		// 丙日或辛日
+		zishi_heavenly_stem_index = 5;
+		// 子時為戊
+	}
+	else if(day_heavenly_stem_index == 4 || day_heavenly_stem_index == 9)
+	{
+		// 丁日或壬日
+		zishi_heavenly_stem_index = 7;
+		// 子時為庚
+	}
+	else if(day_heavenly_stem_index == 5 || day_heavenly_stem_index == 10)
+	{
+		// 戊日或癸日
+		zishi_heavenly_stem_index = 9;
+		// 子時為壬
+	}
+	// 3. 計算時辰的天干
+	// (子時天干序數 - 1 + 時辰地支序數 - 1) % 10 再 + 1
+	current_hour_heavenly_stem_index_raw = (zishi_heavenly_stem_index - 1 + hour_earthly_branch_index - 1) % 10;
+	current_hour_heavenly_stem_index = current_hour_heavenly_stem_index_raw + 1;
+	hour_heavenly_stem_str = index_to_heavenly_stem_map.get(current_hour_heavenly_stem_index);
+	if(hour_heavenly_stem_str == null)
+	{
+		result_map.put("錯誤","計算時天干失敗。");
+		return result_map;
+	}
+	result_map.put("時干",hour_heavenly_stem_str);
+	// 4. 組合時柱干支
+	result_map.put("時柱干支",hour_heavenly_stem_str + hour_earthly_branch_str);
+	return result_map;
+}

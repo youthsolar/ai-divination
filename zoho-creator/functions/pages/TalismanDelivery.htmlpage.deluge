@@ -1,0 +1,196 @@
+// =============================================================================
+// 符令交付頁（Creator Page / HTML Snippet）
+// 名稱建議：TalismanDelivery（在 Creator → Pages 建立）
+// URL 參數：?token=<Delivery_Token>
+//
+// 使用方式：
+// 1. 在 Zoho Creator → AI易經 App → Pages，新增一個 Page
+// 2. 加入 HTML Snippet（html_snippet）元件
+// 3. 將下方 htmlpage 程式碼貼入
+// 4. 設定 System.DeliveryPageBaseURL 為此 Page 的完整 URL
+//    例如：https://creatorapp.zoho.com/uneedwind/ai/page/TalismanDelivery
+//
+// 注意：
+// - URL 參數 token 由 n8n 在付款成功後推播給使用者
+// - 呼叫後端 API.GetTalismanByToken 驗證 token 並取得符令內容
+// - 此頁面不需要登入即可訪問（Public API + Token 隨機性保護）
+// =============================================================================
+
+htmlpage html_snippet()
+content
+<%{ %>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>符令交付</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f7f3ef;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      max-width: 480px;
+      width: 100%;
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .logo {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #2c1a4e;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 24px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-label {
+      font-size: 11px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .section-content {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      background: #faf8f5;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .item-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2c1a4e;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .expires-badge {
+      display: inline-block;
+      background: #f0e6ff;
+      color: #7c3aed;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #fca5a5;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+    .error-box .icon { font-size: 36px; margin-bottom: 10px; }
+    .error-box .msg { font-size: 14px; color: #991b1b; line-height: 1.6; }
+    .loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+    .divider { border: none; border-top: 1px solid #f0e8e0; margin: 16px 0; }
+    .footer { text-align: center; font-size: 11px; color: #bbb; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="content">
+    <div class="loading">🔮 符令準備中...</div>
+  </div>
+
+  <script>
+  (function() {
+    // 從 URL 取得 token
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get('token') || '';
+
+    var el = document.getElementById('content');
+
+    function renderError(msg) {
+      el.innerHTML = '<div class="logo">🌙</div>' +
+        '<div class="error-box">' +
+        '<div class="icon">⚠️</div>' +
+        '<div class="msg">' + msg + '</div>' +
+        '</div>' +
+        '<div class="footer">如有問題請透過 LINE 聯繫客服</div>';
+    }
+
+    function renderTalisman(data) {
+      var html = '<div class="logo">🔮</div>' +
+        '<div class="title">你的符令已到</div>' +
+        '<div class="subtitle">請在有效期內使用，能量守護已啟動</div>';
+
+      html += '<div class="item-name">' + (data.item_name || '符令') + '</div>';
+
+      if (data.expires_at) {
+        html += '<div style="text-align:center;margin-bottom:16px;">' +
+          '<span class="expires-badge">🗓 有效至 ' + data.expires_at + '</span>' +
+          '</div>';
+      }
+
+      if (data.description && data.description.trim()) {
+        html += '<div class="section">' +
+          '<div class="section-label">符令說明</div>' +
+          '<div class="section-content">' + data.description + '</div>' +
+          '</div>';
+      }
+
+      if (data.hexagram_content && data.hexagram_content.trim()) {
+        html += '<hr class="divider">' +
+          '<div class="section">' +
+          '<div class="section-label">卦象解讀</div>' +
+          '<div class="section-content">' + data.hexagram_content + '</div>' +
+          '</div>';
+      }
+
+      html += '<div class="footer">✨ 感謝你的信任，願符令能量守護你 ✨</div>';
+      el.innerHTML = html;
+    }
+
+    if (!token) {
+      renderError('連結無效，請確認 LINE 訊息中的連結是否完整。');
+      return;
+    }
+
+    // 呼叫 Creator Custom API → API.GetTalismanByToken
+    var apiUrl = 'https://www.zohoapis.com/creator/custom/uneedwind/get_talisman_by_token';
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.ok === true) {
+        renderTalisman(data);
+      } else {
+        var msg = (data && data.message) ? data.message : '無法取得符令，請稍後再試。';
+        renderError(msg);
+      }
+    })
+    .catch(function(err) {
+      renderError('網路連線異常，請稍後重新開啟連結。');
+    });
+  })();
+  </script>
+</body>
+</html>
+<%} %>

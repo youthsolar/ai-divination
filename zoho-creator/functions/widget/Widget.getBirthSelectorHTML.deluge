@@ -1,0 +1,53 @@
+string Widget.getBirthSelectorHTML()
+{
+	// =============================================================================
+	// 函數名稱：getBirthSelectorHTML
+	// 函數用途：回傳 SalesIQ Widget 用的生日選擇器 HTML 頁面
+	// 平台：Zoho Creator Custom API
+	// 命名空間：Widget
+	//
+	// 功能描述：
+	// - 產生完整的生日選擇器 HTML（含 CSS + JavaScript）
+	// - 使用者填入西元生日與出生時間後，透過 postMessage 回傳資料
+	// - 同時將資料寫入 SalesIQ visitor/session 屬性
+	// - 採用「找風問幸福」SalesIQ 設計系統配色（主色 #BE6F80）
+	//
+	// 參數說明：
+	// 無參數
+	//
+	// 回傳格式：
+	// @return (string) - 完整的 HTML 字串（含 CSS + JavaScript）
+	//   失敗時回傳錯誤提示 HTML
+	//
+	// 相依性：
+	// - 無外部函數依賴（純 HTML 產生器）
+	// - SalesIQ Widget 環境（$zoho.salesiq API）
+	//
+	// 注意：
+	// - 此函數供 SalesIQ Chatbot Widget 調用，非 LIFF 頁面
+	// - 單一出口模式（single return）確保所有路徑都有回傳值
+	// =============================================================================
+
+	result = "";
+	try
+	{
+		// 建立生日選擇器的 HTML 內容
+		htmlContent = "<div id='birth-selector-container' style='max-width:350px;margin:20px auto;padding:20px;border:1px solid #ddd;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);background:#fff;font-family:\"Helvetica Neue\",Arial,sans-serif'>" + "<div style='text-align:center;margin-bottom:20px'>" + "<h3 style='margin:0;color:#BE6F80;font-size:20px;font-weight:600'>【找風問幸福】</h3>" + "</div>" + "<div style='margin-bottom:16px'>" + "<label style='display:block;margin-bottom:6px;color:#333;font-weight:500;font-size:14px'>西元生日</label>" + "<input id='birthDate' type='date' min='1900-01-01' max='2035-12-31' value='2000-01-01' style='width:100%;max-width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s;overflow:hidden' onfocus='this.style.borderColor=\"#BE6F80\"' onblur='this.style.borderColor=\"#e0e0e0\"'>" + "</div>" + "<div style='margin-bottom:20px'>" + "<label style='display:block;margin-bottom:6px;color:#333;font-weight:500;font-size:14px'>出生時間</label>" + "<input id='birthTime' type='time' step='300' value='12:00' style='width:100%;max-width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s;overflow:hidden' onfocus='this.style.borderColor=\"#BE6F80\"' onblur='this.style.borderColor=\"#e0e0e0\"'>" + "</div>" + "<div style='margin-bottom:20px;display:flex;align-items:center;gap:8px'>" + "<input id='confirmBirthData' type='checkbox' style='width:16px;height:16px;accent-color:#BE6F80'>" + "<label for='confirmBirthData' style='color:#333;font-size:14px;cursor:pointer'>確認生日無誤</label>" + "</div>" + "<button id='confirmBirth' onclick='submitBirthData()' style='width:100%;padding:14px;background:#BE6F80;color:#fff;border:0;border-radius:30px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s;box-shadow:0 2px 4px rgba(190,111,128,0.3)' onmouseover='this.style.transform=\"translateY(-2px)\";this.style.boxShadow=\"0 4px 8px rgba(190,111,128,0.4)\"' onmouseout='this.style.transform=\"translateY(0)\";this.style.boxShadow=\"0 2px 4px rgba(190,111,128,0.3)\"'>" + "送出" + "</button>" + "<div id='birthMessage' style='margin-top:16px;padding:12px;border-radius:6px;font-size:14px;text-align:center;display:none'></div>" + "<div style='margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0'>" + "<details open style='cursor:pointer'>" + "<summary style='color:#BE6F80;font-size:13px;font-weight:500'>溫馨提醒</summary>" + "<div style='margin-top:12px;padding:12px;background:#f9f9f9;border-radius:6px;font-size:12px;color:#666'>" + "<p style='margin:0'>時間越精確，占卜結果越準確</p>" + "</div>" + "</details>" + "</div>" + "</div>";
+		// 加入 JavaScript 功能
+		jsContent = "<script>" + "function submitBirthData() {" + "  var dateInput = document.getElementById('birthDate');" + "  var timeInput = document.getElementById('birthTime');" + "  var confirmCheckbox = document.getElementById('confirmBirthData');" + "  var messageDiv = document.getElementById('birthMessage');" + "  var birthDate = dateInput.value;" + "  var birthTime = timeInput.value;" + "  if (!birthDate) {" + "    messageDiv.style.display = 'block';" + "    messageDiv.textContent = '請選擇你的生日';" + "    messageDiv.style.background = '#f8d7da';" + "    messageDiv.style.color = '#721c24';" + "    messageDiv.style.border = '1px solid #f5c6cb';" + "    dateInput.focus();" + "    setTimeout(function() { messageDiv.style.display = 'none'; }, 3000);" + "    return;" + "  }" + "  if (!birthTime) {" + "    messageDiv.style.display = 'block';" + "    messageDiv.textContent = '請選擇出生時間';" + "    messageDiv.style.background = '#f8d7da';" + "    messageDiv.style.color = '#721c24';" + "    messageDiv.style.border = '1px solid #f5c6cb';" + "    timeInput.focus();" + "    setTimeout(function() { messageDiv.style.display = 'none'; }, 3000);" + "    return;" + "  }" + "  if (!confirmCheckbox.checked) {" + "    messageDiv.style.display = 'block';" + "    messageDiv.textContent = '請確認生日無誤';" + "    messageDiv.style.background = '#f8d7da';" + "    messageDiv.style.color = '#721c24';" + "    messageDiv.style.border = '1px solid #f5c6cb';" + "    confirmCheckbox.focus();" + "    setTimeout(function() { messageDiv.style.display = 'none'; }, 3000);" + "    return;" + "  }" + "  var dateObj = new Date(birthDate + 'T' + birthTime);" + "  var formattedDate = dateObj.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });" + "  var formattedTime = dateObj.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });" + "  messageDiv.style.display = 'block';" + "  messageDiv.textContent = '已記錄：' + formattedDate + ' ' + formattedTime;" + "  messageDiv.style.background = '#d4edda';" + "  messageDiv.style.color = '#155724';" + "  messageDiv.style.border = '1px solid #c3e6cb';" + "  if (typeof $zoho !== 'undefined' && $zoho.salesiq) {" + "    $zoho.salesiq.visitor.set({ 'Birthday': birthDate, 'BirthTime': birthTime, 'LastInteractionType': 'BirthDataCollection', 'LastInteractionDate': new Date().toISOString() });" + "    $zoho.salesiq.session.set('dateOfBirth', birthDate);" + "    $zoho.salesiq.session.set('timeOfBirth', birthTime);" + "    $zoho.salesiq.session.set('birthDataConfirmed', 'true');" + "    var visitorId = $zoho.salesiq.visitor.uniqueid();" + "  }" + "  if (typeof parent !== 'undefined' && parent.postMessage) {" + "    parent.postMessage({ type: 'birth_data_collected', data: { birthDate: birthDate, birthTime: birthTime, dateTime: birthDate + 'T' + birthTime, visitorId: visitorId || 'unknown' } }, '*');" + "  }" + "}" + "</script>";
+		// 加入 CSS 樣式
+		cssContent = "<style>" + "@media (max-width: 480px) {" + "  #birth-selector-container { max-width: 320px !important; margin: 10px auto !important; padding: 16px !important; }" + "}" + "#birthDate:focus, #birthTime:focus { outline: none; box-shadow: 0 0 0 3px rgba(190, 111, 128, 0.2); }" + "#confirmBirth:active { transform: translateY(1px); }" + "</style>";
+		// 組合完整的 HTML
+		fullHTML = htmlContent + jsContent + cssContent;
+		info "getBirthSelectorHTML: API 調用成功";
+		result = fullHTML;
+	}
+	catch (error)
+	{
+		// 錯誤處理 — 回傳錯誤提示 HTML
+		result = "<div style='padding:20px;text-align:center;color:#721c24;background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px'>生日選擇器載入失敗，請稍後再試</div>";
+		info "getBirthSelectorHTML: API 錯誤：" + error.toString();
+	}
+	// 單一出口點
+	return result;
+}

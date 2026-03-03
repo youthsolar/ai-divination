@@ -1,0 +1,109 @@
+string LunarAI.lunarToWords(map lunar)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.lunarToWords
+	// 函數用途：農曆數字 → 中文文字
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：將農曆 Map（lunar_year, lunar_month, lunar_day, is_leap_month）
+	//           轉換為中文農曆文字，例如「甲子（鼠）年 正月初一」。
+	// 參數說明：
+	//   - lunar (map): 農曆資訊 Map
+	// 回傳格式：string - 中文農曆字串
+	// 相依性：無（純轉換）
+	// 注意：原函數名為 LunarToWords，已改為 camelCase
+	// =============================================================================
+	// 1. 取出農曆年/月/日 及閏月旗標
+	y = lunar.get("lunar_year").toLong();
+	m = lunar.get("lunar_month").toLong();
+	d = lunar.get("lunar_day").toLong();
+	isLeap = ifnull(lunar.get("is_leap_month"),false);
+	// 2. 天干、地支陣列
+	stems = List();
+	stems.add("甲");
+	stems.add("乙");
+	stems.add("丙");
+	stems.add("丁");
+	stems.add("戊");
+	stems.add("己");
+	stems.add("庚");
+	stems.add("辛");
+	stems.add("壬");
+	stems.add("癸");
+	branches = List();
+	branches.add("子（鼠）");
+	branches.add("丑（牛）");
+	branches.add("寅（虎）");
+	branches.add("卯（兔）");
+	branches.add("辰（龍）");
+	branches.add("巳（蛇）");
+	branches.add("午（馬）");
+	branches.add("未（羊）");
+	branches.add("申（猴）");
+	branches.add("酉（雞）");
+	branches.add("戌（狗）");
+	branches.add("亥（豬）");
+	// 3. 計算年柱（甲子年為西元4年）
+	offset = (y - 4) % 60;
+	if(offset < 0)
+	{
+		offset = offset + 60;
+	}
+	year_stem = stems.get(offset % 10);
+	year_branch = branches.get(offset % 12);
+	yearName = (year_stem + year_branch) + "年";
+	// 4. 月份中文
+	monthNames = List();
+	monthNames.add("正月");
+	monthNames.add("二月");
+	monthNames.add("三月");
+	monthNames.add("四月");
+	monthNames.add("五月");
+	monthNames.add("六月");
+	monthNames.add("七月");
+	monthNames.add("八月");
+	monthNames.add("九月");
+	monthNames.add("十月");
+	monthNames.add("冬月");
+	monthNames.add("臘月");
+	monthName = monthNames.get(m - 1);
+	if(isLeap)
+	{
+		monthName = "閏" + monthName;
+	}
+	// 5. 日份中文
+	dayNames = List();
+	dayNames.add("初一");
+	dayNames.add("初二");
+	dayNames.add("初三");
+	dayNames.add("初四");
+	dayNames.add("初五");
+	dayNames.add("初六");
+	dayNames.add("初七");
+	dayNames.add("初八");
+	dayNames.add("初九");
+	dayNames.add("初十");
+	dayNames.add("十一");
+	dayNames.add("十二");
+	dayNames.add("十三");
+	dayNames.add("十四");
+	dayNames.add("十五");
+	dayNames.add("十六");
+	dayNames.add("十七");
+	dayNames.add("十八");
+	dayNames.add("十九");
+	dayNames.add("二十");
+	dayNames.add("廿一");
+	dayNames.add("廿二");
+	dayNames.add("廿三");
+	dayNames.add("廿四");
+	dayNames.add("廿五");
+	dayNames.add("廿六");
+	dayNames.add("廿七");
+	dayNames.add("廿八");
+	dayNames.add("廿九");
+	dayNames.add("三十");
+	dayName = dayNames.get(d - 1);
+	// 6. 組合並回傳
+	return yearName + " " + monthName + dayName;
+}

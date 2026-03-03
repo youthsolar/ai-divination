@@ -1,0 +1,60 @@
+map Bazi.calculatePreciseDayPillar(date solar_datetime)
+{
+	// =============================================================================
+	// 函數名稱：Bazi.calculatePreciseDayPillar
+	// 函數用途：精確日柱計算引擎
+	// 平台：Zoho Creator
+	// 命名空間：Bazi
+	// 功能描述：透過「干支紀日」連續計數系統計算精確日柱。
+	//           - 設定基準日 1930-01-06（丙辰日，六十甲子索引 52）
+	//           - 計算目標日期與基準日間的天數差
+	//           - 公式 (基準索引 + 天數差) % 60 推導目標日期的六十甲子索引
+	//           - 分別取得天干與地支
+	// 參數說明：
+	//   - solar_datetime (date): 需要計算的國曆日期時間
+	// 回傳格式：map - 包含日柱詳細資訊：
+	//   - "stem" (string): 天干
+	//   - "branch" (string): 地支
+	//   - "pillar" (string): 日柱干支（如「丙辰」）
+	//   - "calc_date", "days_diff", "ganzhi_index", "base_date", "base_index": 除錯資訊
+	// 相依性：LunarAI.getBaziConstants
+	// 注意：日柱計算嚴格按照國曆日期，不考慮子時換日。
+	//       子時換日僅影響八字的「日柱歸屬」，日干支的連續計數本身不受影響。
+	// =============================================================================
+	result = Map();
+	// 步驟 1: 呼叫中央常數函數，獲取天干地支列表。
+	bazi_constants = thisapp.LunarAI.getBaziConstants();
+	stemsList = bazi_constants.get("heavenly_stems");
+	branchesList = bazi_constants.get("earthly_branches");
+	// 日柱計算不考慮子時換日，嚴格按照傳入日期計算。
+	calc_date = solar_datetime;
+	// 步驟 2: 設定基準日和基準干支索引。
+	// 選定 1930年1月6日 作為基準日，這一天是「丙辰」日。
+	base_date = "1930-01-06".toDate("yyyy-MM-dd");
+	base_ganzhi_index = 52;
+	// 「丙辰」在六十甲子循環中的索引是 52。
+	// 步驟 3: 計算目標日期與基準日之間相差的總天數。
+	days_diff = base_date.daysBetween(calc_date);
+	// 步驟 4: 計算目標日期在六十甲子循環中的新索引。
+	ganzhi_index = (base_ganzhi_index + days_diff) % 60;
+	// 處理負數餘數的情況（如果目標日期早於基準日）。
+	if(ganzhi_index < 0)
+	{
+		ganzhi_index = ganzhi_index + 60;
+	}
+	// 步驟 5: 根據新的干支索引，推導出天干和地支的各自索引。
+	stem_index = ganzhi_index % 10;
+	branch_index = ganzhi_index % 12;
+	day_stem = stemsList.get(stem_index);
+	day_branch = branchesList.get(branch_index);
+	// 步驟 6: 組合並回傳最終結果。
+	result.put("stem",day_stem);
+	result.put("branch",day_branch);
+	result.put("pillar",day_stem + day_branch);
+	result.put("calc_date",calc_date.toString("yyyy-MM-dd"));
+	result.put("days_diff",days_diff);
+	result.put("ganzhi_index",ganzhi_index);
+	result.put("base_date","1930-01-06");
+	result.put("base_index",base_ganzhi_index);
+	return result;
+}

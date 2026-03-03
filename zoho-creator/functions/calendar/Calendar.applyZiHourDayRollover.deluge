@@ -1,0 +1,44 @@
+map Calendar.applyZiHourDayRollover(date dt)
+{
+	// =============================================================================
+	// 函數名稱：Calendar.applyZiHourDayRollover
+	// 函數用途：套用子時換日規則（23:00-23:59 視為隔日）
+	// 平台：Zoho Creator
+	// 命名空間：Calendar
+	// 功能描述：八字命理中，子時（23:00-23:59）屬於隔日。
+	//           此函數在時間為 23 點時，將日期加 1 天，
+	//           用於日柱計算與節氣/立春邊界比較。
+	// 參數說明：
+	//   - dt (date): 輸入的日期時間（建議已經過 normalizeToTaipei 處理）
+	// 回傳格式：map - { success:bool, value:date, rolled:bool, error:string }
+	// 相依性：無
+	// 注意：rolled=true 表示已套用子時換日（原始時間為 23:xx）
+	// =============================================================================
+	res = Map();
+	res.put("success",false);
+	res.put("error","");
+	res.put("rolled",false);
+	try
+	{
+		if(dt == null)
+		{
+			res.put("error","dt is null");
+			return res;
+		}
+		h = dt.getHour();
+		rolled_dt = dt;
+		// 子時換日：23:00–23:59 → next day
+		if(h == 23)
+		{
+			rolled_dt = dt.addDay(1);
+			res.put("rolled",true);
+		}
+		res.put("success",true);
+		res.put("value",rolled_dt);
+	}
+	catch(e)
+	{
+		res.put("error","applyZiHourDayRollover failed: " + e.toString());
+	}
+	return res;
+}

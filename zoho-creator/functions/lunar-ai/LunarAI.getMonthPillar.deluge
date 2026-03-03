@@ -1,0 +1,89 @@
+string LunarAI.getMonthPillar(string year_pillar, int lunar_month)
+{
+	// =============================================================================
+	// 函數名稱：LunarAI.getMonthPillar
+	// 函數用途：計算八字月柱
+	// 平台：Zoho Creator
+	// 命名空間：LunarAI
+	// 功能描述：根據年柱和農曆月份，透過五虎遁月法計算月柱干支。
+	// 參數說明：
+	//   - year_pillar (string): 年柱干支（如「甲子」）
+	//   - lunar_month (int): 農曆月份（1-12）
+	// 回傳格式：string - 月柱干支（如「丙寅」）
+	// 相依性：無（純計算）
+	// 注意：地支從寅月開始固定排列
+	// =============================================================================
+	stems = List();
+	stems.add("甲");
+	stems.add("乙");
+	stems.add("丙");
+	stems.add("丁");
+	stems.add("戊");
+	stems.add("己");
+	stems.add("庚");
+	stems.add("辛");
+	stems.add("壬");
+	stems.add("癸");
+	branches = List();
+	branches.add("寅");
+	branches.add("卯");
+	branches.add("辰");
+	branches.add("巳");
+	branches.add("午");
+	branches.add("未");
+	branches.add("申");
+	branches.add("酉");
+	branches.add("戌");
+	branches.add("亥");
+	branches.add("子");
+	branches.add("丑");
+	// 1. 根據年干決定正月天干
+	year_stem = year_pillar.substring(0,1);
+	offset = 0;
+	if(year_stem.equals("甲"))
+	{
+		offset = 2;
+	}
+	if(year_stem.equals("己"))
+	{
+		offset = 2;
+	}
+	if(year_stem.equals("乙"))
+	{
+		offset = 4;
+	}
+	if(year_stem.equals("庚"))
+	{
+		offset = 4;
+	}
+	if(year_stem.equals("丙"))
+	{
+		offset = 6;
+	}
+	if(year_stem.equals("辛"))
+	{
+		offset = 6;
+	}
+	if(year_stem.equals("丁"))
+	{
+		offset = 8;
+	}
+	if(year_stem.equals("壬"))
+	{
+		offset = 8;
+	}
+	if(year_stem.equals("戊"))
+	{
+		offset = 0;
+	}
+	if(year_stem.equals("癸"))
+	{
+		offset = 0;
+	}
+	// 2. 根據農曆月份決定天干
+	stem_index = (offset + lunar_month - 1) % 10;
+	stem = stems.get(stem_index);
+	// 3. 地支固定
+	branch = branches.get(lunar_month - 1);
+	return stem + branch;
+}

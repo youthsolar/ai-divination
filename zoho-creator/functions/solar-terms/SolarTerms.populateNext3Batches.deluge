@@ -1,0 +1,368 @@
+void SolarTerms.populateNext3Batches(int startBatchNumber)
+{
+	// =============================================================================
+	// 函數名稱：SolarTerms.populateNext3Batches
+	// 函數用途：批次填充節氣資料的年柱和月柱
+	// 平台：Zoho Creator
+	// 命名空間：SolarTerms
+	// 功能描述：每次處理 3 個批次（每批 100 筆）的節氣資料年柱和月柱：
+	//           - 建立天干、地支、立春快取
+	//           - 建立月支對照表（24 節氣 → 地支）和五虎遁月規則
+	//           - 使用 1930 年庚午年為基準計算年柱
+	//           - 依立春判斷八字年份，計算年干年支
+	//           - 依節氣名稱和年干計算月干月支
+	//           - 填充 Year_Stem, Year_Branch, Month_Stem, Month_Branch 欄位
+	// 參數說明：
+	//   - startBatchNumber (int): 起始批次號碼（例如：2, 5, 8, 11, 14...）
+	// 回傳格式：void
+	// 相依性：SolarTerms 表單, Heavenly_Stems 表單, Earthly_Branches 表單
+	// =============================================================================
+	// startBatchNumber: 起始批次號碼，例如：2, 5, 8, 11, 14...
+	info "開始處理第 " + startBatchNumber + " 到第 " + (startBatchNumber + 2) + " 批節氣資料...";
+	// 建立基礎資料的快取
+	stemsMap = Map();
+	stemsList = List();
+	heavenlyStems = Heavenly_Stems[ID != 0];
+	for each  stemRec in heavenlyStems
+	{
+		stemsMap.put(stemRec.Stem_Name,stemRec.ID);
+		stemsList.add(stemRec.Stem_Name);
+	}
+	branchesMap = Map();
+	branchesList = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+	earthlyBranches = Earthly_Branches[ID != 0];
+	for each  branchRec in earthlyBranches
+	{
+		branchesMap.put(branchRec.Branch_Name,branchRec.ID);
+	}
+	// 使用正確的基準年份：1930年庚午年
+	baseYear = 1930;
+	baseStemIndex = 6;
+	// 庚
+	baseBranchIndex = 6;
+	// 午
+	// 建立立春快取
+	lichunCache = Map();
+	allLichunRecords = SolarTerms[Solar_Term_Name == "立春"];
+	for each  lichunRec in allLichunRecords
+	{
+		if(lichunRec.Solar_Term_DateTime != null)
+		{
+			lichunYear = lichunRec.Solar_Term_DateTime.getYear();
+			lichunCache.put(lichunYear,lichunRec.Solar_Term_DateTime);
+		}
+	}
+	// 月支對照表
+	monthBranchRuleMap = Map();
+	monthBranchRuleMap.put("立春","寅");
+	monthBranchRuleMap.put("雨水","寅");
+	monthBranchRuleMap.put("驚蟄","卯");
+	monthBranchRuleMap.put("春分","卯");
+	monthBranchRuleMap.put("清明","辰");
+	monthBranchRuleMap.put("穀雨","辰");
+	monthBranchRuleMap.put("立夏","巳");
+	monthBranchRuleMap.put("小滿","巳");
+	monthBranchRuleMap.put("芒種","午");
+	monthBranchRuleMap.put("夏至","午");
+	monthBranchRuleMap.put("小暑","未");
+	monthBranchRuleMap.put("大暑","未");
+	monthBranchRuleMap.put("立秋","申");
+	monthBranchRuleMap.put("處暑","申");
+	monthBranchRuleMap.put("白露","酉");
+	monthBranchRuleMap.put("秋分","酉");
+	monthBranchRuleMap.put("寒露","戌");
+	monthBranchRuleMap.put("霜降","戌");
+	monthBranchRuleMap.put("立冬","亥");
+	monthBranchRuleMap.put("小雪","亥");
+	monthBranchRuleMap.put("大雪","子");
+	monthBranchRuleMap.put("冬至","子");
+	monthBranchRuleMap.put("小寒","丑");
+	monthBranchRuleMap.put("大寒","丑");
+	// 五虎遁月規則
+	monthStemRuleMap = Map();
+	monthStemRuleMap.put("甲","丙");
+	monthStemRuleMap.put("己","丙");
+	monthStemRuleMap.put("乙","戊");
+	monthStemRuleMap.put("庚","戊");
+	monthStemRuleMap.put("丙","庚");
+	monthStemRuleMap.put("辛","庚");
+	monthStemRuleMap.put("丁","壬");
+	monthStemRuleMap.put("壬","壬");
+	monthStemRuleMap.put("戊","甲");
+	monthStemRuleMap.put("癸","甲");
+	info "規則資料已載入。立春快取包含 " + lichunCache.size() + " 年的資料。";
+	info "使用基準年份: " + baseYear + " (庚午年)";
+	// 處理3個批次
+	totalUpdated = 0;
+	batchSize = 100;
+	// 第一批
+	batch1Num = startBatchNumber;
+	batch1Start = (batch1Num - 1) * batchSize + 1;
+	batch1End = batch1Num * batchSize;
+	if(batch1End > 2904)
+	{
+		batch1End = 2904;
+	}
+	info "處理第 " + batch1Num + " 批：紀錄 " + batch1Start + " 到 " + batch1End;
+	batch1Records = SolarTerms[ID != 0] range from batch1Start to batch1End;
+	// 處理第一批記錄
+	batch1Updated = 0;
+	for each  record in batch1Records
+	{
+		solarDate = record.Solar_Term_DateTime;
+		termName = record.Solar_Term_Name;
+		if(solarDate != null && termName != null)
+		{
+			gregorianYear = solarDate.getYear();
+			lichunDateTime = lichunCache.get(gregorianYear);
+			baziYear = gregorianYear;
+			if(lichunDateTime != null && solarDate < lichunDateTime)
+			{
+				baziYear = gregorianYear - 1;
+			}
+			// 計算年柱
+			yearDiff = baziYear - baseYear;
+			yearStemIndex = (baseStemIndex + yearDiff) % 10;
+			if(yearStemIndex < 0)
+			{
+				yearStemIndex = yearStemIndex + 10;
+			}
+			yearBranchIndex = (baseBranchIndex + yearDiff) % 12;
+			if(yearBranchIndex < 0)
+			{
+				yearBranchIndex = yearBranchIndex + 12;
+			}
+			yearStemName = stemsList.get(yearStemIndex);
+			yearBranchName = branchesList.get(yearBranchIndex);
+			// 計算月柱
+			monthBranchName = monthBranchRuleMap.get(termName);
+			monthStemName = "";
+			if(monthBranchName != null && yearStemName != null)
+			{
+				monthStemStartName = monthStemRuleMap.get(yearStemName);
+				if(monthStemStartName != null)
+				{
+					monthStemStartIndex = stemsList.indexOf(monthStemStartName);
+					baziMonthOrder = {"寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"};
+					monthBranchOrderIndex = baziMonthOrder.indexOf(monthBranchName);
+					if(monthStemStartIndex > -1 && monthBranchOrderIndex > -1)
+					{
+						monthStemIndex = (monthStemStartIndex + monthBranchOrderIndex) % 10;
+						monthStemName = stemsList.get(monthStemIndex);
+					}
+				}
+			}
+			// 填充欄位
+			update_needed = false;
+			if(record.Year_Stem == null && stemsMap.get(yearStemName) != null)
+			{
+				record.Year_Stem=stemsMap.get(yearStemName);
+				update_needed = true;
+			}
+			if(record.Year_Branch == null && branchesMap.get(yearBranchName) != null)
+			{
+				record.Year_Branch=branchesMap.get(yearBranchName);
+				update_needed = true;
+			}
+			if(record.Month_Stem == null && monthStemName != "" && stemsMap.get(monthStemName) != null)
+			{
+				record.Month_Stem=stemsMap.get(monthStemName);
+				update_needed = true;
+			}
+			if(record.Month_Branch == null && monthBranchName != null && branchesMap.get(monthBranchName) != null)
+			{
+				record.Month_Branch=branchesMap.get(monthBranchName);
+				update_needed = true;
+			}
+			if(update_needed)
+			{
+				batch1Updated = batch1Updated + 1;
+			}
+		}
+	}
+	totalUpdated = totalUpdated + batch1Updated;
+	info "第 " + batch1Num + " 批完成！更新了 " + batch1Updated + " 筆";
+	// 第二批
+	if(startBatchNumber + 1 <= 30)
+	{
+		batch2Num = startBatchNumber + 1;
+		batch2Start = (batch2Num - 1) * batchSize + 1;
+		batch2End = batch2Num * batchSize;
+		if(batch2End > 2904)
+		{
+			batch2End = 2904;
+		}
+		info "處理第 " + batch2Num + " 批：紀錄 " + batch2Start + " 到 " + batch2End;
+		batch2Records = SolarTerms[ID != 0] range from batch2Start to batch2End;
+		batch2Updated = 0;
+		for each  record in batch2Records
+		{
+			solarDate = record.Solar_Term_DateTime;
+			termName = record.Solar_Term_Name;
+			if(solarDate != null && termName != null)
+			{
+				gregorianYear = solarDate.getYear();
+				lichunDateTime = lichunCache.get(gregorianYear);
+				baziYear = gregorianYear;
+				if(lichunDateTime != null && solarDate < lichunDateTime)
+				{
+					baziYear = gregorianYear - 1;
+				}
+				yearDiff = baziYear - baseYear;
+				yearStemIndex = (baseStemIndex + yearDiff) % 10;
+				if(yearStemIndex < 0)
+				{
+					yearStemIndex = yearStemIndex + 10;
+				}
+				yearBranchIndex = (baseBranchIndex + yearDiff) % 12;
+				if(yearBranchIndex < 0)
+				{
+					yearBranchIndex = yearBranchIndex + 12;
+				}
+				yearStemName = stemsList.get(yearStemIndex);
+				yearBranchName = branchesList.get(yearBranchIndex);
+				monthBranchName = monthBranchRuleMap.get(termName);
+				monthStemName = "";
+				if(monthBranchName != null && yearStemName != null)
+				{
+					monthStemStartName = monthStemRuleMap.get(yearStemName);
+					if(monthStemStartName != null)
+					{
+						monthStemStartIndex = stemsList.indexOf(monthStemStartName);
+						baziMonthOrder = {"寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"};
+						monthBranchOrderIndex = baziMonthOrder.indexOf(monthBranchName);
+						if(monthStemStartIndex > -1 && monthBranchOrderIndex > -1)
+						{
+							monthStemIndex = (monthStemStartIndex + monthBranchOrderIndex) % 10;
+							monthStemName = stemsList.get(monthStemIndex);
+						}
+					}
+				}
+				update_needed = false;
+				if(record.Year_Stem == null && stemsMap.get(yearStemName) != null)
+				{
+					record.Year_Stem=stemsMap.get(yearStemName);
+					update_needed = true;
+				}
+				if(record.Year_Branch == null && branchesMap.get(yearBranchName) != null)
+				{
+					record.Year_Branch=branchesMap.get(yearBranchName);
+					update_needed = true;
+				}
+				if(record.Month_Stem == null && monthStemName != "" && stemsMap.get(monthStemName) != null)
+				{
+					record.Month_Stem=stemsMap.get(monthStemName);
+					update_needed = true;
+				}
+				if(record.Month_Branch == null && monthBranchName != null && branchesMap.get(monthBranchName) != null)
+				{
+					record.Month_Branch=branchesMap.get(monthBranchName);
+					update_needed = true;
+				}
+				if(update_needed)
+				{
+					batch2Updated = batch2Updated + 1;
+				}
+			}
+		}
+		totalUpdated = totalUpdated + batch2Updated;
+		info "第 " + batch2Num + " 批完成！更新了 " + batch2Updated + " 筆";
+	}
+	// 第三批
+	if(startBatchNumber + 2 <= 30)
+	{
+		batch3Num = startBatchNumber + 2;
+		batch3Start = (batch3Num - 1) * batchSize + 1;
+		batch3End = batch3Num * batchSize;
+		if(batch3End > 2904)
+		{
+			batch3End = 2904;
+		}
+		info "處理第 " + batch3Num + " 批：紀錄 " + batch3Start + " 到 " + batch3End;
+		batch3Records = SolarTerms[ID != 0] range from batch3Start to batch3End;
+		batch3Updated = 0;
+		for each  record in batch3Records
+		{
+			solarDate = record.Solar_Term_DateTime;
+			termName = record.Solar_Term_Name;
+			if(solarDate != null && termName != null)
+			{
+				gregorianYear = solarDate.getYear();
+				lichunDateTime = lichunCache.get(gregorianYear);
+				baziYear = gregorianYear;
+				if(lichunDateTime != null && solarDate < lichunDateTime)
+				{
+					baziYear = gregorianYear - 1;
+				}
+				yearDiff = baziYear - baseYear;
+				yearStemIndex = (baseStemIndex + yearDiff) % 10;
+				if(yearStemIndex < 0)
+				{
+					yearStemIndex = yearStemIndex + 10;
+				}
+				yearBranchIndex = (baseBranchIndex + yearDiff) % 12;
+				if(yearBranchIndex < 0)
+				{
+					yearBranchIndex = yearBranchIndex + 12;
+				}
+				yearStemName = stemsList.get(yearStemIndex);
+				yearBranchName = branchesList.get(yearBranchIndex);
+				monthBranchName = monthBranchRuleMap.get(termName);
+				monthStemName = "";
+				if(monthBranchName != null && yearStemName != null)
+				{
+					monthStemStartName = monthStemRuleMap.get(yearStemName);
+					if(monthStemStartName != null)
+					{
+						monthStemStartIndex = stemsList.indexOf(monthStemStartName);
+						baziMonthOrder = {"寅","卯","辰","巳","午","未","申","酉","戌","亥","子","丑"};
+						monthBranchOrderIndex = baziMonthOrder.indexOf(monthBranchName);
+						if(monthStemStartIndex > -1 && monthBranchOrderIndex > -1)
+						{
+							monthStemIndex = (monthStemStartIndex + monthBranchOrderIndex) % 10;
+							monthStemName = stemsList.get(monthStemIndex);
+						}
+					}
+				}
+				update_needed = false;
+				if(record.Year_Stem == null && stemsMap.get(yearStemName) != null)
+				{
+					record.Year_Stem=stemsMap.get(yearStemName);
+					update_needed = true;
+				}
+				if(record.Year_Branch == null && branchesMap.get(yearBranchName) != null)
+				{
+					record.Year_Branch=branchesMap.get(yearBranchName);
+					update_needed = true;
+				}
+				if(record.Month_Stem == null && monthStemName != "" && stemsMap.get(monthStemName) != null)
+				{
+					record.Month_Stem=stemsMap.get(monthStemName);
+					update_needed = true;
+				}
+				if(record.Month_Branch == null && monthBranchName != null && branchesMap.get(monthBranchName) != null)
+				{
+					record.Month_Branch=branchesMap.get(monthBranchName);
+					update_needed = true;
+				}
+				if(update_needed)
+				{
+					batch3Updated = batch3Updated + 1;
+				}
+			}
+		}
+		totalUpdated = totalUpdated + batch3Updated;
+		info "第 " + batch3Num + " 批完成！更新了 " + batch3Updated + " 筆";
+	}
+	info "✅ 3批處理完成！總共更新了 " + totalUpdated + " 筆節氣資料。";
+	// 提供下一次執行的建議
+	nextBatch = startBatchNumber + 3;
+	if(nextBatch <= 30)
+	{
+		info "下次請執行：SolarTerms_populateNext3Batches(" + nextBatch + ")";
+	}
+	else
+	{
+		info "? 所有批次處理完成！節氣資料的年柱和月柱已全部填充。";
+	}
+}

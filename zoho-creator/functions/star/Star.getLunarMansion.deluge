@@ -1,0 +1,61 @@
+map Star.getLunarMansion(date solar_date)
+{
+	// =============================================================================
+	// 函數名稱：Star.getLunarMansion
+	// 函數用途：國曆生日 → 二十八星宿查詢
+	// 平台：Zoho Creator
+	// 命名空間：Star
+	// 功能描述：根據國曆生日查詢對應的二十八星宿。
+	//           先將國曆轉為農曆，再用農曆月日查詢星宿總表（Lunar_Mansion_Atlas）。
+	// 參數說明：
+	//   - solar_date (date): 使用者的國曆生日
+	// 回傳格式：map - 包含以下鍵值：
+	//   - "success" (boolean): 操作是否成功
+	//   - "mansion_name" (string): 查詢到的星宿名稱（如「角宿」）
+	//   - "error" (string): 錯誤訊息（若 success 為 false）
+	// 相依性：LunarAI.solarToLunar, Lunar_Mansion_Atlas 表單
+	// 注意：內部呼叫已更新（SolarToLunar → solarToLunar）
+	// =============================================================================
+	// 初始化回傳的 Map
+	response = Map();
+	response.put("success",false);
+	// 1. 驗證輸入參數
+	if(solar_date == null)
+	{
+		response.put("error","輸入的國曆生日不可為空。");
+		return response;
+	}
+	// 2. 呼叫核心函數將國曆轉換為農曆
+	lunar_result = thisapp.LunarAI.solarToLunar(solar_date);
+	// 3. 檢查轉換結果，並從巢狀 Map 中提取生日資訊
+	birthday_map = lunar_result.get("生日");
+	if(birthday_map == null || birthday_map.get("error") != "")
+	{
+		// 將底層函數的錯誤訊息向上傳遞
+		error_message = if(birthday_map != null,birthday_map.get("error"),"solarToLunar 回傳格式不符預期。");
+		response.put("error","國曆轉農曆失敗：" + error_message);
+		return response;
+	}
+	// 4. 從生日 Map 中獲取純數字的農曆月和日
+	//    使用純數字欄位是為了避開「閏四月」這類文字導致的查詢問題
+	lunar_month_num = birthday_map.get("lunar_month_numeric");
+	lunar_day_num = birthday_map.get("lunar_day_numeric");
+	if(lunar_month_num == null || lunar_day_num == null)
+	{
+		response.put("error","從 solarToLunar 的回傳中找不到 'lunar_month_numeric' 或 'lunar_day_numeric'。");
+		return response;
+	}
+	// 5. 查詢星宿對照總表 (Lunar_Mansion_Atlas)
+	mansion_record = Lunar_Mansion_Atlas[Month_field == lunar_month_num && Day_field == lunar_day_num];
+	// 6. 處理查詢結果
+	if(mansion_record != null)
+	{
+		response.put("success",true);
+		response.put("mansion_name",mansion_record.Mansion_Name);
+	}
+	else
+	{
+		response.put("error","在星宿對照總表(Lunar_Mansion_Atlas)中找不到對應的記錄。農曆：" + lunar_month_num + "月" + lunar_day_num + "日");
+	}
+	return response;
+}

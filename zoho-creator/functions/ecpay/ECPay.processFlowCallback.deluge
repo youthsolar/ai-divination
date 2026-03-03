@@ -1,0 +1,86 @@
+string ECPay.processFlowCallback(map flowData)
+{
+	// =============================================================================
+	// 函數名稱：ECPay.processFlowCallback
+	// 函數用途：處理來自 Zoho Flow 的 ECPay 回調
+	// 平台：Zoho Creator
+	// 命名空間：ECPay
+	// 功能描述：由 Zoho Flow 的 "Invoke Function" 動作調用，
+	//           處理 ECPay 付款回調並更新訂單狀態。
+	//           - 解析 Flow 傳入的資料（可能包在 webhook_data 或 data 鍵中）
+	//           - 呼叫 handleECPayResponse 驗證並解析
+	//           - 根據結果更新 Talisman_Purchases 訂單狀態
+	// 參數說明：
+	//   - flowData (map): Zoho Flow 傳入的完整資料
+	// 回傳格式：string - "1|OK"（成功）或 "0|ERROR"（失敗）
+	// 相依性：ECPay.handleECPayResponse, ECPay 變數, Talisman_Purchases 表單
+	// =============================================================================
+	// 預設回傳值
+	result = "0|ERROR";
+	info "======= Flow 回調處理開始 =======";
+	info "接收時間: " + zoho.currenttime;
+	info "Flow 傳入資料: " + flowData;
+	try
+	{
+		// Flow 會將 webhook 接收到的所有參數包在一個 map 中
+		ecpayParams = flowData;
+		// 如果 Flow 將參數包在特定 key 中，需要解開
+		if(flowData.containKey("webhook_data"))
+		{
+			ecpayParams = flowData.get("webhook_data");
+		}
+		else if(flowData.containKey("data"))
+		{
+			ecpayParams = flowData.get("data");
+		}
+		info "解析後的綠界參數: " + ecpayParams;
+		// 獲取金鑰
+		hashKey = thisapp.variables.ECPay.hashKey;
+		hashIV = thisapp.variables.ECPay.hashIV;
+		// 調用現有的處理邏輯
+		response = thisapp.ECPay.handleECPayResponse(ecpayParams,hashKey,hashIV);
+		info "處理結果: " + response;
+		// 根據結果更新資料庫
+		orderNo = response.get("orderNo");
+		if(orderNo != null)
+		{
+			// 查找並更新訂單
+			purchaseRecord = Talisman_Purchases[MerchantTradeNo == orderNo];
+			if(purchaseRecord.count() > 0)
+			{
+				for each  record in purchaseRecord
+				{
+					// 更新訂單狀態
+					if(response.get("status") == "success")
+					{
+						record.Status="Paid";
+						record.TradeNo=response.get("TradeNo");
+						record.PaymentDate=response.get("PaymentDate");
+						record.PaymentType=response.get("PaymentType");
+						info "訂單 " + orderNo + " 更新為已付款";
+					}
+					else
+					{
+						record.Status="Failed";
+						record.RtnMsg=response.get("error");
+						info "訂單 " + orderNo + " 付款失敗: " + response.get("error");
+					}
+				}
+			}
+			else
+			{
+				info "警告：找不到訂單 " + orderNo;
+			}
+		}
+		info "======= Flow 回調處理完成 =======";
+		// 成功處理，設定回傳值
+		result = "1|OK";
+	}
+	catch (e)
+	{
+		info "Flow 回調處理錯誤: " + e.toString();
+		result = "0|ERROR: " + e.toString();
+	}
+	// 統一的回傳點
+	return result;
+}

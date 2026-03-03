@@ -1,0 +1,40 @@
+map Hexagram.fetchHexagram(int hex_id)
+{
+	// =============================================================================
+	// 函數名稱：fetchHexagram
+	// 函數用途：根據卦象 ID 從 I_Ching_Form 查詢卦象資料
+	// 平台：Zoho Creator
+	// 命名空間：Hexagram
+	//
+	// 功能描述：
+	// - 接收卦象 ID，查詢 I_Ching_Form 表單中對應的記錄
+	// - 找到時回傳該筆記錄的 Map 格式
+	// - 找不到時記錄警告並回傳空 Map
+	//
+	// 參數說明：
+	// @param hex_id (int) - 卦象 ID（I_Ching_Form 表單的 ID 欄位）
+	//
+	// 回傳格式：
+	// @return (map) - 卦象資料的 Map（toMap 轉換），若查無則回傳空 Map
+	//
+	// 相依性：
+	// - I_Ching_Form 表單
+	//
+	// 注意：
+	// - 此函數為底層查詢函數，不含業務邏輯
+	// =============================================================================
+
+	// 從 I_Ching_Form 查詢符合 ID 的卦象記錄
+	hex_list = I_Ching_Form[ID == hex_id];
+	if(hex_list.count() > 0)
+	{
+		// 將 Record 轉成 map 回傳
+		return hex_list.get(0).toMap();
+	}
+	else
+	{
+		// 若找不到，記錄警告並回傳空 map
+		info "fetchHexagram: 沒有找到對應的卦象 ID：" + hex_id.toString();
+		return Map();
+	}
+}

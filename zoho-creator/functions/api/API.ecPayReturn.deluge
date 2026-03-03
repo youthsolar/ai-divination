@@ -1,0 +1,232 @@
+string API.ecPayReturn(map ecpay_params)
+{
+	// =============================================================================
+	// 函數名稱：API.ecPayReturn
+	// 函數用途：綠界 ECPay 付款回拋 API（ReturnURL）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：ECPay server-to-server 付款回拋處理：
+	//           - 驗簽 CheckMacValue（使用生產環境 hashKey/hashIV）
+	//           - 更新訂單狀態（Pending → Paid/Failed）
+	//           - 生成交付 Token（SHA256，7 天有效期）
+	//           - 通知 n8n 推播交付連結
+	//           - 付款成功後生成完整版解讀並推播到 LINE
+	// 參數說明：
+	//   - ecpay_params (map): ECPay 回拋參數（MerchantTradeNo, RtnCode, TradeNo, CheckMacValue 等）
+	// 回傳格式：string - "1|OK"（成功）或 "0|FAIL"（失敗）
+	// 相依性：Talisman_Purchases, Divination_Logs, Clients_Report,
+	//         ECPay.generateCheckMacValue, LLM.callChat, API.linePushText
+	// 注意：原名 ECPayReturn，已重命名為 camelCase；此 API 必須為 ECPay 可呼叫的公開 endpoint
+	// =============================================================================
+	result = Map();
+	response_text = "0|FAIL";
+	try
+	{
+		if(ecpay_params == null)
+		{
+			result.put("success",false);
+			result.put("message","參數為空");
+			return response_text;
+		}
+
+		merchant_trade_no = if(ecpay_params.get("MerchantTradeNo") != null,ecpay_params.get("MerchantTradeNo").toString(),"");
+		rtn_code = if(ecpay_params.get("RtnCode") != null,ecpay_params.get("RtnCode").toString(),"");
+		trade_no = if(ecpay_params.get("TradeNo") != null,ecpay_params.get("TradeNo").toString(),"");
+		payment_date = if(ecpay_params.get("PaymentDate") != null,ecpay_params.get("PaymentDate").toString(),"");
+		recv_mac = if(ecpay_params.get("CheckMacValue") != null,ecpay_params.get("CheckMacValue").toString(),"");
+
+		if(merchant_trade_no == "")
+		{
+			result.put("success",false);
+			result.put("message","MerchantTradeNo 缺失");
+			return response_text;
+		}
+
+		// 1) 驗簽：用生產環境 hashKey/hashIV 重算 CheckMacValue
+		verify_params = Map();
+		for each  k in ecpay_params.keys()
+		{
+			if(k != "CheckMacValue")
+			{
+				verify_params.put(k,ecpay_params.get(k));
+			}
+		}
+		hash_key = thisapp.variables.ECPay.hashKey_Production;
+		hash_iv = thisapp.variables.ECPay.hashIV_Production;
+		if(hash_key == null || hash_iv == null || hash_key.toString() == "" || hash_iv.toString() == "")
+		{
+			result.put("success",false);
+			result.put("message","生產環境 hashKey/hashIV 未設定");
+			return response_text;
+		}
+		calc_mac = thisapp.ECPay.generateCheckMacValue(verify_params,hash_key,hash_iv);
+		if(recv_mac == "" || calc_mac.toString().toUpperCase() != recv_mac.toString().toUpperCase())
+		{
+			result.put("success",false);
+			result.put("message","CheckMacValue 驗證失敗");
+			result.put("merchantTradeNo",merchant_trade_no);
+			return response_text;
+		}
+
+		// 2) 更新訂單狀態（以 MerchantTradeNo 對應）
+		orders = Talisman_Purchases[MerchantTradeNo == merchant_trade_no];
+		if(orders.count() == 0)
+		{
+			result.put("success",false);
+			result.put("message","找不到對應訂單");
+			result.put("merchantTradeNo",merchant_trade_no);
+			return response_text;
+		}
+
+		new_status = "Paid";
+		if(rtn_code != "1")
+		{
+			new_status = "Failed";
+		}
+		should_notify = false;
+		already_paid = false;
+		token_created = false;
+
+		for each  o in orders
+		{
+			already_paid = (o.Status == "Paid");
+			o.Status=new_status;
+			token_created = false;
+			if(new_status == "Paid" && (o.Delivery_Token == null || o.Delivery_Token == ""))
+			{
+				// 生成難猜的交付 token（以訂單資訊+時間做 sha256）
+				token_source = merchant_trade_no + "|" + trade_no + "|" + zoho.currenttime.toLong();
+				delivery_token = zoho.encryption.sha256(token_source).toLowerCase();
+				o.Delivery_Token=delivery_token;
+				// Token 到期：預設 7 天（可再調）
+				o.Delivery_Token_ExpiresAt=zoho.currenttime.addDay(7);
+				token_created = true;
+			}
+
+			o.TradeNo=trade_no;
+			o.PaymentDate=payment_date;
+			o.RtnCode=rtn_code.toNumber();
+			o.RtnMsg=if(ecpay_params.get("RtnMsg") != null,ecpay_params.get("RtnMsg").toString(),"");
+			o.CheckMacValue=recv_mac;
+			if(new_status == "Paid" && (!already_paid || token_created))
+			{
+				should_notify = true;
+			}
+			break;
+		}
+
+		// 3) 付款成功後通知 n8n 推播交付連結（A1）
+		try
+		{
+			if(new_status == "Paid" && should_notify == true)
+			{
+				notify_url = if(thisapp.variables.System.N8N_ECPayPaidNotifyURL != null,thisapp.variables.System.N8N_ECPayPaidNotifyURL.toString(),"");
+				base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
+				if(notify_url != "" && base_url != "")
+				{
+					order_rec = null;
+					orders2 = Talisman_Purchases[MerchantTradeNo == merchant_trade_no];
+					for each  oo in orders2
+					{
+						order_rec = oo;
+						break;
+					}
+					if(order_rec != null)
+					{
+						line_uid = if(order_rec.Line_User_ID != null,order_rec.Line_User_ID,"");
+						if(line_uid == "" && order_rec.Client_Link != null)
+						{
+							client_rec = Clients_Report[ID == order_rec.Client_Link];
+							for each  cc in client_rec
+							{
+								line_uid = if(cc.Line_User_ID != null,cc.Line_User_ID,"");
+								break;
+							}
+						}
+						// 把 client 的 lineUserId 回寫到訂單，方便追蹤
+						if(order_rec.Line_User_ID == null || order_rec.Line_User_ID == "")
+						{
+							order_rec.Line_User_ID=line_uid;
+						}
+						delivery_token = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
+						if(line_uid != "" && delivery_token != "")
+						{
+							push_payload = Map();
+							push_payload.put("lineUserId",line_uid);
+							push_payload.put("merchantTradeNo",merchant_trade_no);
+							push_payload.put("deliveryToken",delivery_token);
+							push_payload.put("deliveryUrl",base_url + "?token=" + delivery_token);
+							ignore = postUrl(notify_url,push_payload.toString(),{"Content-Type":"application/json"});
+						}
+					}
+				}
+			}
+		}
+		catch (e)
+		{
+			// 不影響回拋主要流程
+		}
+
+		// 4) 付款成功後：生成完整版並推播到 LINE（MVP）
+		try
+		{
+			if(new_status == "Paid" && should_notify == true && order_rec != null)
+			{
+				div_id = if(order_rec.Divination_Log_Link != null,order_rec.Divination_Log_Link.toString(),"");
+				line_uid2 = if(order_rec.Line_User_ID != null,order_rec.Line_User_ID,"");
+				if(div_id != "" && line_uid2 != "")
+				{
+					div_logs = Divination_Logs[ID == div_id.toLong()];
+					for each  d in div_logs
+					{
+						full_text = "";
+						if(d.AI_Interpretation_Full != null && d.AI_Interpretation_Full != "")
+						{
+							full_text = d.AI_Interpretation_Full;
+						}
+						else
+						{
+							full_system = "你是專業占卜師（塔羅+易經）。請用繁體中文回答，語氣溫柔但冷靜。";
+						full_user = "請針對以下問題，提供完整版解讀（約800~1200字），包含：\n" +
+							"1) 現況與核心矛盾\n2) 走勢與關鍵提醒\n3) 具體行動建議（3點）\n4) 一句收束祝福。\n\n" +
+							"問題：" + d.Original_Question;
+						// MVP：使用較快的模型以降低付款回呼超時風險
+						full_opts = Map();
+						full_opts.put("max_tokens", 2000);
+						full_opts.put("temperature", 0.7);
+						full_opts.put("model", "claude-haiku-4-20250514");
+						full_text = thisapp.LLM.callChat(full_system, full_user, full_opts);
+						d.AI_Interpretation_Full=full_text;
+						d.Status="已購買";
+						}
+						base_url2 = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
+						delivery_token2 = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
+						link_text = if(base_url2 != "" && delivery_token2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?token=" + delivery_token2, "");
+						msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
+						ignore2 = thisapp.API.linePushText(line_uid2,msg_text);
+						break;
+					}
+				}
+			}
+		}
+		catch (e_push_full)
+		{
+			// ignore
+		}
+
+		result.put("success",true);
+		result.put("message","ok");
+		result.put("merchantTradeNo",merchant_trade_no);
+		result.put("status",new_status);
+	}
+	catch (e)
+	{
+		result.put("success",false);
+		result.put("message","系統錯誤：" + e);
+	}
+	if(result.get("success") == true)
+	{
+		response_text = "1|OK";
+	}
+	return response_text;
+}

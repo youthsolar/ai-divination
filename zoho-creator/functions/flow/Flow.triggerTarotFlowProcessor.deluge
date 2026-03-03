@@ -1,0 +1,209 @@
+map Flow.triggerTarotFlowProcessor(map flowParams)
+{
+	// =============================================================================
+	// 函數名稱：Flow.triggerTarotFlowProcessor
+	// 函數用途：觸發 Zoho Flow 塔羅占卜處理器
+	// 平台：Zoho Creator
+	// 命名空間：Flow
+	// 功能描述：將塔羅占卜請求發送到 Zoho Flow 進行異步處理：
+	//           - 驗證必要參數（divinationId, questionText, tarotSpreadData）
+	//           - 組裝 Flow Webhook payload
+	//           - 更新占卜記錄狀態為「已提問」
+	//           - 呼叫 Zoho Flow Webhook（含重試機制）
+	//           - Flow 失敗時自動回退到 ChatGPT 備援（AIInterpreter.getTarotInterpretation）
+	// 參數說明：
+	//   - flowParams (map): 包含 divinationId, questionText, questionType, tarotSpreadData, clientId, threadId
+	// 回傳格式：map - {success, processingMethod, message/interpretation, divinationId, ...}
+	// 相依性：Divination_Logs, AIInterpreter.getTarotInterpretation, Zoho Flow Webhook
+	// =============================================================================
+	response = Map();
+	try
+	{
+		divinationId = flowParams.get("divinationId");
+		questionText = flowParams.get("questionText");
+		questionType = flowParams.get("questionType");
+		tarotSpreadData = flowParams.get("tarotSpreadData");
+		clientId = flowParams.get("clientId");
+		existingThreadId = flowParams.get("threadId");
+		if(divinationId == null || divinationId == "" || questionText == null || questionText == "" || tarotSpreadData == null)
+		{
+			response.put("success",false);
+			response.put("error","Missing required parameters");
+			return response;
+		}
+		flowPayload = Map();
+		flowPayload.put("trigger","tarot_divination");
+		flowPayload.put("timestamp",zoho.currenttime);
+		divinationRecord = Map();
+		divinationRecord.put("id",divinationId);
+		divinationRecord.put("clientId",clientId);
+		divinationRecord.put("originalQuestion",questionText);
+		divinationRecord.put("questionTypeAi",questionType);
+		divinationRecord.put("threadId",existingThreadId);
+		divinationRecord.put("tarotData",tarotSpreadData);
+		// 若 clientId 有效，查詢並附加個案天生個性資料（供 Zoho Flow / n8n 使用）
+		if(clientId != null && clientId != "")
+		{
+			client_personality_records = Clients_Report[ID == clientId.toLong()];
+			if(client_personality_records.count() > 0)
+			{
+				client_p = null;
+				for each  cp in client_personality_records
+				{
+					client_p = cp;
+					break;
+				}
+				if(client_p != null)
+				{
+					clientPersonalityData = Map();
+					clientPersonalityData.put("fullBazi",if(client_p.Full_Bazi != null,client_p.Full_Bazi,""));
+					clientPersonalityData.put("personalityProfile",if(client_p.Personality_Profile != null,client_p.Personality_Profile.toString(),""));
+					divinationRecord.put("clientPersonalityData",clientPersonalityData);
+				}
+			}
+		}
+		flowPayload.put("divinationRecord",divinationRecord);
+		updateRecords = Divination_Logs[ID == divinationId.toLong()];
+		if(updateRecords.count() > 0)
+		{
+			for each  updateRecord in updateRecords
+			{
+				updateRecord.Status="已提問";
+				updateRecord.AI_Interpretation="AI正在處理中，請稍候...";
+				break;
+			}
+			info "Updated divination record status, ID: " + divinationId;
+		}
+		else
+		{
+			info "Warning: Cannot find divination record ID: " + divinationId;
+		}
+		info "Starting Flow processing, divination ID: " + divinationId;
+		flowWebhookUrl = "https://flow.zoho.com/876589298/flow/webhook/incoming?zapikey=1001.176efc3550bccb13d0f6d350b98cf98a.11f2757e15946c0262f1fe0e9e813d0d&isdebug=false";
+		requestHeaders = Map();
+		requestHeaders.put("Content-Type","application/json");
+		info "Preparing to send data to Flow: " + flowPayload.toString();
+		flowResponse = invokeurl
+		[
+			url :flowWebhookUrl
+			type :POST
+			parameters:flowPayload.toString()
+			headers:requestHeaders
+		];
+		info "Flow response content: " + flowResponse.toString();
+		if(flowResponse == null || flowResponse.toString() == "" || flowResponse.toString() == "{}")
+		{
+			info "Attempting to resend using different format";
+			flowResponse = invokeurl
+			[
+				url :flowWebhookUrl
+				type :POST
+				parameters:flowPayload
+				headers:requestHeaders
+			];
+			info "Second attempt Flow response: " + flowResponse.toString();
+		}
+		flowSuccess = false;
+		if(flowResponse != null)
+		{
+			info "Flow response status code: " + flowResponse.get("status");
+			flowResponseStatus = flowResponse.get("status");
+			if(flowResponseStatus != null && flowResponseStatus.toString() == "200" || flowResponseStatus.toString() == "success" || flowResponse.get("success") == true)
+			{
+				flowSuccess = true;
+			}
+		}
+		if(flowSuccess)
+		{
+			response.put("success",true);
+			response.put("processingMethod","Flow異步");
+			response.put("message","占卜請求已提交處理，AI解讀將在2-3分鐘內完成");
+			response.put("divinationId",divinationId);
+			response.put("estimatedCompletion","2-3分鐘");
+			info "Flow triggered successfully, divination ID: " + divinationId;
+		}
+		else
+		{
+			errorDetails = "Flow response is null";
+			if(flowResponse != null)
+			{
+				errorDetails = flowResponse.toString();
+			}
+			info "Flow trigger failed, falling back to ChatGPT. Error details: " + errorDetails;
+			fallbackUpdateRecords = Divination_Logs[ID == divinationId.toLong()];
+			if(fallbackUpdateRecords != null && fallbackUpdateRecords.count() > 0)
+			{
+				for each  fallbackUpdateRecord in fallbackUpdateRecords
+				{
+					fallbackUpdateRecord.AI_Interpretation="Flow觸發失敗，正在使用備援ChatGPT處理...";
+					break;
+				}
+			}
+			chatgptResult = thisapp.AIInterpreter.getTarotInterpretation(questionText,questionType,tarotSpreadData,clientId);
+			if(chatgptResult.get("success") == true)
+			{
+				successUpdateRecords = Divination_Logs[ID == divinationId.toLong()];
+				if(successUpdateRecords != null && successUpdateRecords.count() > 0)
+				{
+					for each  successUpdateRecord in successUpdateRecords
+					{
+						successUpdateRecord.AI_Interpretation="[備援ChatGPT] " + chatgptResult.get("interpretation");
+						successUpdateRecord.Status="已完成";
+						break;
+					}
+				}
+				response.put("success",true);
+				response.put("processingMethod","備援ChatGPT");
+				response.put("interpretation",chatgptResult.get("interpretation"));
+				info "ChatGPT backup processing successful, divination ID: " + divinationId;
+			}
+			else
+			{
+				failUpdateRecords = Divination_Logs[ID == divinationId.toLong()];
+				if(failUpdateRecords != null && failUpdateRecords.count() > 0)
+				{
+					for each  failUpdateRecord in failUpdateRecords
+					{
+						failUpdateRecord.Status="已提問";
+						failUpdateRecord.AI_Interpretation="很抱歉，系統暫時無法提供占卜解讀，請稍後再試。";
+						break;
+					}
+				}
+				response.put("success",false);
+				response.put("error","Flow和ChatGPT都無法使用");
+			}
+		}
+	}
+	catch (e)
+	{
+		response.put("success",false);
+		response.put("error","API processing error: " + e.toString());
+		try
+		{
+			if(divinationId != null && divinationId != "")
+			{
+				errorUpdateRecords = Divination_Logs[ID == divinationId.toLong()];
+				if(errorUpdateRecords.count() > 0)
+				{
+					for each  errorUpdate in errorUpdateRecords
+					{
+						errorUpdate.Status="已提問";
+						errorUpdate.AI_Interpretation="很抱歉，占卜過程中發生系統錯誤，請重新嘗試。";
+						break;
+					}
+					info "Updated error status, divination ID: " + divinationId;
+				}
+				else
+				{
+					info "Warning: Cannot find divination record during error handling, ID: " + divinationId;
+				}
+			}
+		}
+		catch (updateError)
+		{
+			info "Failed to update error status: " + updateError.toString();
+		}
+		info "Flow.triggerTarotFlowProcessor execution error: " + e.toString();
+	}
+	return response;
+}

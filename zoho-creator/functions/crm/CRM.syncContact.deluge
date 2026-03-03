@@ -1,0 +1,134 @@
+void CRM.syncContact(map contact_data)
+{
+	// =============================================================================
+	// 函數名稱：CRM.syncContact
+	// 函數用途：客戶資料同步到 Zoho CRM
+	// 平台：Zoho Creator
+	// 命名空間：CRM
+	// 功能描述：將任何來源的客戶資料同步到 Zoho CRM 的中央處理樞紐：
+	//           - 根據 Email 搜尋 CRM 現有聯絡人
+	//           - 填入基本資訊（姓名、電話、Email）
+	//           - 呼叫命理計算函數（八字、農曆、太歲、本命塔羅）
+	//           - 新聯絡人建立記錄，現有聯絡人更新記錄
+	// 參數說明：
+	//   - contact_data (map): 客戶資訊 map，必要鍵值: "Email"
+	//     可選: "First_Name", "Last_Name", "Phone", "Precise_Birth_Time", "Timezone", "Lead_Source", "Membership_Level"
+	// 回傳格式：void（直接操作 Zoho CRM API）
+	// 相依性：Bazi.preciseBaziCalculator, LunarAI.solarToLunar, Zodiac.getTaisuiStatus,
+	//         Tarot.getLifePathTarot, Zoho CRM API (zohocrm 連接器)
+	// =============================================================================
+	// --- 1. 輸入驗證 ---
+	if(contact_data.get("Email") == null)
+	{
+		// Email 是同步的必要條件。回傳一個錯誤 map。
+		error_map = {"status":"error","message":"輸入資料中缺少 Email。"};
+		info error_map;
+		return;
+	}
+	// --- 2. 準備資料並搜尋 CRM ---
+	email = contact_data.get("Email");
+	// 在 CRM 中搜尋此聯絡人是否已存在。
+	// 我們使用先前建立的 "zohocrm" 連接器。
+	// 在最新的 Deluge 版本中，連接器必須作為 map 傳遞。
+	search_response = zoho.crm.searchRecords("Contacts","(Email:equals:" + email + ")",1,1,{"connection":"zohocrm"});
+	info "CRM 搜尋結果: " + search_response;
+	// 這個 map 將存放所有我們想傳送到 CRM 的資料。
+	crm_data_map = Map();
+	// --- 3. 填入 CRM 資料 Map ---
+	// 基本資訊
+	crm_data_map.put("Email",email);
+	// 在 Zoho CRM 中, Last Name (姓氏) 是必填欄位。
+	if(contact_data.get("Last_Name") != null)
+	{
+		crm_data_map.put("Last_Name",contact_data.get("Last_Name"));
+	}
+	else
+	{
+		// 如果沒有提供 Last Name，則使用 Email 的 @ 前綴作為佔位符。
+		crm_data_map.put("Last_Name",email.getPrefix("@"));
+	}
+	if(contact_data.get("First_Name") != null)
+	{
+		crm_data_map.put("First_Name",contact_data.get("First_Name"));
+	}
+	if(contact_data.get("Phone") != null)
+	{
+		crm_data_map.put("Phone",contact_data.get("Phone"));
+	}
+	// 營運標籤 - 使用我們設定好的 API 名稱。
+	if(contact_data.get("Lead_Source") != null)
+	{
+		crm_data_map.put("Lead_Source",contact_data.get("Lead_Source"));
+	}
+	if(contact_data.get("Membership_Level") != null)
+	{
+		crm_data_map.put("Membership_Level",contact_data.get("Membership_Level"));
+	}
+	// --- 4. 計算並填入命理資訊 ---
+	if(contact_data.containKey("Precise_Birth_Time"))
+	{
+		precise_birth_time = contact_data.get("Precise_Birth_Time");
+		// 處理「雙欄位」生日策略
+		crm_data_map.put("Precise_Birth_Time",precise_birth_time);
+		crm_data_map.put("Date_of_Birth",precise_birth_time.toDate());
+		// 時區
+		if(contact_data.get("Timezone") != null)
+		{
+			crm_data_map.put("Timezone",contact_data.get("Timezone"));
+		}
+		// --- 呼叫我們現有的 AI 函數以獲取計算資料 ---
+		// 根據使用者指示，使用正確的、精確的計算函數。
+		complete_bazi_data = thisapp.Bazi.preciseBaziCalculator(precise_birth_time);
+		if(complete_bazi_data != null)
+		{
+			// 使用真實的 key，將從八字函數回傳的資料填入 map。
+			// 完整八字字串的 key 是 "完整八字"。
+			crm_data_map.put("Bazi_Pillars",complete_bazi_data.get("完整八字"));
+			// 我們需要獲取農曆生日字串。假設它從 SolarToLunar 或類似函數中回傳。
+			// 假設 key 是 "lunar_date_string"。如果不是，我們需要在 PreciseBaziCalculator 的回傳 map 中加入它。
+			lunar_data = thisapp.LunarAI.solarToLunar(precise_birth_time);
+			if(lunar_data.containKey("lunar_date_string"))
+			{
+				crm_data_map.put("Lunar_Birthday",lunar_data.get("lunar_date_string"));
+			}
+			// 計算太歲狀態
+			// 這需要生年地支，我們可以從詳細的 map 中獲取。
+			year_pillar_details = complete_bazi_data.get("年柱詳情");
+			if(year_pillar_details != null)
+			{
+				// getTaisuiStatus 函數需要兩個參數:
+				// 1. 個案的生年地支。
+				// 2. 用於比較的當年地支。
+				person_year_branch = year_pillar_details.get("branch");
+				// 計算當年地支。
+				current_year_pillar = thisapp.Bazi.calculatePreciseYearPillar(zoho.currentdate);
+				current_year_branch = current_year_pillar.get("branch");
+				// 用兩個參數呼叫函數。
+				taisui_status = thisapp.Zodiac.getTaisuiStatus(person_year_branch,current_year_branch);
+				crm_data_map.put("Taisui_Status",taisui_status);
+			}
+		}
+		// 計算本命塔羅 - 此函數需要後續建立。
+		// 假設它接收國曆生日作為輸入。
+		life_path_tarot = thisapp.Tarot.getLifePathTarot(precise_birth_time);
+		crm_data_map.put("Life_Path_Tarot",life_path_tarot);
+	}
+	// --- 5. 執行建立或更新 ---
+	if(search_response.size() > 0)
+	{
+		// --- 更新現有聯絡人 ---
+		contact_id_string = search_response.get(0).get("id");
+		info "正在更新現有聯絡人. ID: " + contact_id_string;
+		// 在傳遞給更新函數前，將 ID 從 string 轉換為 long (對應 BIGINT)。
+		contact_id_long = contact_id_string.toLong();
+		update_response = zoho.crm.updateRecord("Contacts",contact_id_long,crm_data_map,{"connection":"zohocrm"});
+		info "CRM 更新結果: " + update_response;
+	}
+	else
+	{
+		// --- 建立新聯絡人 ---
+		info "正在建立新聯絡人.";
+		create_response = zoho.crm.createRecord("Contacts",crm_data_map,{"connection":"zohocrm"});
+		info "CRM 建立結果: " + create_response;
+	}
+}

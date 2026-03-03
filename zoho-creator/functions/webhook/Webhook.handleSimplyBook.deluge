@@ -1,0 +1,54 @@
+void Webhook.handleSimplyBook(map simplybook_data)
+{
+	// =============================================================================
+	// 函數名稱：Webhook.handleSimplyBook
+	// 函數用途：處理 SimplyBook Webhook 回調
+	// 平台：Zoho Creator
+	// 命名空間：Webhook
+	// 功能描述：處理 SimplyBook Webhook 傳來的預約資料並同步到 Zoho CRM：
+	//           - 解析 SimplyBook Webhook 資料（Email、姓名、電話、生日）
+	//           - 透過 IP 位址自動判斷時區（備援：Asia/Taipei）
+	//           - 標記來源為 "SimplyBook"
+	//           - 呼叫 CRM.syncContact 進行核心同步
+	// 參數說明：
+	//   - simplybook_data (map): SimplyBook Webhook 回傳的完整資料 map
+	// 回傳格式：void（透過 CRM.syncContact 完成同步）
+	// 相依性：Tools.getTimezoneFromIP, CRM.syncContact
+	// 注意：實際串接時需確認 SimplyBook Webhook 的欄位名稱（目前為假設值）
+	// =============================================================================
+	// 初始化準備傳遞給 CRM 同步函數的資料 map
+	contact_data = Map();
+	// 這裡的欄位名稱 "client_email", "client_first_name" 等是基於通用慣例的「假設」。
+	// 實際串接時，需要根據 SimplyBook Webhook 的真實資料結構進行調整。
+	contact_data.put("Email",simplybook_data.get("client_email"));
+	contact_data.put("First_Name",simplybook_data.get("client_first_name"));
+	contact_data.put("Last_Name",simplybook_data.get("client_last_name"));
+	contact_data.put("Phone",simplybook_data.get("client_phone"));
+	// 假設生日日期時間欄位為 "booking_start_datetime"，這也需要確認
+	// 這裡我們假設 SimplyBook 會提供一個可用於計算的精確時間
+	if(simplybook_data.containKey("precise_birth_time"))
+	{
+		contact_data.put("Precise_Birth_Time",simplybook_data.get("precise_birth_time"));
+	}
+	// --- 時區自動判斷 ---
+	// 步驟 1: 獲取觸發此 Webhook 的使用者 IP 位址
+	user_ip = zoho.ipaddress;
+	// 步驟 2: 呼叫工具函數，從 IP 查詢時區
+	timezone_result = thisapp.Tools.getTimezoneFromIP(user_ip);
+	// 步驟 3: 如果查詢成功，將時區加入到 contact_data 中
+	if(timezone_result.get("success") == true)
+	{
+		contact_data.put("Timezone",timezone_result.get("timezone"));
+	}
+	else
+	{
+		// 查詢失敗，可以記錄錯誤日誌或設置一個預設值，例如 "Asia/Taipei"
+		// info "時區查詢失敗: " + timezone_result.get("error") + "，將使用預設時區。";
+		contact_data.put("Timezone","Asia/Taipei");
+	}
+	// 將 "Lead_Source" 硬編碼為 "SimplyBook"，以便追蹤客戶來源
+	contact_data.put("Lead_Source","SimplyBook");
+	// --- 核心同步 ---
+	// 最後，呼叫核心的 CRM 同步函數，將打包好的資料傳遞過去
+	thisapp.CRM.syncContact(contact_data);
+}
