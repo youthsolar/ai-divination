@@ -7,7 +7,7 @@ map API.predictFromLine(map payload)
 	// 命名空間：API
 	//
 	// 功能描述：
-	// - 接收 n8n 轉發的 LINE 使用者訊息，執行占卜並回傳結果
+	// - 接收編排層（Zoho Flow 主線 / n8n 備援）轉發的 LINE 使用者訊息，執行占卜並回傳結果
 	// - 「兩個都出」策略：易經（主）+ 塔羅（補充），依問題類型決定主次
 	//   - 愛情/婚姻/人際 → 塔羅為主解讀，易經為補充視角
 	//   - 其他題型       → 易經為主解讀，塔羅為補充視角
@@ -15,7 +15,7 @@ map API.predictFromLine(map payload)
 	// - LINE 訊息上限 5000 字，超過 4300 字時截斷並提示購買符令
 	//
 	// 參數說明：
-	// @param payload (map) - n8n 傳入的 HTTP POST body（JSON）
+	// @param payload (map) - 編排層（Zoho Flow / n8n）傳入的 HTTP POST body（JSON）
 	//   - lineUserId : string，LINE 使用者 ID
 	//   - text       : string，使用者輸入的問題文字
 	//   - timestamp  : string，訊息時間戳

@@ -575,6 +575,7 @@ n8n (交付確認)  ──POST──→  deliveryPushCallback ──→  API.del
 - [x] 刪除 `OpenAI.OpenAI_Assistant_ID`（2026-03-02）
 - [x] 刪除 `OpenAI.OpenAI_Model`（2026-03-02）
 - [x] 刪除後新增 `System.N8N_ECPayPaidNotifyURL` = `https://n8n.winds.tw/webhook/ecpay-paid-notify`（2026-03-02）
+- [ ] **待重命名**：`System.N8N_ECPayPaidNotifyURL` → `System.ECPayPaidNotifyURL`（Zoho Flow 主線架構修正，見 MVP_DEPLOY_CHECKLIST.md Step 0-B）
 
 ### Phase 5 完成確認
 

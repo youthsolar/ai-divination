@@ -115,12 +115,12 @@ string API.ecPayReturn(map ecpay_params)
 			break;
 		}
 
-		// 3) 付款成功後通知 n8n 推播交付連結（A1）
+		// 3) 付款成功後通知編排層推播交付連結（Zoho Flow 主線 / n8n 備援）
 		try
 		{
 			if(new_status == "Paid" && should_notify == true)
 			{
-				notify_url = if(thisapp.variables.System.N8N_ECPayPaidNotifyURL != null,thisapp.variables.System.N8N_ECPayPaidNotifyURL.toString(),"");
+				notify_url = if(thisapp.variables.System.ECPayPaidNotifyURL != null,thisapp.variables.System.ECPayPaidNotifyURL.toString(),"");
 				base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
 				if(notify_url != "" && base_url != "")
 				{
