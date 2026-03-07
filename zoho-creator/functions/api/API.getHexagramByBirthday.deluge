@@ -1,0 +1,101 @@
+map API.getHexagramByBirthday(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.getHexagramByBirthday
+	// 函數用途：生日 → 卦象查詢 API（輕量版，不呼叫 LLM）
+	// 平台：Zoho Creator（Custom API）
+	// 命名空間：API
+	//
+	// 功能描述：
+	//   - 接收國曆生日（+ 可選時辰），計算出易經卦象
+	//   - 供 n8n「節氣時事占卜工廠」呼叫，用於新聞人物取卦
+	//   - 缺少出生時間時，一律使用寅時（03:00–05:00）作為預設
+	//   - 純查詢，不呼叫任何 LLM，回應速度 < 1 秒
+	//
+	// 呼叫者：
+	//   - n8n workflow「節氣時事占卜 — 社群內容工廠」
+	//   - 用途：取得新聞當事人卦象，帶入節氣占卜文案生成
+	//
+	// 參數說明：
+	//   - payload.birthday (string): 國曆生日，格式 "YYYY-MM-DD"
+	//   - payload.hour (string, 可選): 出生時辰（地支），如 "寅"、"午"
+	//                                  若不提供或為空，預設使用 "寅"（03:00）
+	//
+	// 回傳格式：map
+	//   成功：{
+	//     ok: true,
+	//     hexagram_code: "001001",     // 六爻爻碼
+	//     name: "地天泰",              // 卦名
+	//     yao_article: "苗逢旱天...", // 爻辭
+	//     appearance: "泰",           // 卦象字
+	//     birthday_used: "1946-06-14",
+	//     hour_used: "寅"
+	//   }
+	//   失敗：{ ok: false, error: "..." }
+	//
+	// 相依性：
+	//   - GuaCalculator.getHexagramBySolarBirthday
+	//   - Hexagram.getHexagramByYaoCode（或 IChing.getHexagramDetails）
+	//
+	// 注意：
+	//   - 此函數為 n8n 內容工廠專用，不涉及個人付費占卜流程
+	//   - 店家 / 外部系統只能拿到卦象結果，看不到原始生日
+	//   - Claude Code：此函數獨立於 predictFromLine / queueDivination 之外，
+	//     勿將其邏輯合併或複用至主占卜流程
+	// =============================================================================
+	resp = Map();
+	resp.put("ok", false);
+	try
+	{
+		// 1. 取出並驗證生日
+		birthdayStr = ifnull(payload.get("birthday"), "").toString().trim();
+		if(birthdayStr == "")
+		{
+			resp.put("error", "birthday 為空，格式應為 YYYY-MM-DD");
+			return resp;
+		}
+		// 2. 處理時辰（預設寅時 = 03:00）
+		hourStr = ifnull(payload.get("hour"), "").toString().trim();
+		if(hourStr == "")
+		{
+			hourStr = "寅";
+		}
+		// 地支對應小時（取中間值）
+		hourMap = Map();
+		hourMap.put("子", "00"); hourMap.put("丑", "02"); hourMap.put("寅", "04");
+		hourMap.put("卯", "06"); hourMap.put("辰", "08"); hourMap.put("巳", "10");
+		hourMap.put("午", "12"); hourMap.put("未", "14"); hourMap.put("申", "16");
+		hourMap.put("酉", "18"); hourMap.put("戌", "20"); hourMap.put("亥", "22");
+		hourNum = ifnull(hourMap.get(hourStr), "04");
+		// 3. 組合生日時間字串（加上時辰）
+		birthdayDateTime = (birthdayStr + " " + hourNum + ":00:00").toDate("yyyy-MM-dd HH:mm:ss");
+		// 4. 計算六爻爻碼
+		hexCode = thisapp.GuaCalculator.getHexagramBySolarBirthday(birthdayDateTime);
+		if(hexCode == null || hexCode.trim() == "")
+		{
+			resp.put("error", "爻碼計算失敗，請確認生日格式正確");
+			return resp;
+		}
+		// 5. 查詢卦象詳細資料
+		hexDetails = thisapp.IChing.getHexagramDetails(hexCode);
+		if(hexDetails == null || hexDetails.get("success") == false)
+		{
+			resp.put("error", "卦象查詢失敗：" + ifnull(hexDetails.get("error"), "未知錯誤"));
+			return resp;
+		}
+		// 6. 組合回傳
+		resp.put("ok", true);
+		resp.put("hexagram_code", hexCode);
+		resp.put("name", ifnull(hexDetails.get("name"), ""));
+		resp.put("appearance", ifnull(hexDetails.get("appearance"), ""));
+		resp.put("yao_article", ifnull(hexDetails.get("yao_article"), ""));
+		resp.put("birthday_used", birthdayStr);
+		resp.put("hour_used", hourStr);
+	}
+	catch (e)
+	{
+		resp.put("ok", false);
+		resp.put("error", "處理過程發生錯誤：" + e.toString());
+	}
+	return resp;
+}
