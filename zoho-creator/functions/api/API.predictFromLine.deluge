@@ -76,12 +76,15 @@ map API.predictFromLine(map payload)
 		//   若查無記錄 → blocked，引導完成 LIFF 生日綁定
 		// ────────────────────────────────────────────────────────────────────
 		clientId = "";
+		clientZodiac = "";
 		try
 		{
 			clients = Clients_Report[Line_User_ID == lineUserId];
 			for each  c in clients
 			{
 				clientId = c.ID.toString();
+				try { clientZodiac = if(c.Zodiac_Signs != null, c.Zodiac_Signs.toString().trim(), ""); }
+				catch (eZodiac) { clientZodiac = ""; }
 				break;
 			}
 		}
@@ -267,6 +270,36 @@ map API.predictFromLine(map payload)
 		meta.put("timestamp",ts);
 		resp.put("meta",meta);
 		try { thisapp.API.linePushText(lineUserId, finalMsg); } catch(ePush) { info "Push result: " + ePush; }
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 8：Fire-and-forget — 推送占卜結果給 n8n 社交內容工廠
+		//   URL：https://n8n.winds.tw/webhook/social-content
+		//   失敗不影響主流程（使用者已收到占卜結果）
+		//   注意：Creator invokeurl 不支援 connection-timeout / read-timeout
+		// ────────────────────────────────────────────────────────────────────
+		try
+		{
+			socialPayload = Map();
+			socialPayload.put("reading_text", combined);
+			socialPayload.put("zodiac", clientZodiac);
+			socialPayload.put("topic", questionType);
+			socialPayload.put("source_id", lineUserId);
+			socialHeaders = Map();
+			socialHeaders.put("Content-Type", "application/json");
+			invokeurl
+			[
+				url: "https://n8n.winds.tw/webhook/social-content"
+				type: POST
+				parameters: socialPayload.toString()
+				headers: socialHeaders
+			];
+		}
+		catch (eSocial)
+		{
+			// fire-and-forget：失敗不影響主流程
+			info "Social content webhook failed: " + eSocial.toString();
+		}
+
 		return resp;
 	}
 	catch (e)

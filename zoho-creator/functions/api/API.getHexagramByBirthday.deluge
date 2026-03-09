@@ -18,8 +18,11 @@ map API.getHexagramByBirthday(map payload)
 	//
 	// 參數說明：
 	//   - payload.birthday (string): 國曆生日，格式 "YYYY-MM-DD"
+	//   - payload.divination_datetime (string, 可選): ISO 8601 格式，如 "2026-03-09T14:30:00"
+	//     函數自動從中解析時辰（小時→地支：0-1=子, 2-3=丑, 4-5=寅...）
 	//   - payload.hour (string, 可選): 出生時辰（地支），如 "寅"、"午"
-	//                                  若不提供或為空，預設使用 "寅"（03:00）
+	//     向下相容：divination_datetime 為空時才使用 hour
+	//   - 優先序：divination_datetime > hour > 預設寅時
 	//
 	// 回傳格式：map
 	//   成功：{
@@ -54,8 +57,40 @@ map API.getHexagramByBirthday(map payload)
 			resp.put("error", "birthday 為空，格式應為 YYYY-MM-DD");
 			return resp;
 		}
-		// 2. 處理時辰（預設寅時 = 03:00）
-		hourStr = ifnull(payload.get("hour"), "").toString().trim();
+		// 2. 處理時辰（優先序：divination_datetime > hour > 預設寅時）
+		hourStr = "";
+		divDatetimeStr = ifnull(payload.get("divination_datetime"), "").toString().trim();
+		if(divDatetimeStr != "")
+		{
+			// 從 ISO 8601 格式解析時辰："2026-03-09T14:30:00" → 14 → 未
+			try
+			{
+				dtParts = divDatetimeStr.toList("T");
+				if(dtParts.size() >= 2)
+				{
+					timePart = dtParts.get(1);
+					hourColonParts = timePart.toList(":");
+					hourInt = hourColonParts.get(0).toLong();
+					branchList = {"子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"};
+					branchIdx = (hourInt / 2).toNumber();
+					if(branchIdx >= 0 && branchIdx < 12)
+					{
+						hourStr = branchList.get(branchIdx);
+					}
+				}
+			}
+			catch (eDtParse)
+			{
+				// 解析失敗 → hourStr 維持空字串，後續 fallback
+				info "getHexagramByBirthday: divination_datetime 解析失敗 - " + eDtParse.toString();
+			}
+		}
+		// 向下相容：divination_datetime 為空或解析失敗時，使用 hour 參數
+		if(hourStr == "")
+		{
+			hourStr = ifnull(payload.get("hour"), "").toString().trim();
+		}
+		// 最終 fallback：預設寅時
 		if(hourStr == "")
 		{
 			hourStr = "寅";
@@ -91,6 +126,7 @@ map API.getHexagramByBirthday(map payload)
 		resp.put("yao_article", ifnull(hexDetails.get("yao_article"), ""));
 		resp.put("birthday_used", birthdayStr);
 		resp.put("hour_used", hourStr);
+		if(divDatetimeStr != "") { resp.put("divination_datetime_used", divDatetimeStr); }
 	}
 	catch (e)
 	{

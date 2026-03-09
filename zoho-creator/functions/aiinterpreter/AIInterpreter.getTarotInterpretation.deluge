@@ -186,7 +186,7 @@ map AIInterpreter.getTarotInterpretation(string question_text, string question_t
 		info "準備調用 AI API，Prompt長度：" + user_prompt.length();
 		// 使用同步 LLM API
 		opts = Map();
-		opts.put("max_tokens", 2000);
+		opts.put("max_tokens", 1500);
 		opts.put("temperature", 0.7);
 		ai_interpretation = thisapp.LLM.callChat(system_prompt, user_prompt, opts);
 		if(ai_interpretation != null && ai_interpretation.trim() != "" && !ai_interpretation.contains("系統錯誤：") && !ai_interpretation.contains("AI 服務錯誤"))
