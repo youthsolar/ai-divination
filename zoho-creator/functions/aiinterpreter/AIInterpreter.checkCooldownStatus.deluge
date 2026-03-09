@@ -27,6 +27,11 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
 		result.put("time_remaining","");
 		result.put("question_type","");
 		result.put("confidence","");
+		// 前置防護：client_id 為空時直接允許（避免 toLong 錯誤）
+		if(client_id == null || client_id.toString().trim() == "")
+		{
+			return result;
+		}
 		// 步驟1：先進行問題類型分類
 		classification_result = thisapp.AIInterpreter.classifyQuestionType(question_text);
 		if(!classification_result.get("success"))
@@ -40,10 +45,18 @@ map AIInterpreter.checkCooldownStatus(string client_id, string question_text, da
 		result.put("question_type",current_question_type);
 		result.put("confidence",confidence);
 		// 步驟2：查詢客戶最近的占卜記錄（只統計成功的記錄）
-		recent_questions = Divination_Logs[Client_Link == client_id.toLong() && Divination_Timestamp > divination_time.addDay(-3)];
-		// 如果沒有歷史記錄，直接允許
-		if(recent_questions.count() == 0)
+		// 空集合保護：Deluge 空集合呼叫 .count() 可能拋錯，用 try/catch 包裝
+		try
 		{
+			recent_questions = Divination_Logs[Client_Link == client_id.toLong() && Divination_Timestamp > divination_time.addDay(-3)];
+			if(recent_questions.count() == 0)
+			{
+				return result;
+			}
+		}
+		catch (eEmpty)
+		{
+			// 無歷史紀錄（空集合）→ 直接允許占卜
 			return result;
 		}
 		// 步驟3：規則1 - 相同問題檢查（3天內，最嚴格）

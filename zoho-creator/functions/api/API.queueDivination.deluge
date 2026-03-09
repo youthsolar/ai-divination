@@ -1,0 +1,96 @@
+map API.queueDivination(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.queueDivination
+	// 函數用途：LINE 占卜佇列 API（快速驗證 + 建立等待記錄）
+	// 平台：Zoho Creator（Custom API）
+	// 命名空間：API
+	// 功能描述：
+	//   - 接收 LINE Webhook 轉發的占卜請求
+	//   - 查找 Clients_Report（by Line_User_ID）
+	//   - 已綁定：insert into 建立佇列記錄，回傳 ok=true
+	//   - 未綁定：不建記錄，回傳 unbound=true + 綁定引導訊息
+	//   - 不呼叫 LLM（耗時 < 2 秒），實際占卜由 Flow 呼叫 predictFromLine 觸發
+	// 資料正規化：Line_User_ID 只存在 Clients_Report，透過 Client_Link（Lookup）存取
+	// 參數說明：
+	//   - payload.lineUserId (string): LINE 使用者 ID
+	//   - payload.text (string): 占卜問題
+	//   - payload.timestamp (string): 事件時間戳
+	// 回傳格式：map - {ok, unbound, message, logId}
+	// 相依性：Clients_Report, Divination_Logs 表單
+	// 異步機制：此函數只負責驗證 + 建記錄（< 2 秒）
+	//   Flow 收到 ok=true 後，先 Reply LINE 再 invokeUrl 呼叫 predictFromLine
+	//   Flow 的 invokeUrl 會在 30 秒 timeout，但 Creator 端會繼續執行到完成
+	// 歷史教訓（不要再走回頭路）：
+	//   - insert into 不觸發 On Create Workflow
+	//   - zoho.creator.v2_1.createRecord 在 Custom API 不可用
+	//   - REST API v2.1 建記錄會同步等 Workflow 完成（30-40 秒），超過 Flow 30 秒限制
+	//   - postUrl 在 Custom API 中無法實際觸發外部 API
+	// =============================================================================
+	resp = Map();
+	resp.put("ok",false);
+	resp.put("unbound",false);
+	resp.put("message","");
+	resp.put("logId","");
+	try
+	{
+		lineUserId = ifnull(payload.get("lineUserId"),"").toString().trim();
+		text = ifnull(payload.get("text"),"").toString().trim();
+		ts = ifnull(payload.get("timestamp"),"").toString().trim();
+		// 參數驗證
+		if(lineUserId == "")
+		{
+			resp.put("message","lineUserId 為空");
+			return resp;
+		}
+		if(text == "")
+		{
+			resp.put("message","請輸入要占卜的問題（文字）即可。");
+			return resp;
+		}
+		// 查找個案（透過 Clients_Report.Line_User_ID）
+		clientId = "";
+		try
+		{
+			clients = Clients_Report[Line_User_ID == lineUserId];
+			for each  c in clients
+			{
+				clientId = c.ID.toString();
+				break;
+			}
+		}
+		catch (eClient)
+		{
+			// 查詢失敗，clientId 保持空
+		}
+		// 未綁定使用者：不建記錄，直接回傳綁定引導
+		if(clientId == "")
+		{
+			liffBindingUrl = "https://creatorapp.zoho.com/uneedwind/ai/page/LIFFBinding";
+			bindingMsg = "歡迎來到找風問幸福 🔮\n\n占卜前需要先認識你一下，這樣解讀才準確。\n\n👉 點此完成生日設定（約 30 秒）：\n" + liffBindingUrl + "\n\n設定完成後，直接回來輸入你的問題就好 ✨";
+			resp.put("unbound",true);
+			resp.put("message",bindingMsg);
+			return resp;
+		}
+		// 已綁定：建立佇列記錄（insert into，快速 < 1 秒）
+		newLog = insert into Divination_Logs
+		[
+			Client_Link = clientId.toLong()
+			Original_Question = text
+			Status = "排隊中"
+			Divination_Timestamp = zoho.currenttime
+			Added_User = zoho.loginuser
+		];
+		logId = newLog.get("ID");
+		info "queueDivination: 佇列記錄已建立 ID=" + logId + ", clientId=" + clientId;
+		resp.put("ok",true);
+		resp.put("message","queued");
+		resp.put("logId",logId.toString());
+	}
+	catch (e)
+	{
+		info "queueDivination error: " + e;
+		resp.put("message","queue error: " + e.toString());
+	}
+	return resp;
+}

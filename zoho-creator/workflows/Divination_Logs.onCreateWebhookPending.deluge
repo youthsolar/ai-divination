@@ -1,0 +1,59 @@
+// =============================================================================
+// Workflow 名稱：Divination_Logs — On Create → 排隊中 異步處理
+// 部署位置：Creator → Divination_Logs 表單 → Workflow → On Create → On Success
+// 功能描述：
+//   - 偵測 Status == "排隊中" 的新記錄
+//   - 透過 Client_Link（Lookup）反查 Clients_Report.Line_User_ID
+//   - 組裝 payload → 呼叫 predictFromLine → linePushText 推播結果
+//   - 更新佇列記錄狀態為「已處理」或「處理失敗」
+// 資料正規化：Line_User_ID 只存在 Clients_Report，此處透過 Lookup 存取
+// 注意：此 Workflow 在 Creator 背景異步執行，無 30 秒限制
+// =============================================================================
+
+if(input.Status == "排隊中")
+{
+	// 透過 Client_Link（Lookup → Clients_Report）反查 Line_User_ID
+	lineUserId = "";
+	questionText = ifnull(input.Original_Question,"").trim();
+	try
+	{
+		clientRecord = Clients_Report[ID == input.Client_Link];
+		for each  c in clientRecord
+		{
+			lineUserId = c.Line_User_ID;
+			break;
+		}
+	}
+	catch (eLookup)
+	{
+		info "Webhook Workflow: Client_Link Lookup 失敗 - " + eLookup;
+	}
+	if(lineUserId == "" || questionText == "")
+	{
+		input.Status = "處理失敗";
+		info "Webhook Workflow: lineUserId 或 questionText 為空";
+		return;
+	}
+	try
+	{
+		payload = Map();
+		payload.put("lineUserId",lineUserId);
+		payload.put("text",questionText);
+		payload.put("timestamp",zoho.currenttime.toString());
+		result = thisapp.API.predictFromLine(payload);
+		if(result.get("ok") == true)
+		{
+			input.Status = "已處理";
+		}
+		else
+		{
+			input.Status = "處理失敗";
+			info "Webhook Workflow 失敗: " + result.get("message");
+		}
+	}
+	catch (e)
+	{
+		input.Status = "處理失敗";
+		info "Webhook Workflow 錯誤: " + e;
+	}
+}

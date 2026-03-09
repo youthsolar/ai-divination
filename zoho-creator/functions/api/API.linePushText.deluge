@@ -6,15 +6,19 @@ map API.linePushText(string lineUserId, string messageText)
 	// 平台：Zoho Creator
 	// 命名空間：API
 	// 功能描述：透過 LINE Messaging API 推送純文字訊息給指定使用者：
-	//           - 以手動組 JSON 方式，避免 Map.toString() 非標準 JSON 造成 LINE 400 錯誤
+	//           - 使用 Map 建構 body（與 LLM.callChat 相同模式，Custom API 中可正常運作）
 	//           - 驗證 LINE Channel Access Token 與使用者 ID
 	//           - 呼叫 LINE Push Message API (v2/bot/message/push)
 	// 參數說明：
 	//   - lineUserId (string): LINE 使用者 ID
 	//   - messageText (string): 推播的文字內容
 	// 回傳格式：map - {success, message/api_response}
-	// 相依性：API.jsonEscape, thisapp.variables.System.LINE_ChannelAccessToken
+	// 相依性：thisapp.variables.System.LINE_ChannelAccessToken
 	// 注意：原名 LINE_PushText，已重命名為 camelCase
+	// 修正歷程：
+	//   1. postUrl 在 Custom API 環境中無法發出外部 HTTP 請求 → 改用 invokeUrl
+	//   2. 手動組 JSON string 作為 invokeUrl parameters 無法正確送出 → 改用 Map body
+	//      （與 LLM.callChat 使用 Map.toString() 呼叫 Claude API 的模式一致）
 	// =============================================================================
 	res = Map();
 	try
@@ -32,15 +36,28 @@ map API.linePushText(string lineUserId, string messageText)
 			res.put("message","lineUserId 為空");
 			return res;
 		}
-		text_escaped = thisapp.API.jsonEscape(messageText);
-		uid_escaped = thisapp.API.jsonEscape(lineUserId);
-		json_body = "{\"to\":\"" + uid_escaped + "\",\"messages\":[{\"type\":\"text\",\"text\":\"" + text_escaped + "\"}]}";
+
+		// 建構 LINE Push Message body（Map 方式）
+		msgObj = Map();
+		msgObj.put("type","text");
+		msgObj.put("text",messageText);
+		msgList = List();
+		msgList.add(msgObj);
+		bodyMap = Map();
+		bodyMap.put("to",lineUserId);
+		bodyMap.put("messages",msgList);
 
 		headers = Map();
 		headers.put("Authorization","Bearer " + token);
 		headers.put("Content-Type","application/json");
 
-		api_response = postUrl("https://api.line.me/v2/bot/message/push",json_body,headers);
+		api_response = invokeurl
+		[
+			url: "https://api.line.me/v2/bot/message/push"
+			type: POST
+			parameters: bodyMap.toString()
+			headers: headers
+		];
 		res.put("success",true);
 		res.put("api_response",api_response);
 		return res;

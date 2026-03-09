@@ -4572,7 +4572,7 @@ var API_URL = &quot;https://www.zohoapis.com/creator/custom/uneedwind/LINE_LIFF_
 		thisapp.variables.System.Tone_Default = "\"隨機\"";
 		// 付款通知 Webhook URL（Zoho Flow 主線 / n8n 備援，啟動前設定）
 		thisapp.variables.System.ECPayPaidNotifyURL = "";
-		// Delivery page base URL (B1 Creator Page). 編排層 will append ?token=...
+		// Delivery page base URL (B1 Creator Page). 編排層 will append ?deliveryToken=...
 		thisapp.variables.System.DeliveryPageBaseURL = "";
 		// LINE Messaging API channel access token (set before launch)
 		thisapp.variables.System.LINE_ChannelAccessToken = "";
@@ -7198,7 +7198,7 @@ string API.ecPayReturn(map ecpay_params)
 							push_payload.put("lineUserId",line_uid);
 							push_payload.put("merchantTradeNo",merchant_trade_no);
 							push_payload.put("deliveryToken",delivery_token);
-							push_payload.put("deliveryUrl",base_url + "?token=" + delivery_token);
+							push_payload.put("deliveryUrl",base_url + "?deliveryToken=" + delivery_token);
 							ignore = postUrl(notify_url,push_payload.toString(),{"Content-Type":"application/json"});
 						}
 					}
@@ -7242,7 +7242,7 @@ string API.ecPayReturn(map ecpay_params)
 						}
 						base_url2 = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
 						delivery_token2 = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
-						link_text = if(base_url2 != "" && delivery_token2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?token=" + delivery_token2, "");
+						link_text = if(base_url2 != "" && delivery_token2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?deliveryToken=" + delivery_token2, "");
 						msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
 						ignore2 = thisapp.API.linePushText(line_uid2,msg_text);
 						break;

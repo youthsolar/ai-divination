@@ -1,0 +1,66 @@
+// =============================================================================
+// Zoho Flow 2：ECPay 付款完成 → LINE Push 交付連結
+// 部署位置：Zoho Flow → 邏輯 → 自定義函數 → ecpayPushDelivery
+//
+// 函數簽名（Flow 自動產生）：
+//   string ecpayPushDelivery(string lineUserId, string deliveryUrl,
+//                            string itemName, string merchantTradeNo)
+//
+// 部署前請替換：__LINE_CHANNEL_ACCESS_TOKEN__
+// =============================================================================
+// ↓↓↓ 以下貼入 Flow 編輯器（{ } 之間）↓↓↓
+
+LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
+LINE_TOKEN = "__LINE_CHANNEL_ACCESS_TOKEN__";
+
+// 1. 驗證必要欄位
+if(lineUserId == null || lineUserId == "")
+{
+	return "skipped: missing lineUserId";
+}
+if(deliveryUrl == null || deliveryUrl == "")
+{
+	return "skipped: missing deliveryUrl";
+}
+
+// 2. 組合推播訊息
+displayName = if(itemName != null && itemName != "",itemName,"符令");
+deliveryMsg = "🎊 符令已經為你準備好了！\n\n"
+	+ "📿 " + displayName + "\n\n"
+	+ "👉 點此查看你的符令：\n"
+	+ deliveryUrl
+	+ "\n\n⏰ 連結有效期 7 天，請及時查看\n"
+	+ "✨ 願能量守護你 ✨";
+
+// 3. 呼叫 LINE Push API
+msgList = List();
+msg = Map();
+msg.put("type","text");
+msg.put("text",deliveryMsg);
+msgList.add(msg);
+
+pushBody = Map();
+pushBody.put("to",lineUserId);
+pushBody.put("messages",msgList);
+
+lineHeaders = Map();
+lineHeaders.put("Content-Type","application/json");
+lineHeaders.put("Authorization","Bearer " + LINE_TOKEN);
+
+try
+{
+	invokeurl
+	[
+		url: LINE_PUSH_URL
+		type: POST
+		parameters: pushBody.toString()
+		headers: lineHeaders
+		connection-timeout:15
+	];
+	return "ok: " + merchantTradeNo;
+}
+catch (ePush)
+{
+	return "error: " + ePush.toString();
+}
+return "done";

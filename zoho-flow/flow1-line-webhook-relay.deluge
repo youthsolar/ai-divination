@@ -1,0 +1,145 @@
+// =============================================================================
+// Zoho Flow 1：LINE Webhook → queueDivination → Reply → predictFromLine
+// 部署位置：Zoho Flow → 邏輯 → 自定義函數 → lineWebhookRelay
+//
+// 架構（V4 fire-and-forget 模式）：
+//   1. 呼叫 Creator queueDivination API（< 2s，只驗證 + 建記錄）
+//   2. Reply to LINE「占卜中...」（< 1s）
+//   3. invokeUrl 呼叫 predictFromLine（Flow 會在 30s timeout，但 Creator 繼續執行）
+//   ※ Flow 執行紀錄會顯示「失敗」但功能正常（LINE 使用者收到結果）
+//
+// 資料正規化：Line_User_ID 只在 Clients_Report，不在 Divination_Logs 加欄位
+// =============================================================================
+// ↓↓↓ 以下貼入 Flow 編輯器（{ } 之間）↓↓↓
+
+// ── 設定值 ──
+QUEUE_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/queueDivination";
+PREDICT_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/predictFromLine";
+LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
+LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
+LINE_TOKEN = "Z8xxDDn3v+BNPmyiZ/ZAuJ8/sGH1eFyBpnDsn0OYgS+zQNVkv1wIDf6eDCwQ8K/qkMfK62WGlK/IiaBYXJobgtmiXkcrINzjpCK+at9yXJpedzkiWYiMZi4VQFWvpqhT4Lxs/zWfqSw39L4Ht8pKkAdB04t89/1O/w1cDnyilFU=";
+
+// ── Flow webhook array 修正：取出第一筆實際值 ──
+evType = eventType.get(0);
+msgType = messageType.get(0);
+rToken = replyToken.get(0);
+uid = lineUserId.get(0);
+msgText = messageText.get(0);
+ts = eventTimestamp.get(0).toString();
+
+// 1. 僅處理文字訊息
+if(evType != "message" || msgType != "text")
+{
+	return "skipped: not text message";
+}
+
+// 2. 呼叫 Creator queueDivination（快速：查客戶 + 建記錄，不呼叫 LLM）
+innerPayload = Map();
+innerPayload.put("lineUserId",uid);
+innerPayload.put("text",msgText);
+innerPayload.put("timestamp",ts);
+creatorPayload = Map();
+creatorPayload.put("payload",innerPayload);
+creatorHeaders = Map();
+creatorHeaders.put("Content-Type","application/json");
+
+replyText = "🔮 正在為你占卜中，請稍候...\n（易經＋塔羅雙重解讀，約需 30 秒）";
+shouldPredict = false;
+try
+{
+	creatorResp = invokeurl
+	[
+		url: QUEUE_API_URL + "?publickey=0euz11QkZFOXStaaEFFCVxvh3"
+		type: POST
+		parameters: creatorPayload.toString()
+		headers: creatorHeaders
+		connection-timeout:15
+	];
+	qResult = creatorResp.get("result");
+	// 未綁定使用者：顯示綁定引導（不呼叫 predictFromLine）
+	if(qResult.get("unbound") == true && qResult.get("message") != null)
+	{
+		replyText = qResult.get("message").toString();
+	}
+	// 參數錯誤（不呼叫 predictFromLine）
+	else if(qResult.get("ok") == false && qResult.get("message") != null && qResult.get("message") != "")
+	{
+		replyText = qResult.get("message").toString();
+	}
+	// 成功排隊：保持「占卜中...」，標記需要呼叫 predictFromLine
+	else if(qResult.get("ok") == true)
+	{
+		shouldPredict = true;
+	}
+}
+catch (eCreator)
+{
+	replyText = "系統忙碌中，請稍後再試 🙏";
+}
+
+// 3. Reply to LINE（優先用 replyToken，失敗則 Push 備援）
+lineHeaders = Map();
+lineHeaders.put("Content-Type","application/json");
+lineHeaders.put("Authorization","Bearer " + LINE_TOKEN);
+
+msgList = List();
+msg = Map();
+msg.put("type","text");
+msg.put("text",replyText);
+msgList.add(msg);
+
+try
+{
+	replyBody = Map();
+	replyBody.put("replyToken",rToken);
+	replyBody.put("messages",msgList);
+	invokeurl
+	[
+		url: LINE_REPLY_URL
+		type: POST
+		parameters: replyBody.toString()
+		headers: lineHeaders
+		connection-timeout:15
+	];
+}
+catch (eReply)
+{
+	// replyToken 過期，用 Push 備援
+	try
+	{
+		pushBody = Map();
+		pushBody.put("to",uid);
+		pushBody.put("messages",msgList);
+		invokeurl
+		[
+			url: LINE_PUSH_URL
+			type: POST
+			parameters: pushBody.toString()
+			headers: lineHeaders
+			connection-timeout:15
+		];
+	}
+	catch (ePush)
+	{
+		return "error: reply+push both failed: " + ePush.toString();
+	}
+}
+
+// 4. Fire-and-forget：呼叫 predictFromLine（Flow 30s timeout，Creator 繼續執行）
+//    ※ 此步驟會讓 Flow 執行紀錄顯示「失敗」（因 timeout），但 Creator 不受影響
+//    ※ 只有 queueDivination 回傳 ok=true 才呼叫（未綁定 / 錯誤不需要）
+if(shouldPredict == true)
+{
+	predictPayload = Map();
+	predictPayload.put("payload",innerPayload);
+	invokeurl
+	[
+		url: PREDICT_API_URL + "?publickey=8FfAVOwV4QyJUBvOUkYEYt16C"
+		type: POST
+		parameters: predictPayload.toString()
+		headers: creatorHeaders
+		connection-timeout:50
+	];
+}
+
+return "ok: predict fired";

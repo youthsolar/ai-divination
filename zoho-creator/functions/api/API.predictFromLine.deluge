@@ -108,6 +108,7 @@ map API.predictFromLine(map payload)
 			meta.put("reason","missing_client_binding");
 			meta.put("liff_binding_url",liffBindingUrl);
 			resp.put("meta",meta);
+			try { thisapp.API.linePushText(lineUserId, bindingMsg); } catch(ePush) { info "Push binding: " + ePush; }
 			return resp;
 		}
 
@@ -118,7 +119,11 @@ map API.predictFromLine(map payload)
 		solarDateTime = zoho.currenttime;
 		try
 		{
-			solarDateTime = thisapp.Calendar.normalizeToTaipei(zoho.currenttime);
+			tzResult = thisapp.Calendar.normalizeToTaipei(zoho.currenttime);
+			if(tzResult.get("success") == true && tzResult.get("value") != null)
+			{
+				solarDateTime = tzResult.get("value");
+			}
 		}
 		catch (eTz)
 		{
@@ -144,6 +149,7 @@ map API.predictFromLine(map payload)
 			meta.put("reason","cooldown");
 			meta.put("cooldownRule", if(cooldownResult.get("rule") != null, cooldownResult.get("rule").toString(), ""));
 			resp.put("meta",meta);
+			try { thisapp.API.linePushText(lineUserId, cooldownMsg); } catch(ePush) { info "Push cooldown: " + ePush; }
 			return resp;
 		}
 
@@ -205,15 +211,18 @@ map API.predictFromLine(map payload)
 			tarotResult = thisapp.Tarot.tarotDivinationFunction(clientId, text);
 			if(tarotResult != null && tarotResult.get("success") == true && tarotResult.get("divination_id") != null)
 			{
-				divId = tarotResult.get("divination_id");
-				divLogs = Divination_Logs[ID == divId.toLong()];
-				for each  d in divLogs
+				divId = tarotResult.get("divination_id").toString().trim();
+				if(divId != "")
 				{
-					if(d.AI_Interpretation != null && d.AI_Interpretation.trim() != "")
+					divLogs = Divination_Logs[ID == divId.toLong()];
+					for each  d in divLogs
 					{
-						tarotText = d.AI_Interpretation;
+						if(d.AI_Interpretation != null && d.AI_Interpretation.trim() != "")
+						{
+							tarotText = d.AI_Interpretation;
+						}
+						break;
 					}
-					break;
 				}
 			}
 			if(tarotText == null || tarotText.trim() == "")
@@ -257,6 +266,7 @@ map API.predictFromLine(map payload)
 		meta.put("questionType",questionType);
 		meta.put("timestamp",ts);
 		resp.put("meta",meta);
+		try { thisapp.API.linePushText(lineUserId, finalMsg); } catch(ePush) { info "Push result: " + ePush; }
 		return resp;
 	}
 	catch (e)
