@@ -16,7 +16,7 @@
 // ── 設定值 ──
 QUEUE_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/queueDivination";
 // Catalyst Event Listener URL（部署後填入 PROJECT_ID + LISTENER_ID）
-CATALYST_EVENT_URL = "https://api.catalyst.zoho.com/baas/v1/project/__PROJECT_ID__/event/__LISTENER_ID__";
+CATALYST_EVENT_URL = "https://api.catalyst.zoho.com/baas/v1/project/28243000000025008/event/28243000000025057";
 LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 LINE_TOKEN = "Z8xxDDn3v+BNPmyiZ/ZAuJ8/sGH1eFyBpnDsn0OYgS+zQNVkv1wIDf6eDCwQ8K/qkMfK62WGlK/IiaBYXJobgtmiXkcrINzjpCK+at9yXJpedzkiWYiMZi4VQFWvpqhT4Lxs/zWfqSw39L4Ht8pKkAdB04t89/1O/w1cDnyilFU=";
