@@ -1,22 +1,19 @@
 // =============================================================================
-// Zoho Flow 1：LINE Webhook → queueDivination → Reply → Catalyst Event Trigger
+// Zoho Flow 1：LINE Webhook → Reply → AppSail /divination（異步占卜）
 // 部署位置：Zoho Flow → 邏輯 → 自定義函數 → lineWebhookRelay
 //
-// 架構（V5 Catalyst 異步模式）：
-//   1. 呼叫 Creator queueDivination API（< 2s，只驗證 + 建記錄）
-//   2. Reply to LINE「占卜中...」（< 1s）
-//   3. invokeUrl 呼叫 Catalyst Event Listener（立即 200，< 1s）
+// 架構（V6 AppSail 異步模式）：
+//   1. Reply to LINE「占卜中...」（< 1s，使用 replyToken）
+//   2. POST 到 Catalyst AppSail /divination（立即 200，< 0.7s）
 //   → Flow 記「成功」✅（不再 timeout）
-//   → Catalyst Event Function 背景呼叫 predictFromLine → LINE 收到結果
+//   → AppSail 背景呼叫 predictFromLine → LINE 收到占卜結果
 //
-// 資料正規化：Line_User_ID 只在 Clients_Report，不在 Divination_Logs 加欄位
+// 說明：queueDivination 已移除，predictFromLine 本身處理使用者驗證與冷卻邏輯
 // =============================================================================
 // ↓↓↓ 以下貼入 Flow 編輯器（{ } 之間）↓↓↓
 
 // ── 設定值 ──
-QUEUE_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/queueDivination";
-// Catalyst Event Listener URL（部署後填入 PROJECT_ID + LISTENER_ID）
-CATALYST_EVENT_URL = "https://api.catalyst.zoho.com/baas/v1/project/28243000000025008/event/28243000000025057";
+APPSAIL_URL = "https://divinationserver-10121308063.development.catalystappsail.com/divination";
 LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 LINE_TOKEN = "Z8xxDDn3v+BNPmyiZ/ZAuJ8/sGH1eFyBpnDsn0OYgS+zQNVkv1wIDf6eDCwQ8K/qkMfK62WGlK/IiaBYXJobgtmiXkcrINzjpCK+at9yXJpedzkiWYiMZi4VQFWvpqhT4Lxs/zWfqSw39L4Ht8pKkAdB04t89/1O/w1cDnyilFU=";
@@ -35,54 +32,12 @@ if(evType != "message" || msgType != "text")
 	return "skipped: not text message";
 }
 
-// 2. 呼叫 Creator queueDivination（快速：查客戶 + 建記錄，不呼叫 LLM）
-innerPayload = Map();
-innerPayload.put("lineUserId",uid);
-innerPayload.put("text",msgText);
-innerPayload.put("timestamp",ts);
-creatorPayload = Map();
-creatorPayload.put("payload",innerPayload);
-creatorHeaders = Map();
-creatorHeaders.put("Content-Type","application/json");
-
-replyText = "🔮 正在為你占卜中，請稍候...\n（易經＋塔羅雙重解讀，約需 30 秒）";
-shouldPredict = false;
-try
-{
-	creatorResp = invokeurl
-	[
-		url: QUEUE_API_URL + "?publickey=0euz11QkZFOXStaaEFFCVxvh3"
-		type: POST
-		parameters: creatorPayload.toString()
-		headers: creatorHeaders
-	];
-	qResult = creatorResp.get("result");
-	// 未綁定使用者：顯示綁定引導（不呼叫 predictFromLine）
-	if(qResult.get("unbound") == true && qResult.get("message") != null)
-	{
-		replyText = qResult.get("message").toString();
-	}
-	// 參數錯誤（不呼叫 predictFromLine）
-	else if(qResult.get("ok") == false && qResult.get("message") != null && qResult.get("message") != "")
-	{
-		replyText = qResult.get("message").toString();
-	}
-	// 成功排隊：保持「占卜中...」，標記需要呼叫 predictFromLine
-	else if(qResult.get("ok") == true)
-	{
-		shouldPredict = true;
-	}
-}
-catch (eCreator)
-{
-	replyText = "系統忙碌中，請稍後再試 🙏";
-}
-
-// 3. Reply to LINE（優先用 replyToken，失敗則 Push 備援）
+// 2. Reply to LINE「占卜中...」（優先用 replyToken，失敗則 Push 備援）
 lineHeaders = Map();
 lineHeaders.put("Content-Type","application/json");
 lineHeaders.put("Authorization","Bearer " + LINE_TOKEN);
 
+replyText = "🔮 正在為你占卜中，請稍候...\n（易經＋塔羅雙重解讀，約需 30 秒）";
 msgList = List();
 msg = Map();
 msg.put("type","text");
@@ -124,19 +79,23 @@ catch (eReply)
 	}
 }
 
-// 4. Catalyst Event Trigger：非同步觸發占卜（立即 200，Flow 不 timeout）
-//    ※ Catalyst Custom Event Listener 立即回傳 200 → Flow 記「成功」
-//    ※ Catalyst Event Function 背景執行 predictFromLine → LINE 收到結果
-//    ※ 只有 queueDivination 回傳 ok=true 才觸發（未綁定 / 錯誤不需要）
-if(shouldPredict == true)
-{
-	invokeurl
-	[
-		url: CATALYST_EVENT_URL
-		type: POST
-		parameters: innerPayload.toString()
-		headers: creatorHeaders
-	];
-}
+// 3. 呼叫 AppSail /divination（立即 200，背景執行 predictFromLine）
+//    ※ 0.65s 回應，Flow 記「成功」✅
+//    ※ predictFromLine 處理使用者驗證、冷卻、易經+塔羅、LINE 推播
+appsailHeaders = Map();
+appsailHeaders.put("Content-Type","application/json");
 
-return "ok: catalyst triggered";
+divinationPayload = Map();
+divinationPayload.put("lineUserId",uid);
+divinationPayload.put("text",msgText);
+divinationPayload.put("timestamp",ts);
+
+invokeurl
+[
+	url: APPSAIL_URL
+	type: POST
+	parameters: divinationPayload.toString()
+	headers: appsailHeaders
+];
+
+return "ok: appsail triggered";
