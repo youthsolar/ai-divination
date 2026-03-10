@@ -1,0 +1,12 @@
+{
+  "name": "divination-server",
+  "version": "1.0.0",
+  "description": "Catalyst AppSail: 占卜異步橋接服務",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
