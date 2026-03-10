@@ -9,13 +9,14 @@ string API.ecPayReturn(map ecpay_params)
 	//           - 驗簽 CheckMacValue（使用生產環境 hashKey/hashIV）
 	//           - 更新訂單狀態（Pending → Paid/Failed）
 	//           - 生成交付 Token（SHA256，7 天有效期）
-	//           - 通知 n8n 推播交付連結
-	//           - 付款成功後生成完整版解讀並推播到 LINE
+	//           - 通知編排層推播交付連結
+	//           - 付款成功後 POST AppSail /paid-divination（異步生成完整版解讀 + LINE 推播）
 	// 參數說明：
 	//   - ecpay_params (map): ECPay 回拋參數（MerchantTradeNo, RtnCode, TradeNo, CheckMacValue 等）
 	// 回傳格式：string - "1|OK"（成功）或 "0|FAIL"（失敗）
-	// 相依性：Talisman_Purchases, Divination_Logs, Clients_Report,
-	//         ECPay.generateCheckMacValue, LLM.callChat, API.linePushText
+	// 相依性：Talisman_Purchases, Clients_Report,
+	//         ECPay.generateCheckMacValue
+	// 架構：ecPayReturn → AppSail /paid-divination（立即 200）→ generatePaidInterpretation（背景）
 	// 注意：原名 ECPayReturn，已重命名為 camelCase；此 API 必須為 ECPay 可呼叫的公開 endpoint
 	// =============================================================================
 	result = Map();
@@ -175,51 +176,38 @@ string API.ecPayReturn(map ecpay_params)
 			// 不影響回拋主要流程
 		}
 
-		// 4) 付款成功後：生成完整版並推播到 LINE（MVP）
+		// 4) 付款成功後：POST AppSail /paid-divination（異步生成完整版 + LINE 推播）
+		//    AppSail 立即回 200 → ecPayReturn 不會因 LLM 呼叫超時
+		//    AppSail 背景呼叫 Creator generatePaidInterpretation → LLM + linePushText
 		try
 		{
 			if(new_status == "Paid" && should_notify == true && order_rec != null)
 			{
 				div_id = if(order_rec.Divination_Log_Link != null,order_rec.Divination_Log_Link.toString(),"");
 				line_uid2 = if(order_rec.Line_User_ID != null,order_rec.Line_User_ID,"");
+				delivery_token2 = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
 				if(div_id != "" && line_uid2 != "")
 				{
-					div_logs = Divination_Logs[ID == div_id.toLong()];
-					for each  d in div_logs
-					{
-						full_text = "";
-						if(d.AI_Interpretation_Full != null && d.AI_Interpretation_Full != "")
-						{
-							full_text = d.AI_Interpretation_Full;
-						}
-						else
-						{
-							full_system = "你是專業占卜師（塔羅+易經）。請用繁體中文回答，語氣溫柔但冷靜。";
-						full_user = "請針對以下問題，提供完整版解讀（約800~1200字），包含：\n" +
-							"1) 現況與核心矛盾\n2) 走勢與關鍵提醒\n3) 具體行動建議（3點）\n4) 一句收束祝福。\n\n" +
-							"問題：" + d.Original_Question;
-						// MVP：使用較快的模型以降低付款回呼超時風險
-						full_opts = Map();
-						full_opts.put("max_tokens", 2000);
-						full_opts.put("temperature", 0.7);
-						full_opts.put("model", "claude-haiku-4-20250514");
-						full_text = thisapp.LLM.callChat(full_system, full_user, full_opts);
-						d.AI_Interpretation_Full=full_text;
-						d.Status="已購買";
-						}
-						base_url2 = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
-						delivery_token2 = if(order_rec.Delivery_Token != null,order_rec.Delivery_Token,"");
-						link_text = if(base_url2 != "" && delivery_token2 != "", "\n\n（LIFF 查看同份結果）" + base_url2 + "?deliveryToken=" + delivery_token2, "");
-						msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
-						ignore2 = thisapp.API.linePushText(line_uid2,msg_text);
-						break;
-					}
+					appsail_url = "https://divinationserver-10121308063.development.catalystappsail.com/paid-divination";
+					paid_payload = Map();
+					paid_payload.put("divination_log_id",div_id);
+					paid_payload.put("line_user_id",line_uid2);
+					paid_payload.put("delivery_token",delivery_token2);
+					paid_headers = Map();
+					paid_headers.put("Content-Type","application/json");
+					ignore2 = invokeurl
+					[
+						url :appsail_url
+						type :POST
+						parameters:paid_payload.toString()
+						headers:paid_headers
+					];
 				}
 			}
 		}
 		catch (e_push_full)
 		{
-			// ignore
+			// AppSail 呼叫失敗不影響 ECPay 回拋主流程（回 1|OK）
 		}
 
 		result.put("success",true);

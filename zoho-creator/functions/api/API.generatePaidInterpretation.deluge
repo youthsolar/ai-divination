@@ -1,0 +1,92 @@
+map API.generatePaidInterpretation(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.generatePaidInterpretation
+	// 函數用途：付費占卜完整版解讀生成 + LINE 推播
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：
+	//   - 由 AppSail /paid-divination 背景呼叫（異步，不受 30s 限制）
+	//   - 查詢 Divination_Logs 取得原始問題
+	//   - 呼叫 LLM 生成完整版解讀（800-1200 字）
+	//   - 寫入 AI_Interpretation_Full + 更新 Status="已購買"
+	//   - linePushText 推播完整版解讀 + 交付頁連結
+	// 參數說明：
+	//   - payload.divination_log_id (string): Divination_Logs 記錄 ID
+	//   - payload.line_user_id (string): LINE User ID
+	//   - payload.delivery_token (string): 交付 Token
+	// 回傳格式：map - { ok: true/false, message: string }
+	// 相依性：Divination_Logs, LLM.callChat, API.linePushText
+	// 架構：ecPayReturn → AppSail /paid-divination（立即 200）→ 本函數（背景）
+	// =============================================================================
+	resp = Map();
+	try
+	{
+		// ── 參數提取 ──
+		div_id = "";
+		line_uid = "";
+		delivery_token = "";
+		if(payload != null)
+		{
+			div_id = if(payload.get("divination_log_id") != null, payload.get("divination_log_id").toString().trim(), "");
+			line_uid = if(payload.get("line_user_id") != null, payload.get("line_user_id").toString().trim(), "");
+			delivery_token = if(payload.get("delivery_token") != null, payload.get("delivery_token").toString().trim(), "");
+		}
+		if(div_id == "" || line_uid == "")
+		{
+			resp.put("ok",false);
+			resp.put("message","missing divination_log_id or line_user_id");
+			return resp;
+		}
+		// ── 查詢 Divination_Logs ──
+		div_logs = Divination_Logs[ID == div_id.toLong()];
+		found = false;
+		full_text = "";
+		original_question = "";
+		for each  d in div_logs
+		{
+			found = true;
+			original_question = if(d.Original_Question != null, d.Original_Question, "");
+			// 如果已有完整版（例如之前生成過），直接使用
+			if(d.AI_Interpretation_Full != null && d.AI_Interpretation_Full != "")
+			{
+				full_text = d.AI_Interpretation_Full;
+			}
+			else
+			{
+				// ── 呼叫 LLM 生成完整版解讀 ──
+				full_system = "你是專業占卜師（塔羅+易經）。請用繁體中文回答，語氣溫柔但冷靜。";
+				full_user = "請針對以下問題，提供完整版解讀（約800~1200字），包含：\n" + "1) 現況與核心矛盾\n2) 走勢與關鍵提醒\n3) 具體行動建議（3點）\n4) 一句收束祝福。\n\n" + "問題：" + original_question;
+				full_opts = Map();
+				full_opts.put("max_tokens",2000);
+				full_opts.put("temperature",0.7);
+				full_opts.put("model","claude-haiku-4-20250514");
+				full_text = thisapp.LLM.callChat(full_system, full_user, full_opts);
+				// 寫入記錄
+				d.AI_Interpretation_Full = full_text;
+				d.Status = "已購買";
+			}
+			break;
+		}
+		if(!found)
+		{
+			resp.put("ok",false);
+			resp.put("message","divination_log not found: " + div_id);
+			return resp;
+		}
+		// ── 組合推播訊息 ──
+		base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null, thisapp.variables.System.DeliveryPageBaseURL.toString(), "");
+		link_text = if(base_url != "" && delivery_token != "", "\n\n（LIFF 查看同份結果）" + base_url + "?deliveryToken=" + delivery_token, "");
+		msg_text = "✅ 付款成功｜完整版解讀\n\n" + full_text + link_text;
+		// ── LINE 推播 ──
+		ignore = thisapp.API.linePushText(line_uid, msg_text);
+		resp.put("ok",true);
+		resp.put("message","paid interpretation generated and pushed");
+	}
+	catch (e)
+	{
+		resp.put("ok",false);
+		resp.put("message","error: " + e.toString());
+	}
+	return resp;
+}
