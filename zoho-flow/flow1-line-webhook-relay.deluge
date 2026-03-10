@@ -1,12 +1,13 @@
 // =============================================================================
-// Zoho Flow 1：LINE Webhook → queueDivination → Reply → predictFromLine
+// Zoho Flow 1：LINE Webhook → queueDivination → Reply → Catalyst Event Trigger
 // 部署位置：Zoho Flow → 邏輯 → 自定義函數 → lineWebhookRelay
 //
-// 架構（V4 fire-and-forget 模式）：
+// 架構（V5 Catalyst 異步模式）：
 //   1. 呼叫 Creator queueDivination API（< 2s，只驗證 + 建記錄）
 //   2. Reply to LINE「占卜中...」（< 1s）
-//   3. invokeUrl 呼叫 predictFromLine（Flow 會在 30s timeout，但 Creator 繼續執行）
-//   ※ Flow 執行紀錄會顯示「失敗」但功能正常（LINE 使用者收到結果）
+//   3. invokeUrl 呼叫 Catalyst Event Listener（立即 200，< 1s）
+//   → Flow 記「成功」✅（不再 timeout）
+//   → Catalyst Event Function 背景呼叫 predictFromLine → LINE 收到結果
 //
 // 資料正規化：Line_User_ID 只在 Clients_Report，不在 Divination_Logs 加欄位
 // =============================================================================
@@ -14,7 +15,8 @@
 
 // ── 設定值 ──
 QUEUE_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/queueDivination";
-PREDICT_API_URL = "https://www.zohoapis.com/creator/custom/uneedwind/predictFromLine";
+// Catalyst Event Listener URL（部署後填入 PROJECT_ID + LISTENER_ID）
+CATALYST_EVENT_URL = "https://api.catalyst.zoho.com/baas/v1/project/__PROJECT_ID__/event/__LISTENER_ID__";
 LINE_REPLY_URL = "https://api.line.me/v2/bot/message/reply";
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 LINE_TOKEN = "Z8xxDDn3v+BNPmyiZ/ZAuJ8/sGH1eFyBpnDsn0OYgS+zQNVkv1wIDf6eDCwQ8K/qkMfK62WGlK/IiaBYXJobgtmiXkcrINzjpCK+at9yXJpedzkiWYiMZi4VQFWvpqhT4Lxs/zWfqSw39L4Ht8pKkAdB04t89/1O/w1cDnyilFU=";
@@ -125,21 +127,20 @@ catch (eReply)
 	}
 }
 
-// 4. Fire-and-forget：呼叫 predictFromLine（Flow 30s timeout，Creator 繼續執行）
-//    ※ 此步驟會讓 Flow 執行紀錄顯示「失敗」（因 timeout），但 Creator 不受影響
-//    ※ 只有 queueDivination 回傳 ok=true 才呼叫（未綁定 / 錯誤不需要）
+// 4. Catalyst Event Trigger：非同步觸發占卜（立即 200，Flow 不 timeout）
+//    ※ Catalyst Custom Event Listener 立即回傳 200 → Flow 記「成功」
+//    ※ Catalyst Event Function 背景執行 predictFromLine → LINE 收到結果
+//    ※ 只有 queueDivination 回傳 ok=true 才觸發（未綁定 / 錯誤不需要）
 if(shouldPredict == true)
 {
-	predictPayload = Map();
-	predictPayload.put("payload",innerPayload);
 	invokeurl
 	[
-		url: PREDICT_API_URL + "?publickey=8FfAVOwV4QyJUBvOUkYEYt16C"
+		url: CATALYST_EVENT_URL
 		type: POST
-		parameters: predictPayload.toString()
+		parameters: innerPayload.toString()
 		headers: creatorHeaders
-		connection-timeout:50
+		connection-timeout:10
 	];
 }
 
-return "ok: predict fired";
+return "ok: catalyst triggered";
