@@ -22,6 +22,7 @@
 9. [新增資料模型規格](#九新增資料模型規格)
 10. [新增 API 端點與 n8n 工作流](#十新增-api-端點與-n8n-工作流)
 11. [技術風險與緩解](#十一技術風險與緩解)
+12. [部署函數清單（按代理分工）](#十二部署函數清單按代理分工)
 
 ---
 
@@ -33,12 +34,14 @@
 |------|------|------|
 | 前端入口 | LINE LIFF mini-app (`liff/index.html`) | 使用者互動：生日 + 問題 |
 | SSOT 後端 | Zoho Creator (`AI易經.ds`) | 資料模型、業務邏輯、Custom API |
-| 編排層 | n8n (主) + Zoho Flow (備) | Webhook 路由、LINE 推播、排程 |
+| 編排層 | n8n (主) + Zoho Flow (備) | Webhook 路由、LINE 推播、排程（注意下方說明） |
 | 非同步處理 | Zoho Catalyst AppSail (Express.js) | 長任務（占卜 AI 生成） |
 | 金流 | ECPay 信用卡 | NT$360 符令付款 |
 | CRM | Zoho CRM | 客戶命理資料同步 |
 | LLM | Anthropic Claude Messages API | AI 解讀、分類、推薦 |
 | 主鍵 | LINE User ID | 全鏈路使用者追蹤 |
+
+**Zoho Flow 備援策略說明**：Phase 1 的 LINE webhook relay 和 ECPay 交付有 Zoho Flow 備援（`flow1-line-webhook-relay.deluge`, `flow2-ecpay-push-delivery.deluge`）。Phase 2/3 新增的工作流以 n8n 為唯一編排層，**暫不建立 Zoho Flow 備援**。理由：(1) 新工作流涉及 SimplyBook/EasyStore 外部 API，Flow 的 Deluge 實作成本過高；(2) 這些工作流非即時金流關鍵路徑，容許短暫中斷；(3) 若 n8n 穩定性有疑慮，優先考慮 n8n 升級為付費版。唯一例外：`SimplyBook_Webhook__Booking_Sync` 可考慮用 Zoho Flow 的 SimplyBook 原生連接器做 fallback。
 
 ### 1.2 現有 LLM 呼叫架構
 
@@ -49,6 +52,12 @@
 - **認證**：`x-api-key` header + `anthropic-version: "2023-06-01"`
 - **參數**：`model`, `max_tokens`, `temperature`, `system`, `messages`
 - **回應**：`response.content[0].text`
+
+**Creator App Variables（LLM 相關）**：
+- `thisapp.variables.LLM.LLM_API_Key` — Anthropic API Key
+- `thisapp.variables.LLM.LLM_API_URL` — API endpoint
+- `thisapp.variables.LLM.LLM_Model` — 預設模型
+- `thisapp.variables.LLM.LLM_API_Version` — API 版本
 
 ### 1.3 現有資料模型
 
@@ -113,7 +122,7 @@ LINE 入口 → LIFF (生日+問題) → Creator API.liffDivinationMvp
 | `Cleaned_Description` | text (multi-line) | 洗過的正式描述（回寫 SB/ES 用） |
 | `Last_Synced_From` | datetime | 上次從 SB/ES 拉取時間 |
 | `Last_Synced_To` | datetime | 上次回寫 SB/ES 時間 |
-| `Sync_Status` | picklist | `pending` / `synced` / `conflict` / `draft` |
+| `Sync_Status` | picklist | `pending` / `draft` / `rejected` / `pending_sync` / `synced` / `conflict` |
 
 **設計理由**：
 - 統一表讓 LLM 只需一次呼叫即可同時比對預約項目和商品
@@ -419,9 +428,17 @@ else
 
 ### 3.4 LIFF 前端呈現
 
+#### 現狀（`liff/index.html`）
+
+目前 LIFF 頁面的「解鎖完整版 / 購買符令」按鈕是 **disabled placeholder**（文字顯示「即將開放」），**完全沒有**根據 API 回傳的 `next_action` 做任何動態渲染。因此本次改動不只是「增加推薦卡片」，而是需要**從頭實作** CTA 動態渲染邏輯。
+
+此外，LIFF 表單有收集「可選出生時辰」欄位，此資料可作為 persona 輸入提升 LLM 推薦精度（與 SimplyBook `precise_birth_time` 欄位對應）。
+
+#### 目標渲染邏輯
+
 根據 `next_action.kind` 動態渲染：
 
-- **`offer_unlock`（原有）** → 單一「購買符令 NT$360」按鈕
+- **`offer_unlock`（原有 fallback）** → 單一「購買符令 NT$360」按鈕
 - **`smart_recommend`（新增）** → 推薦卡片（含名稱、理由、價格、CTA）+ 「購買符令」作為次要選項
 
 ### 3.5 LINE Push 訊息範本
@@ -857,7 +874,18 @@ pending → (LLM 加工) → draft → (人工審核) → pending_sync → (n8n 
 | `API.pushCatalogToSB` | 回寫清洗後資料至 SB | n8n（人工審核後） |
 | `API.pushCatalogToES` | 回寫清洗後資料至 ES | n8n（人工審核後） |
 
-### 10.2 新增 n8n 工作流
+### 10.2 現有 n8n 工作流（Phase 1，已部署）
+
+| 工作流 | 觸發 | 用途 | Phase 2/3 需修改？ |
+|--------|------|------|-------------------|
+| `ECPay_Paid_Notify__LINE_Push.json` | ECPay webhook | 付款完成 → LINE push 交付連結 | ✅ 需修改：交付訊息尾部加老師推薦文案 + SB 連結 |
+| `LINE_Webhook__Reply.json` | LINE webhook | LINE 文字訊息 → Creator API → 回覆 | 暫不修改 |
+| `LINE_Webhook__Router.json` | LINE webhook | [WIP - 勿啟用] 訊息類型路由模板 | 暫不修改 |
+| `Weekly_Fortune__NoonBaZi__Generate_And_Queue.json` | Cron (週一 11:55) | 週運勢 → Creator queue | ✅ 後續：CTA 分層邏輯 |
+| `Voice_To_Copy__Queue_Template.json` | Voice webhook | 語音 → 文字 → Creator queue | 不相關 |
+| `Winds_News__Remake__Queue_Template.json` | News webhook | 新聞 → Creator queue | 不相關 |
+
+### 10.3 新增 n8n 工作流（Phase 2/3）
 
 | 工作流 | 觸發 | 用途 |
 |--------|------|------|
@@ -889,6 +917,184 @@ pending → (LLM 加工) → draft → (人工審核) → pending_sync → (n8n 
 | Service_Catalog 資料維護成本 | 資料過期 | 初期手動，後續建 n8n 排程自動同步 + Sync_Status 狀態機 |
 | SEO 回寫覆蓋 SB/ES 人工修改 | 資料衝突 | `Last_Synced_From` vs `Last_Synced_To` 時間戳比對 + conflict 狀態 |
 | SB API 5,000 次/天 rate limit | 同步頻率受限 | 目前規模足夠，排程每日一次即可 |
+
+---
+
+## 十二、部署函數清單（按代理分工）
+
+> 本章列出所有需部署的函數/工作流/前端改動，按負責代理分類。每個項目包含：動作類型、輸入輸出、依賴、內容摘要。部署順序已考慮依賴關係。
+
+### 12.1 Creator 代理 — Zoho Creator Forms + Deluge 函數
+
+#### A. Form（表）建立（優先部署，其他函數依賴這些表）
+
+| # | 表名 | 動作 | 欄位數 | 依賴 | 內容摘要 |
+|---|------|------|--------|------|----------|
+| C-01 | `Service_Catalog` | 新增 | 24 | 無 | 統一目錄表。整合 SB 預約項目 + ES 商品 + 符令。含 `LLM_Description`（供推薦引擎）、SEO 欄位（供清洗回寫）、`Sync_Status` 狀態機。完整欄位定義見 §2.1 |
+| C-02 | `Recommendation_Logs` | 新增 | 13 | `Divination_Logs` (lookup) | 記錄每次 LLM 推薦事件。追蹤推薦→點擊→轉換全鏈路。`LLM_Response_Raw` 保存原始回應供迭代。完整欄位見 §9.3 |
+| C-03 | `Booking_Logs` | 新增 | 16 | `Clients_Report` (lookup), `Divination_Logs` (lookup) | SimplyBook 預約紀錄。狀態流：待確認→已確認→已完成/已取消/未到。`SimplyBook_Raw` 保存原始 webhook JSON。完整欄位見 §9.2 |
+| C-04 | `Teachers` | 新增 | 7 | 無 | 老師主檔。`SimplyBook_Provider_ID` 對應 SB provider。`Specialty_Question_Types` multi-select 對應 7 種問題類型，供進階推薦匹配。完整欄位見 §9.4 |
+| C-05 | `Product_Orders` | 新增 | 11 | `Clients_Report` (lookup), `Recommendation_Logs` (lookup) | EasyStore 訂單追蹤。由 ES webhook 回寫。`EasyStore_Raw` 保存原始 JSON。完整欄位見 §9.5 |
+
+#### B. Deluge 函數 — 新增
+
+| # | 函數名稱 | 動作 | 輸入 | 輸出 | 依賴表 | 呼叫外部服務 | 內容摘要 |
+|---|----------|------|------|------|--------|-------------|----------|
+| C-06 | `LLM.recommendNextAction.deluge` | **新增** | `original_question` (text), `question_type` (text), `free_summary` (text), `client_history` (Map), `filtered_catalog` (List) | JSON Map: `{recommendations: [{catalog_id, reason, urgency}]}` | `Service_Catalog` (讀取) | Anthropic Claude API (Haiku) | 核心推薦引擎。用 `Target_Question_Types` 預篩 catalog → 組裝 prompt → Haiku 模型語義比對 → 回傳 1-2 個推薦。Fallback：JSON 解析失敗/超時/空結果均回傳 null（由呼叫端退回 offer_unlock）。Prompt 設計見 §3.2。LLM 選項：model=haiku, max_tokens=300, temperature=0.3 |
+| C-07 | `API.handleSimplyBookWebhook.deluge` | **新增** | HTTP POST body (SB webhook JSON) | `{success: true, booking_id: "..."}` | `Booking_Logs` (寫入), `Clients_Report` (讀/寫), `Divination_Logs` (讀取) | LINE Push API | Custom API endpoint。接收 n8n 轉發的 SB webhook payload → 解析預約資料 → 查找/建立 Clients_Report（以 email 或 line_user_id 匹配）→ 寫入 Booking_Logs → 若有 line_user_id 則 LINE push 預約確認 → 呼叫 CRM.syncContact |
+| C-08 | `API.handleEasyStoreWebhook.deluge` | **新增** | HTTP POST body (ES webhook JSON) | `{success: true, order_id: "..."}` | `Product_Orders` (寫入), `Clients_Report` (讀取) | 無 | Custom API endpoint。接收 n8n 轉發的 ES webhook payload → 解析訂單資料 → 以 email 匹配 Clients_Report → 寫入 Product_Orders → 更新 Recommendation_Logs 轉換狀態（若有關聯） |
+| C-09 | `API.trackRecommendationClick.deluge` | **新增** | `recommendation_log_id` (text), `clicked_catalog_id` (text) | `{success: true}` | `Recommendation_Logs` (更新) | 無 | 記錄使用者點擊推薦連結。由 LIFF 中間頁或 redirect tracker 呼叫。更新 `Clicked_At` 和 `Clicked_Catalog_ID` 欄位 |
+| C-10 | `API.syncCatalogFromSB.deluge` | **新增** | `service_list` (List of Maps，n8n 從 SB getEventList 拉取後推送) | `{success: true, synced: N, created: N, updated: N}` | `Service_Catalog` (讀/寫) | 無 | 接收 n8n 推送的 SB 服務清單 → 逐筆比對 External_ID → 新增或更新 Service_Catalog 記錄 → 設定 Source=SimplyBook, Sync_Status=pending → 更新 Last_Synced_From |
+| C-11 | `API.syncCatalogFromES.deluge` | **新增** | `product_list` (List of Maps，n8n 從 ES GET /products 拉取後推送) | `{success: true, synced: N, created: N, updated: N}` | `Service_Catalog` (讀/寫) | 無 | 同 C-10 但 Source=EasyStore。欄位對應：title→Name, body_html→Raw_Description, variants[0].price→Price, images[0].src→Image_URL |
+| C-12 | `API.pushCatalogToSB.deluge` | **新增** | `catalog_id` (text) | `{success: true, sb_response: "..."}` | `Service_Catalog` (讀取/更新) | SimplyBook Admin API (`editEvent` JSON-RPC) | 讀取 Service_Catalog 記錄的 Cleaned_Description + SEO 欄位 → 組裝 editEvent JSON-RPC 呼叫 → 回寫 SB → 更新 Sync_Status=synced, Last_Synced_To=now。需 Admin API token（`getUserToken`）|
+| C-13 | `API.pushCatalogToES.deluge` | **新增** | `catalog_id` (text) | `{success: true, es_response: "..."}` | `Service_Catalog` (讀取/更新) | EasyStore REST API (`PUT /products`) | 讀取 Service_Catalog 記錄 → 組裝 PUT body（title, body_html, meta_title, meta_description）→ 呼叫 ES API → 更新 Sync_Status=synced, Last_Synced_To=now。需 OAuth access token |
+
+#### C. Deluge 函數 — 修改現有
+
+| # | 函數名稱 | 動作 | 修改內容 | 依賴 |
+|---|----------|------|----------|------|
+| C-14 | `API.liffDivinationMvp.deluge` | **修改** | 將 `next_action` 從固定 `offer_unlock` 改為動態推薦。新增邏輯：(1) 從 Service_Catalog 篩選候選（`Target_Question_Types` 匹配）(2) 呼叫 `LLM.recommendNextAction` (3) 組裝 `smart_recommend` 類型的 next_action，含 primary/secondary/fallback (4) 寫入 Recommendation_Logs。詳見 §3.3 | C-01 (`Service_Catalog`), C-02 (`Recommendation_Logs`), C-06 (`LLM.recommendNextAction`) |
+| C-15 | `Webhook.handleSimplyBook.deluge` | **修改** | (1) 對照 SB webhook 真實欄位名稱（目前皆為假設值）(2) 新增 `Line_User_ID` 取得邏輯（從 `custom_field[line_user_id]`）(3) 新增寫入 Booking_Logs (4) 新增 LINE push 預約確認通知。需先用 n8n 接收 raw payload 確認真實結構 | C-03 (`Booking_Logs`) |
+
+#### D. Creator App Variables — 新增
+
+| # | Variable | 用途 |
+|---|----------|------|
+| C-16 | `SimplyBook.Company_Login` | SB 公司代碼（用於 API 認證） |
+| C-17 | `SimplyBook.API_Key` | SB API Key（讀取用 token） |
+| C-18 | `SimplyBook.Admin_Username` | SB 管理帳號（寫入用 token） |
+| C-19 | `SimplyBook.Admin_Password` | SB 管理密碼 |
+| C-20 | `SimplyBook.Webhook_Secret` | SB Webhook 驗證密鑰（如有） |
+| C-21 | `EasyStore.Shop_URL` | ES 商店 URL |
+| C-22 | `EasyStore.Access_Token` | ES OAuth Access Token |
+| C-23 | `LLM.Recommendation_Model` | 推薦引擎專用模型（預設 `claude-haiku-4-20250514`，可獨立調整） |
+
+---
+
+### 12.2 n8n 代理 — 工作流
+
+#### A. 現有工作流修改
+
+| # | 工作流 | 動作 | 修改內容 | 依賴 |
+|---|--------|------|----------|------|
+| N-01 | `ECPay_Paid_Notify__LINE_Push.json` | **修改** | 在符令交付 LINE push 訊息尾部加入老師推薦文案區塊：「如需更深入的專業諮詢，可預約老師：{SB 預約連結}」。條件：固定附加（Phase 2A Quick Win），後續可改為查詢 Creator 判斷是否顯示 | 無（僅文案修改） |
+
+#### B. 新增工作流 — SimplyBook 相關
+
+| # | 工作流 | 動作 | 觸發方式 | 節點清單 | 呼叫 Creator API | 依賴 |
+|---|--------|------|----------|----------|-----------------|------|
+| N-02 | `SimplyBook_Webhook__Booking_Sync.json` | **新增** | SimplyBook Webhook（n8n 原生 SB trigger 或 generic webhook） | ① SB Trigger/Webhook 接收 → ② 解析 payload（提取 booking_id, client_*, service_*, provider_*）→ ③ HTTP Request 呼叫 Creator API → ④ 錯誤處理（retry + 記 log） | `API.handleSimplyBookWebhook` (C-07) | C-07 已部署, SB webhook URL 已設定 |
+| N-03 | `SB_Pull_Services.json` | **新增** | Schedule Trigger（每日 06:00）或 Manual Trigger | ① 取得 SB API token（JSON-RPC `getToken`）→ ② 呼叫 `getEventList`（JSON-RPC）→ ③ 解析回傳清單 → ④ 逐筆對應欄位（id→External_ID, name→Name, description→Raw_Description, price→Price, picture_path→Image_URL, is_active→Active）→ ⑤ HTTP Request 呼叫 Creator API → ⑥ 記錄同步結果 | `API.syncCatalogFromSB` (C-10) | C-10 已部署, SB API Key 已設定 (C-16, C-17) |
+| N-04 | `SB_Push_Description.json` | **新增** | Manual Trigger（人工審核後手動執行）或 Creator Webhook（Sync_Status 改為 pending_sync 觸發） | ① 呼叫 Creator API 取得待回寫記錄（Sync_Status=pending_sync, Source=SimplyBook）→ ② 取得 SB Admin API token（`getUserToken`）→ ③ 逐筆呼叫 `editEvent`（JSON-RPC，傳入 Cleaned_Description）→ ④ 呼叫 Creator API 更新 Sync_Status=synced | `API.pushCatalogToSB` (C-12) 或直接在 n8n 中處理 SB API 呼叫 | C-12 已部署（或 n8n 直接呼叫 SB API）, SB Admin 憑證 (C-18, C-19) |
+
+#### C. 新增工作流 — EasyStore 相關
+
+| # | 工作流 | 動作 | 觸發方式 | 節點清單 | 呼叫 Creator API | 依賴 |
+|---|--------|------|----------|----------|-----------------|------|
+| N-05 | `EasyStore_Webhook__Order_Sync.json` | **新增** | Generic Webhook（ES webhook POST） | ① Webhook 接收 → ② 驗證 webhook（如 ES 有 HMAC 驗證）→ ③ 判斷事件類型（orders/create, orders/paid, orders/fulfilled）→ ④ 呼叫 Creator API → ⑤ 若有 LINE User ID（從 Recommendation_Logs 反查）→ 呼叫 LINE Push API 通知 | `API.handleEasyStoreWebhook` (C-08) | C-08 已部署, ES webhook URL 已設定 |
+| N-06 | `ES_Pull_Products.json` | **新增** | Schedule Trigger（每日 06:30）或 Manual Trigger | ① HTTP Request: `GET https://{shop}/api/3.0/products.json`（header: EasyStore-Access-Token）→ ② 解析 products 陣列 → ③ 逐筆對應欄位 → ④ 呼叫 Creator API | `API.syncCatalogFromES` (C-11) | C-11 已部署, ES Access Token (C-22) |
+| N-07 | `ES_Push_Description.json` | **新增** | Manual Trigger 或 Creator Webhook | ① 取得待回寫記錄（Source=EasyStore, Sync_Status=pending_sync）→ ② 逐筆 HTTP Request: `PUT https://{shop}/api/3.0/products/{id}.json`（body: title, body_html, meta_title, meta_description）→ ③ 更新 Creator Sync_Status | `API.pushCatalogToES` (C-13) 或直接處理 | C-13 已部署, ES Access Token (C-22) |
+
+#### D. 新增工作流 — SEO 清洗
+
+| # | 工作流 | 動作 | 觸發方式 | 節點清單 | 呼叫 Creator API | 依賴 |
+|---|--------|------|----------|----------|-----------------|------|
+| N-08 | `Catalog_SEO_Generate.json` | **新增** | Manual Trigger（批次）或 Creator Webhook（Sync_Status=pending 觸發） | ① 取得 Service_Catalog 中 Sync_Status=pending 的記錄 → ② 逐筆組裝 SEO prompt（見 §7.3）→ ③ HTTP Request 呼叫 Anthropic Claude API (Haiku, max_tokens=800, temp=0.5) → ④ 解析 JSON 回應 → ⑤ 呼叫 Creator API 更新 SEO 欄位 + LLM_Description + Sync_Status=draft | 直接更新 `Service_Catalog`（透過 Creator API） | Anthropic API Key, Service_Catalog 有 pending 記錄 |
+
+#### E. 新增工作流 — 再行銷排程
+
+| # | 工作流 | 動作 | 觸發方式 | 節點清單 | 呼叫 Creator API | 依賴 |
+|---|--------|------|----------|----------|-----------------|------|
+| N-09 | `Booking_Reminder__LINE_Push.json` | **新增** | Schedule Trigger（每小時） | ① 呼叫 Creator API 查詢未來 24h 內的 Booking_Logs（Status=已確認）→ ② 篩選尚未發送提醒的記錄 → ③ 逐筆呼叫 LINE Push API 發送提醒 → ④ 回寫 Creator 標記已提醒 | 查詢 `Booking_Logs` | C-03 已部署 |
+| N-10 | `Re-engagement__Nudge.json` | **新增** | Schedule Trigger（每日 10:00） | ① 呼叫 Creator API 查詢：首次占卜 7 天前 + 未購買符令的使用者 → ② 從 Service_Catalog 取得推薦項目 → ③ 呼叫 LLM 或使用預設推薦 → ④ LINE Push 符令 + 推薦 CTA → ⑤ 限制：同一 user 每週最多 1 次 | 查詢 `Divination_Logs`, `Talisman_Purchases`, `Recommendation_Logs` | C-01, C-02 已部署 |
+| N-11 | `Post_Consultation__Product_Push.json` | **新增** | Schedule Trigger（每日 10:30）或 Creator Webhook（Booking_Logs Status 變更為「已完成」） | ① 查詢 3 天前完成的諮詢（Booking_Logs.Status=已完成, 3天前）→ ② 根據諮詢的問題類型從 Service_Catalog 篩選 EasyStore 商品 → ③ 組裝 LINE Flex Message 商品卡片（Carousel）→ ④ LINE Push API 發送 → ⑤ 寫入 Recommendation_Logs | 查詢 `Booking_Logs`, `Service_Catalog`; 寫入 `Recommendation_Logs` | C-01, C-02, C-03 已部署 |
+
+---
+
+### 12.3 LIFF 代理 — 前端
+
+| # | 檔案 | 動作 | 功能 | 依賴 Creator API | UI 元件 |
+|---|------|------|------|-----------------|---------|
+| L-01 | `liff/index.html` | **修改** | **(1) CTA 動態渲染**：目前「解鎖完整版」按鈕是 disabled placeholder。需改為根據 `API.liffDivinationMvp` 回傳的 `next_action.kind` 動態渲染：`offer_unlock` → 單一符令按鈕；`smart_recommend` → 推薦卡片 + 符令 fallback。**(2) 推薦卡片 UI**：顯示推薦項目的 name、reason、price、image，CTA 按鈕連結至 SB/ES。**(3) 點擊追蹤**：點擊推薦 CTA 時先呼叫 `API.trackRecommendationClick`（C-09）再跳轉。**(4) 多選項佈局**：primary 推薦（大卡片） + secondary（小卡片） + 符令 fallback（文字連結） | `API.liffDivinationMvp` (C-14 修改後的回傳), `API.trackRecommendationClick` (C-09) | 推薦卡片元件（圖片+名稱+理由+價格+CTA）、fallback 文字連結、loading 狀態 |
+| L-02 | `liff/redirect.html` | **新增** | **EasyStore 導流中間頁**。流程：LIFF 開啟 → 取得 LINE userId → 呼叫 `API.trackRecommendationClick` 記錄點擊 → redirect 至 EasyStore 商品頁。URL 格式：`/redirect.html?catalog_id={id}&rec_log_id={id}`。需處理：LIFF 未初始化時的 fallback（直接 redirect 不追蹤） | `API.trackRecommendationClick` (C-09) | 載入動畫（「正在為您開啟商品頁面...」）、LIFF SDK 初始化 |
+
+---
+
+### 12.4 部署順序總覽（跨代理依賴圖）
+
+```
+Phase 2A — LLM 推薦引擎（最高優先）
+═══════════════════════════════════════
+Step 1 (Creator):  C-01 Service_Catalog 表
+                   C-02 Recommendation_Logs 表
+                   C-23 App Variable: LLM.Recommendation_Model
+
+Step 2 (Creator):  C-06 LLM.recommendNextAction.deluge
+                   C-09 API.trackRecommendationClick.deluge
+                   ↑ 依賴 Step 1
+
+Step 3 (Creator):  C-14 修改 API.liffDivinationMvp.deluge
+                   ↑ 依賴 Step 2
+
+Step 4 (LIFF):     L-01 修改 liff/index.html
+                   ↑ 依賴 Step 3（需 API 回傳新格式）
+
+Step 5 (n8n):      N-01 修改 ECPay_Paid_Notify__LINE_Push.json
+                   ↑ 無硬依賴，可與 Step 1-4 平行
+
+Phase 2B — SimplyBook 預約閉環
+═══════════════════════════════════════
+Step 6 (Creator):  C-03 Booking_Logs 表
+                   C-04 Teachers 表
+                   C-16~C-20 App Variables (SB 憑證)
+
+Step 7 (Creator):  C-07 API.handleSimplyBookWebhook.deluge
+                   C-15 修改 Webhook.handleSimplyBook.deluge
+                   ↑ 依賴 Step 6
+
+Step 8 (n8n):      N-02 SimplyBook_Webhook__Booking_Sync.json
+                   ↑ 依賴 Step 7
+
+Step 9 (n8n):      N-03 SB_Pull_Services.json
+                   ↑ 依賴 C-10 (需先部署 syncCatalogFromSB)
+
+Step 9.5 (Creator): C-10 API.syncCatalogFromSB.deluge
+                    C-12 API.pushCatalogToSB.deluge
+                    ↑ 依賴 Step 6
+
+Step 10 (n8n):     N-09 Booking_Reminder__LINE_Push.json
+                   ↑ 依賴 Step 6
+
+Phase 2C — SEO 清洗
+═══════════════════════════════════════
+Step 11 (n8n):     N-08 Catalog_SEO_Generate.json
+                   N-04 SB_Push_Description.json
+                   ↑ 依賴 Step 9
+
+Phase 3 — EasyStore 商品閉環
+═══════════════════════════════════════
+Step 12 (Creator): C-05 Product_Orders 表
+                   C-21~C-22 App Variables (ES 憑證)
+
+Step 13 (Creator): C-08 API.handleEasyStoreWebhook.deluge
+                   C-11 API.syncCatalogFromES.deluge
+                   C-13 API.pushCatalogToES.deluge
+                   ↑ 依賴 Step 12
+
+Step 14 (n8n):     N-05 EasyStore_Webhook__Order_Sync.json
+                   N-06 ES_Pull_Products.json
+                   N-07 ES_Push_Description.json
+                   ↑ 依賴 Step 13
+
+Step 15 (LIFF):    L-02 新增 liff/redirect.html
+                   ↑ 依賴 C-09 (Step 2)
+
+再行銷排程（Phase 2/3 穩定後）
+═══════════════════════════════════════
+Step 16 (n8n):     N-10 Re-engagement__Nudge.json
+                   N-11 Post_Consultation__Product_Push.json
+                   ↑ 依賴 Step 8, Step 14 穩定運行
+```
 
 ---
 
