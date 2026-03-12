@@ -26,7 +26,7 @@ const PREDICT_PUBLIC_KEY = '8FfAVOwV4QyJUBvOUkYEYt16C';
 
 // 付費占卜（public key 待 Jeffery 在 Creator 建立 Custom API 後填入）
 const PAID_API_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/generatePaidInterpretation';
-const PAID_PUBLIC_KEY = 'kZeQ8GFXnWhRtAzfBUyKjdKa3';
+const PAID_PUBLIC_KEY = 'rCvOuJWpDHE9wq1v3mRhAZBhw';
 
 // 背景呼叫 predictFromLine（fire-and-forget）
 function callPredictFromLine(payload) {
