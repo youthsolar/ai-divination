@@ -65,87 +65,121 @@ LINE 使用者 → n8n (LINE_Webhook__Reply)
 | **觀音靈籤** | 100 | 中（8欄） | 含仙機（分項判斷）、典故 | 以問題類型+吉凶匹配 |
 | **關帝靈籤** | 100 | 高（10欄） | 六種不同角度解讀（籤解/釋意/東坡解/碧仙注） | 以問題類型+吉凶匹配 |
 
-### 2.2 Creator 新增表單（4 張）
+### 2.2 Creator 新增表單（3 張，文王暫不建表）
 
 #### `KongMing_Oracle`（孔明大易神術）
 
-| 欄位名 | 類型 | 說明 |
-|--------|------|------|
-| `ID` | Auto Number | PK |
-| `Sign_Order` | Single Line | 籤序（第 1 籤 ~ 第 384 籤） |
-| `Sign_Order_Num` | Number | 數字序號（排序/查詢用） |
-| `Fortune_Level` | Single Line | 卦象吉凶（上上籤、中上籤等） |
-| `Palace` | Single Line | 本位宮（乾宮、坤宮等） |
-| `Current_Hexagram` | Single Line | 現爻 |
-| `Change_Trigger` | Single Line | 機變 |
-| `Changed_Hexagram` | Single Line | 變爻 |
-| `Fortune_Category` | Single Line | 吉凶分類（持持、持平、持） |
-| `Five_Elements` | Single Line | 五行屬性 |
-| `Symbol_1` ~ `Symbol_5` | Single Line × 5 | 符令（金木水火土對應） |
-| `Poem_Text` | Multi Line | 籤文（四句詩） |
-| `Interpretation` | Multi Line | 籤解（白話解說） |
+| 欄位名 | 類型 | 必填 | Unique | Index | Validation | 說明 |
+|--------|------|------|--------|-------|------------|------|
+| `ID` | Auto Number | — | ✅ | PK | — | 系統主鍵 |
+| `Sign_Order` | Single Line | ✅ | ✅ | — | — | 籤序（第 1 籤 ~ 第 384 籤） |
+| `Sign_Order_Num` | Number | ✅ | ✅ | ✅ 查詢用 | 1 ≤ N ≤ 384 | 數字序號 |
+| `Fortune_Level` | Single Line | ✅ | — | — | — | 卦象吉凶（上上籤、中上籤等） |
+| `Palace` | Picklist | ✅ | — | — | 允許值：乾/坤/震/巽/坎/離/艮/兌 | 本位宮 |
+| `Current_Hexagram` | Single Line | ✅ | — | ✅ 交叉比對 | — | 現爻（匹配 I_Ching_Form.appearance） |
+| `Change_Trigger` | Single Line | — | — | — | — | 機變 |
+| `Changed_Hexagram` | Single Line | — | — | — | — | 變爻 |
+| `Fortune_Category` | Single Line | — | — | — | — | 吉凶分類（持持、持平、持） |
+| `Five_Elements` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 五行屬性 |
+| `Symbol_1` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 符令 1 |
+| `Symbol_2` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 符令 2 |
+| `Symbol_3` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 符令 3 |
+| `Symbol_4` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 符令 4 |
+| `Symbol_5` | Picklist | ✅ | — | — | 允許值：金/木/水/火/土 | 符令 5 |
+| `Poem_Text` | Multi Line | ✅ | — | — | 長度 ≤ 500 | 籤文（四句詩） |
+| `Interpretation` | Multi Line | ✅ | — | — | 長度 ≤ 2000 | 籤解（白話解說） |
 
 > **匹配鍵**：`Current_Hexagram`（現爻）可與 `I_Ching_Form.appearance` 交叉比對。
-
-#### `WenWang_Oracle`（文王神卦）
-
-| 欄位名 | 類型 | 說明 |
-|--------|------|------|
-| `ID` | Auto Number | PK |
-| `Gua_Order` | Single Line | 卦序（第 111 卦 ~ 第 888 卦） |
-| `Gua_Order_Num` | Number | 數字序號 |
-| `Poem_Text` | Multi Line | 卦文（四句詩） |
-
-> **匹配鍵**：三位數卦序由生日/時間計算得出（新增函數）。
+> **Index 策略**：`Sign_Order_Num`（主查詢）+ `Current_Hexagram`（交叉查詢）。
 
 #### `GuanYin_Oracle`（觀音靈籤）
 
-| 欄位名 | 類型 | 說明 |
-|--------|------|------|
-| `ID` | Auto Number | PK |
-| `Sign_Order` | Single Line | 籤序（第 1 籤 ~ 第 100 籤） |
-| `Sign_Order_Num` | Number | 數字序號 |
-| `Fortune_Level` | Single Line | 簽號吉凶（上籤子宮等） |
-| `Poem_Title` | Single Line | 籤詩標題（典故人物名） |
-| `Poem_Text` | Multi Line | 籤文（四句詩） |
-| `Holy_Meaning` | Multi Line | 聖意 |
-| `Sign_Interpretation` | Multi Line | 籤解 |
-| `Divine_Guidance` | Multi Line | 仙機（分項判斷） |
-| `Allusion` | Multi Line | 典故 |
+| 欄位名 | 類型 | 必填 | Unique | Index | Validation | 說明 |
+|--------|------|------|--------|-------|------------|------|
+| `ID` | Auto Number | — | ✅ | PK | — | 系統主鍵 |
+| `Sign_Order` | Single Line | ✅ | ✅ | — | — | 籤序（第 1 籤 ~ 第 100 籤） |
+| `Sign_Order_Num` | Number | ✅ | ✅ | ✅ 查詢用 | 1 ≤ N ≤ 100 | 數字序號 |
+| `Fortune_Level` | Single Line | ✅ | — | — | — | 簽號吉凶（上籤子宮等） |
+| `Poem_Title` | Single Line | ✅ | — | — | — | 籤詩標題（典故人物名） |
+| `Poem_Text` | Multi Line | ✅ | — | — | 長度 ≤ 500 | 籤文（四句詩） |
+| `Holy_Meaning` | Multi Line | — | — | — | 長度 ≤ 500 | 聖意 |
+| `Sign_Interpretation` | Multi Line | ✅ | — | — | 長度 ≤ 500 | 籤解 |
+| `Divine_Guidance` | Multi Line | — | — | — | 長度 ≤ 1000 | 仙機（分項判斷） |
+| `Allusion` | Multi Line | — | — | — | 長度 ≤ 1000 | 典故 |
 
 #### `GuanDi_Oracle`（關帝靈籤）
 
-| 欄位名 | 類型 | 說明 |
-|--------|------|------|
-| `ID` | Auto Number | PK |
-| `Sign_Order` | Single Line | 籤序（第 1 籤 ~ 第 100 籤） |
-| `Sign_Order_Num` | Number | 數字序號 |
-| `Fortune_Level` | Single Line | 簽號吉凶（甲甲 大吉等） |
-| `Poem_Title` | Single Line | 籤詩標題 |
-| `Poem_Text` | Multi Line | 籤文（四句詩） |
-| `Holy_Meaning` | Multi Line | 聖意 |
-| `Sign_Interpretation` | Multi Line | 籤解 |
-| `Meaning_Explanation` | Multi Line | 釋意 |
-| `Detailed_Explanation` | Multi Line | 解釋 |
-| `DongPo_Commentary` | Multi Line | 東坡解 |
-| `BiXian_Commentary` | Multi Line | 碧仙注 |
+| 欄位名 | 類型 | 必填 | Unique | Index | Validation | 說明 |
+|--------|------|------|--------|-------|------------|------|
+| `ID` | Auto Number | — | ✅ | PK | — | 系統主鍵 |
+| `Sign_Order` | Single Line | ✅ | ✅ | — | — | 籤序（第 1 籤 ~ 第 100 籤） |
+| `Sign_Order_Num` | Number | ✅ | ✅ | ✅ 查詢用 | 1 ≤ N ≤ 100 | 數字序號 |
+| `Fortune_Level` | Single Line | ✅ | — | — | — | 簽號吉凶（甲甲 大吉等） |
+| `Poem_Title` | Single Line | ✅ | — | — | — | 籤詩標題 |
+| `Poem_Text` | Multi Line | ✅ | — | — | 長度 ≤ 500 | 籤文（四句詩） |
+| `Holy_Meaning` | Multi Line | — | — | — | 長度 ≤ 500 | 聖意 |
+| `Sign_Interpretation` | Multi Line | ✅ | — | — | 長度 ≤ 1000 | 籤解 |
+| `Meaning_Explanation` | Multi Line | — | — | — | 長度 ≤ 1000 | 釋意 |
+| `Detailed_Explanation` | Multi Line | — | — | — | 長度 ≤ 2000 | 解釋 |
+| `DongPo_Commentary` | Multi Line | — | — | — | 長度 ≤ 1000 | 東坡解 |
+| `BiXian_Commentary` | Multi Line | — | — | — | 長度 ≤ 500 | 碧仙注 |
 
 ### 2.3 Divination_Logs 擴充欄位
 
-| 新增欄位 | 類型 | 說明 |
-|----------|------|------|
-| `Oracle_System` | Picklist | 使用的籤詩系統（KongMing / WenWang / GuanYin / GuanDi / None） |
-| `Oracle_Sign_Order` | Single Line | 對應籤序 |
-| `Oracle_Poem_Text` | Multi Line | 引用的籤文（快照，防資料變更後失聯） |
-| `Oracle_Interpretation_Snippet` | Multi Line | 引用的解籤片段 |
+| 新增欄位 | 類型 | 必填 | 說明 |
+|----------|------|------|------|
+| `Oracle_System` | Picklist | — | 使用的籤詩系統（KongMing / GuanYin / GuanDi / None），預設 None |
+| `Oracle_Sign_Order` | Number | — | 對應籤號數字（方便查詢） |
+| `Oracle_Poem_Text` | Multi Line | — | 引用的籤文快照（防資料變更後失聯） |
+| `Oracle_Interpretation_Snippet` | Multi Line | — | 引用的解籤片段快照 |
+| `Oracle_Fortune_Level` | Single Line | — | 籤詩吉凶等級快照 |
 
-### 2.4 資料匯入策略
+> **快照策略**：寫入時從籤詩表複製文字到 Divination_Logs，確保歷史紀錄不受籤詩表後續修正影響。
 
-以 Excel → CSV → Creator Bulk Import 為主路徑：
+### 2.4 資料匯入策略 — 詳細 SOP
 
-1. **一次性轉檔**：Python 腳本讀取 7 個 xlsx，輸出 4 個 CSV（合併「列表」與「主檔」去重）
-2. **Creator Bulk Import**：每張表 CSV 匯入，設定 `Sign_Order` 為 unique 防重複
-3. **驗證腳本**：匯入後比對筆數（孔明 384、文王 512、觀音 100、關帝 100）
+#### 步驟 A：Excel → CSV 轉檔
+
+```
+來源：data/divination-database/*.xlsx
+輸出：data/divination-database/csv/
+腳本：scripts/xlsx_to_csv.py
+```
+
+| 轉檔規則 | 說明 |
+|----------|------|
+| 以主檔為準 | 孔明大易神術.xlsx（384）、觀音靈籤.xlsx（100）、關帝靈籤.xlsx（100） |
+| 列表檔用途 | 僅用於交叉驗證筆數，不匯入 |
+| 文王暫不轉 | D1 決策：先不啟用 |
+| 欄位清洗 | 去除 Fortune_Level 的【】符號；Sign_Order 提取數字寫入 Sign_Order_Num |
+| 編碼 | UTF-8 with BOM（Creator 匯入需要 BOM） |
+| 空值處理 | 空欄位輸出為空字串，不輸出 NULL |
+
+#### 步驟 B：Creator 建表
+
+1. 進入 Creator UI → 新增 Form
+2. 依 §2.2 欄位規格逐一建立
+3. 設定 `Sign_Order_Num` 為 Unique（匯入重複時報錯而非覆蓋）
+4. 設定 `Sign_Order` 為 Unique
+5. 建立 Index：`Sign_Order_Num`（三張表均建）+ `Current_Hexagram`（僅孔明）
+
+#### 步驟 C：匯入
+
+1. Creator → Import Data → 選擇對應表單
+2. 上傳 CSV → 欄位映射（確認所有欄位對齊）
+3. 預覽前 5 筆 → 確認無亂碼
+4. 執行匯入
+
+#### 步驟 D：匯入後驗證
+
+| 驗證項目 | 預期結果 | 驗證方法 |
+|----------|---------|---------|
+| 筆數 | 孔明 384、觀音 100、關帝 100 | Creator List View count |
+| 首尾籤 | 孔明第1/384籤、觀音第1/100籤、關帝第1/100籤 | 手動查看 |
+| 欄位完整性 | 所有必填欄位無空值 | Creator Report → 過濾 Poem_Text = empty |
+| 中文無亂碼 | 隨機抽查 5 筆，籤文/籤解內容正確 | 手動比對 Excel 原檔 |
+| 孔明交叉比對 | Current_Hexagram 值存在於 I_Ching_Form.appearance | Deluge 驗證腳本 |
+| Unique 約束 | 重複匯入同 CSV 應報錯 | 二次匯入測試 |
 
 ---
 
@@ -189,60 +223,215 @@ sign_num = ((birthdayDigitSum + divinationTimeDigitSum) % 100) + 1;
 > 設計原則：**確定性**（同人同時同問 → 同籤），避免純隨機導致使用者質疑。
 > 同一組輸入必定產出同一籤號，確保可追蹤與可重現。
 
-#### 步驟 3：LLM Prompt 注入格式
+#### 步驟 3：LLM Prompt 注入 — 完整模板
+
+籤詩 context 插入在現有 prompt 的 `【符令圖示】` 之後、最終指令之前。
+
+##### 模板 A：孔明大易神術
 
 ```
-## 籤詩輔助參考
-以下籤詩僅作為你解讀時的文化參考與靈感素材，不需要逐字翻譯或照搬：
+【籤詩輔助參考 — 孔明大易神術】
+以下古籤詩與你的易經卦象同源（皆出自易經體系），僅作為解讀的文化補充與靈感素材。
+不需逐字翻譯，但應自然融入你的解讀中，讓使用者感受到古人智慧的印證。
 
-【{系統名稱}・{籤序}・{吉凶等級}】
-籤文：{四句詩}
-籤解：{解籤摘要（截取前 200 字）}
-{若有仙機/釋意，附加相關段落}
-{若為孔明系統，附加：符令五行 = {Symbol_1}~{Symbol_5}}
+籤序：{Sign_Order}（{Fortune_Level}）
+本位：{Palace}宮 ｜ 現爻：{Current_Hexagram} ｜ 變爻：{Changed_Hexagram}
+五行：{Five_Elements} ｜ 吉凶：{Fortune_Category}
+符令五行序列：{Symbol_1} → {Symbol_2} → {Symbol_3} → {Symbol_4} → {Symbol_5}
 
-請在你的解讀中，自然地融入此籤詩的意境與建議，但以你的易經/塔羅解讀為主體。
-```
+籤文：
+{Poem_Text}
 
-#### 步驟 4：LINE 回覆明示籤文（D2 已確認）
+籤解（摘要）：
+{Interpretation 前 200 字}
 
-在 LINE 回覆的結尾，固定附加籤詩區塊：
-
-```
+整合要求：
+1. 在你的解讀中引用此籤文的意境，但以易經卦象為主體
+2. 若此籤的吉凶與卦象一致，可用「古籤亦云…」語氣強化
+3. 若此籤的吉凶與卦象矛盾，應解讀為「不同角度的提醒」，例如：
+   「卦象雖示吉兆，但古籤提醒我們仍需留意…」
+4. 在回覆最後，請附上以下格式的籤文明示區塊（一字不改）：
 ━━━━━━━━━━━━━━━━━━
-🏮 {系統名稱}・{籤序}・{吉凶等級}
-「{籤文第一句}
-　{籤文第二句}
-　{籤文第三句}
-　{籤文第四句}」
+🏮 孔明大易神術・{Sign_Order}・{Fortune_Level}
+「{Poem_Text}」
 ━━━━━━━━━━━━━━━━━━
 ```
+
+##### 模板 B：觀音靈籤
+
+```
+【籤詩輔助參考 — 觀音靈籤】
+以下觀音靈籤僅作為解讀的文化補充。觀音靈籤側重人生際遇與處世態度，
+可為你的易經/塔羅解讀提供更具人情味的視角。
+
+籤序：{Sign_Order}（{Fortune_Level}）
+籤詩標題：{Poem_Title}
+
+籤文：
+{Poem_Text}
+
+聖意：{Holy_Meaning}
+籤解：{Sign_Interpretation}
+
+仙機（分項參考）：
+{Divine_Guidance}
+
+典故：
+{Allusion 前 150 字}
+
+整合要求：
+1. 以易經/塔羅為主體，觀音靈籤為「古人智慧的另一面鏡子」
+2. 仙機中的分項判斷（婚姻、疾病、求財等）可對應使用者問題類型，擇相關項目引用
+3. 典故可簡化為一句話帶過，增加故事感（例：「正如古時{Poem_Title}的故事…」）
+4. 若吉凶矛盾：「觀音菩薩從慈悲角度另有提醒…」
+5. 回覆最後附上籤文明示區塊：
+━━━━━━━━━━━━━━━━━━
+🏮 觀音靈籤・{Sign_Order}・{Fortune_Level}
+「{Poem_Text}」
+━━━━━━━━━━━━━━━━━━
+```
+
+##### 模板 C：關帝靈籤
+
+```
+【籤詩輔助參考 — 關帝靈籤】
+以下關帝靈籤側重忠義正道與決斷力，適合需要勇氣面對的問題。
+關帝靈籤有多家註解，你可以擇取最貼合使用者情境的角度。
+
+籤序：{Sign_Order}（{Fortune_Level}）
+籤詩標題：{Poem_Title}
+
+籤文：
+{Poem_Text}
+
+聖意：{Holy_Meaning}
+
+解讀角度（擇一或融合）：
+- 籤解：{Sign_Interpretation}
+- 白話釋意：{Meaning_Explanation 前 150 字}
+- 東坡解：{DongPo_Commentary}
+- 碧仙注：{BiXian_Commentary}
+
+整合要求：
+1. 以易經/塔羅為主體，關帝靈籤為「正氣角度的補充」
+2. 多家註解中，選最貼合問題的 1–2 個角度引用即可，不需全部列出
+3. 若吉凶矛盾：「關聖帝君從忠義正道的角度提醒…」
+4. 回覆最後附上籤文明示區塊：
+━━━━━━━━━━━━━━━━━━
+🏮 關帝靈籤・{Sign_Order}・{Fortune_Level}
+「{Poem_Text}」
+━━━━━━━━━━━━━━━━━━
+```
+
+#### 步驟 4：Few-Shot 範例（供 Prompt 調優參考）
+
+以下為「卦象吉 + 籤詩吉」和「卦象吉 + 籤詩凶」兩種情境的 AI 回覆風格參考：
+
+##### 範例 A：吉凶一致（卦象吉 + 觀音上籤）
+
+> 從卦象來看，你目前的感情運勢如同春日暖陽，漸入佳境。上卦離火代表熱情與光明，下卦巽風代表柔順溝通——這正是感情中最需要的兩個元素。
+>
+> 古人的智慧也為你留下了印證。觀音靈籤中有云：「千年古鏡復重圓，女再求夫男再婚」，正如玉蓮與十朋歷經波折終得團圓的故事，你們之間的緣分也正在慢慢修復。
+>
+> 建議你在接下來的兩週內，主動釋出善意，但不必急於求成……
+>
+> ━━━━━━━━━━━━━━━━━━
+> 🏮 觀音靈籤・第 4 籤・【上籤子宮】
+> 「千年古鏡復重圓，女再求夫男再婚；自此門庭重改換，更添福祿在兒孫。」
+> ━━━━━━━━━━━━━━━━━━
+
+##### 範例 B：吉凶矛盾（卦象吉 + 關帝下下籤）
+
+> 卦象整體呈現向好的趨勢，你在事業上的努力正在累積能量。然而，關聖帝君從忠義正道的角度另有提醒：「去年百事可相宜，若較今年時運衰」——這並非否定你的方向，而是提醒你在順境中不可掉以輕心。
+>
+> 東坡解中點出關鍵：「先吉後兇、時運將否、謀事無成、頓非前比」，意思是好運不會永遠持續，你需要在順境中為可能的逆風做好準備。
+>
+> 具體建議：維持目前的事業方向，但務必在財務上預留安全邊際……
+>
+> ━━━━━━━━━━━━━━━━━━
+> 🏮 關帝靈籤・第 4 籤・甲丁（下下）
+> 「去年百事可相宜，若較今年時運衰；好把瓣香告神佛，莫教福謝悔無追。」
+> ━━━━━━━━━━━━━━━━━━
 
 #### 步驟 5：孔明符令 → 商品推薦（D4 已確認）
 
 當籤詩系統為孔明大易神術時，額外觸發符令推薦邏輯：
 
 1. 讀取 `Symbol_1~5`（五行符令：金木水火土）
-2. 呼叫 `Talisman.getRecommendationByElements(symbols)` 匹配商品
+2. 呼叫 `Talisman.getRecommendationByElements(symbols)` 匹配商品（詳見 §3.4）
 3. 在 LINE 回覆的 CTA 區段附加：「本籤建議符令：{符令名稱} → 點此請購」
 
 ### 3.2 LLM 提示詞策略
 
-| 策略 | 說明 |
-|------|------|
-| **輔助非主導** | 明確告知 LLM：籤詩是參考素材，主體仍是易經/塔羅解讀 |
-| **截斷控制** | 籤解超過 200 字只取前 200 字，避免 prompt 膨脹 |
-| **吉凶校準** | 若籤詩吉凶與卦象矛盾，指示 LLM 解釋為「不同角度的提醒」 |
-| **文化包裝** | 引導 LLM 以「古人智慧」語氣引用，增加儀式感 |
-| **明示引用** | LINE 回覆末尾固定附加籤詩原文區塊（步驟 4） |
+| 策略 | 說明 | 對應 Prompt 區段 |
+|------|------|-----------------|
+| **輔助非主導** | 明確告知 LLM：籤詩是參考素材，主體仍是易經/塔羅解讀 | 模板開頭「僅作為…文化補充」 |
+| **截斷控制** | 籤解超過 200 字只取前 200 字；典故超過 150 字截斷 | `Oracle.buildPromptContext` |
+| **吉凶校準** | 卦籤矛盾時，明確指示 LLM 的處理語氣（見各模板第 3/4 點） | 整合要求 3 |
+| **文化包裝** | 引導 LLM 以「古人智慧」「古籤亦云」語氣引用，增加儀式感 | 整合要求 1–2 |
+| **明示引用** | LINE 回覆末尾固定附加籤詩原文區塊（步驟 4） | 整合要求最後一條 |
+| **角度選擇** | 關帝靈籤有多家註解，LLM 擇最貼合的 1–2 個 | 模板 C 解讀角度 |
+| **仙機精選** | 觀音靈籤仙機分項，只引用與問題類型相關的項目 | 模板 B 整合要求 2 |
 
 ### 3.3 字數控制
 
-Phase 1 已有 LINE 4300 字截斷邏輯。籤詩注入後預估 prompt 增加 300–500 字，output 增加 200–400 字，仍在安全範圍。若超出：
+Phase 1 已有 LINE 4300 字截斷邏輯。各模板注入後的 prompt 增量估算：
 
-1. 優先截斷籤解（只保留籤文四句）
-2. 次之移除仙機/釋意
-3. 最後移除籤詩區塊（降級為 Phase 1 行為）
+| 系統 | Prompt 增量 | Output 增量（含明示區塊） | 合計增量 |
+|------|-----------|------------------------|---------|
+| 孔明 | ~400 字 | ~300 字 | ~700 字 |
+| 觀音 | ~500 字 | ~350 字 | ~850 字 |
+| 關帝 | ~600 字 | ~350 字 | ~950 字 |
+
+現有 Phase 1 output 約 2500–3500 字，加上籤詩增量最多 ~950 字，接近但仍在 4300 安全線內。
+
+**降級策略（依序執行）**：
+
+1. 優先截斷籤解（只保留籤文四句） → 省約 200 字
+2. 移除仙機/釋意/典故 → 再省約 300 字
+3. 移除整個籤詩區塊 → 降級為 Phase 1 行為（oracleContext = null）
+
+### 3.4 符令五行 → Talisman 商品映射（D4 細化）
+
+#### 映射架構
+
+```
+孔明籤詩 Symbol_1~5（金/木/水/火/土）
+  ↓ 映射
+I_Ching_Form.symbol_1~5（現有易經卦象的符令五行）
+  ↓ 已有邏輯
+Talisman.getBasicRecommendation → Talisman.getCompleteRecommendation
+  ↓
+符令推薦 + AI 個人化說明 + 價格 360 元
+```
+
+#### 映射規則
+
+| 場景 | 規則 | 說明 |
+|------|------|------|
+| **孔明 Symbol 與易經 Symbol 一致** | 直接引用現有 Talisman 推薦流程 | 最常見情況，孔明籤詩本身就出自易經體系 |
+| **孔明 Symbol 與易經 Symbol 不一致** | 以易經 Symbol 為準（已有付費流程） | 籤詩符令僅作為輔助參考，不覆蓋現有商品邏輯 |
+| **使用者已購買過符令** | 推薦序列中的下一張（Current_Talisman_Index + 1） | 沿用現有 `Talisman.getTalismanRecommendation` 邏輯 |
+| **符令已推薦完畢（>5 張）** | 不再推薦 | 沿用現有上限邏輯 |
+
+#### CTA 文案模板
+
+```
+🔮 古籤與卦象共同指引——
+本次孔明大易神術與你的卦象五行相合，建議以「{talisman_element}」屬性符令
+平衡能量。
+
+📿 {talisman_element}符令・NT$360
+{ai_explanation（由 Talisman.generateTalismanExplanation 產出）}
+
+👉 點此請購：{purchase_url}
+```
+
+#### 技術銜接點
+
+- **現有函數**：`Talisman.getBasicRecommendation` 已實作 symbol_1~5 的動態讀取邏輯（if/else if 分支）
+- **新增邏輯**：在 `Oracle.buildPromptContext` 中，若系統為 KongMing，額外輸出 `talisman_cta` 欄位
+- **API.predictFromLine**：在最終合併結果時，若 `oracleResult.talisman_cta` 存在，附加到 LINE reply 末尾（在籤文明示區塊之後）
 
 ---
 
