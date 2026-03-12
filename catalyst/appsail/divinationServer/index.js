@@ -1,11 +1,13 @@
 // =============================================================================
 // Catalyst AppSail: divinationServer
-// 用途：接收 Zoho Flow 的占卜請求，立即回 200，背景呼叫 Creator predictFromLine
+// 用途：占卜異步橋接服務（免費 + 付費占卜）
 //
 // 架構：
-//   Flow → POST /divination（立即 200）
-//   AppSail 背景呼叫 Creator predictFromLine（最多等 2 分鐘）
-//   Creator 完成 LLM + LINE Push → 用戶收到結果
+//   [免費] Flow → POST /divination（立即 200）
+//     → AppSail 背景呼叫 Creator predictFromLine → LLM → LINE Push
+//
+//   [付費] ecPayReturn → POST /paid-divination（立即 200）
+//     → AppSail 背景呼叫 Creator generatePaidInterpretation → LLM → LINE Push
 //
 // 為何用 AppSail：
 //   Express.js 持續運行，res.send() 後背景任務繼續跑
@@ -18,8 +20,13 @@ const https = require('https');
 const app = express();
 app.use(express.json());
 
+// 免費占卜
 const PREDICT_API_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/predictFromLine';
 const PREDICT_PUBLIC_KEY = '8FfAVOwV4QyJUBvOUkYEYt16C';
+
+// 付費占卜（public key 待 Jeffery 在 Creator 建立 Custom API 後填入）
+const PAID_API_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/generatePaidInterpretation';
+const PAID_PUBLIC_KEY = 'REPLACE_WITH_ACTUAL_KEY';
 
 // 背景呼叫 predictFromLine（fire-and-forget）
 function callPredictFromLine(payload) {
@@ -77,6 +84,64 @@ app.post('/divination', (req, res) => {
   callPredictFromLine({ lineUserId, text, timestamp: timestamp || Date.now().toString() })
     .then((result) => {
       console.log(`[/divination] predictFromLine done: ${JSON.stringify(result).slice(0, 100)}`);
+    });
+});
+
+// POST /paid-divination — 付費占卜（ECPay 回調後觸發）
+function callGeneratePaidInterpretation(payload) {
+  const body = JSON.stringify({ payload });
+  const url = new URL(`${PAID_API_URL}?publickey=${PAID_PUBLIC_KEY}`);
+
+  const options = {
+    hostname: url.hostname,
+    path: url.pathname + url.search,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
+    },
+    timeout: 120000, // 2 分鐘
+  };
+
+  return new Promise((resolve) => {
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        console.log(`[generatePaidInterpretation] status=${res.statusCode} body=${data.slice(0, 200)}`);
+        resolve({ status: res.statusCode, body: data });
+      });
+    });
+    req.on('error', (err) => {
+      console.error(`[generatePaidInterpretation] error: ${err.message}`);
+      resolve({ error: err.message });
+    });
+    req.on('timeout', () => {
+      console.error('[generatePaidInterpretation] timeout after 2 minutes');
+      req.destroy();
+      resolve({ error: 'timeout' });
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+app.post('/paid-divination', (req, res) => {
+  const { divination_log_id, line_user_id, delivery_token } = req.body || {};
+
+  if (!divination_log_id || !line_user_id) {
+    return res.status(400).json({ ok: false, message: 'missing divination_log_id or line_user_id' });
+  }
+
+  console.log(`[/paid-divination] div_id=${divination_log_id} lineUserId=${line_user_id}`);
+
+  // 立即回 200，ecPayReturn 記為成功
+  res.status(200).json({ ok: true, status: 'queued' });
+
+  // 背景執行（不 await，不阻擋回應）
+  callGeneratePaidInterpretation({ divination_log_id, line_user_id, delivery_token })
+    .then((result) => {
+      console.log(`[/paid-divination] done: ${JSON.stringify(result).slice(0, 100)}`);
     });
 });
 
