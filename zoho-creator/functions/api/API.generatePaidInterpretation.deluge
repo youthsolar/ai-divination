@@ -60,7 +60,7 @@ map API.generatePaidInterpretation(map payload)
 				full_opts = Map();
 				full_opts.put("max_tokens",2000);
 				full_opts.put("temperature",0.7);
-				// 使用 App Variable LLM_Model（claude-sonnet-4-20250514）
+				full_opts.put("model","claude-sonnet-4-20250514");
 				full_text = thisapp.LLM.callChat(full_system, full_user, full_opts);
 				// 寫入記錄
 				d.AI_Interpretation_Full = full_text;
