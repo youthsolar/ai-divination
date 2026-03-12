@@ -3,8 +3,18 @@
 Owner: Zoe (規劃) / Pinni (產品) / Jeffery (決策)
 Last updated: 2026-03-12
 
-> **目標**：在 LIFF 前端新增「獨立求籤」專區，讓使用者不經過完整占卜流程即可求籤，
-> 作為輕量級入口吸引回訪，同時為符令商品提供新的轉換路徑。
+> **目標**：在 LIFF 前端新增「獨立求籤」專區，讓已綁定生日的使用者不需輸入問題即可求籤，
+> 作為輕量級互動入口吸引回訪，同時為符令商品提供新的轉換路徑。
+> 求籤共用現有冷卻機制，並記錄到 Divination_Logs。
+
+### 已確認決策
+
+| # | 決策 | 結論 | 確認者 | 確認日期 |
+|---|------|------|--------|---------|
+| L-D1 | 頁面架構 | **新頁面 `oracle.html`**，獨立 URL 可直連 | Jeffery | 2026-03-12 |
+| L-D2 | 冷卻/重置規則 | **共用現有冷卻機制**（參考易經卦規則） | Jeffery | 2026-03-12 |
+| L-D3 | 生日門檻 | **需要已綁定生日**，可用於籤號計算與符令推薦 | Jeffery | 2026-03-12 |
+| L-D4 | 結果推送 | **使用者可選「分享到 LINE」**，不自動推送 | Jeffery | 2026-03-12 |
 
 ### 前置依賴
 
@@ -19,28 +29,37 @@ Last updated: 2026-03-12
 
 | 維度 | 說明 |
 |------|------|
-| **目標使用者** | 已加 LINE 好友但尚未使用完整占卜的輕度使用者；或已占卜過想「再來一支籤」的回訪使用者 |
-| **核心價值** | 零門檻（不需生日、不需長文問題）、即時結果、文化儀式感 |
-| **商業目的** | ① 降低首次互動門檻 → 引流至完整占卜 ② 孔明籤 → 符令商品轉換 ③ 增加 LINE OA 活躍度 |
-| **與完整占卜的差異** | 不做命理計算、不走冷卻機制、不消耗 LLM token（直接回傳籤詩原文+固定解籤） |
+| **目標使用者** | 已綁定生日的 LINE 好友；想「再來一支籤」的回訪使用者 |
+| **核心價值** | 不需輸入問題（只需選系統+按搖籤）、即時結果、文化儀式感 |
+| **商業目的** | ① 輕量互動增加回訪 → 引流至完整占卜 ② 孔明籤 → 符令商品轉換 ③ 增加 LINE OA 活躍度 |
+| **與完整占卜的差異** | 不需輸入問題、不消耗 LLM token（直接回傳固定解籤），但**共用冷卻機制**且**需已綁定生日** |
 
 ### 1.2 使用者旅程
 
 ```
 LINE OA 選單 / 訊息指令（例如「求籤」「觀音靈籤」）
   ↓
-LIFF 籤詩專區頁面（新頁面 or 現有 LIFF 新 Tab）
+LIFF 籤詩專區頁面（oracle.html）
+  ↓
+[檢查] 已綁定生日？
+  ├── 否 → 顯示提示，引導至 LIFF Binding 頁面綁定生日
+  └── 是 ↓
   ↓
 選擇籤詩系統（觀音 / 關帝 / 孔明）
+  ↓
+[檢查] 冷卻機制（共用現有規則）
+  ├── 觸發冷卻 → 顯示安撫訊息 + 剩餘等待時間
+  └── 通過 ↓
   ↓
 [互動] 點擊「搖籤」按鈕（MVP：按鈕觸發；未來：搖晃動畫）
   ↓
 顯示結果（籤文 + 固定解籤 + 吉凶等級）
   ↓
 CTA 分流：
-  ├── 「想更深入了解？」 → 引導至完整占卜（需填生日+問題）
+  ├── 「想更深入了解？」 → 引導至完整占卜（需填問題）
   ├── 「請購符令」 → 孔明籤專屬 CTA（連結至付款）
-  └── 「再來一支」 → 重新求籤（同系統或換系統）
+  ├── 「分享到 LINE」 → liff.sendMessages()（L-D4）
+  └── 「再來一支」 → 換系統求籤（同系統受冷卻限制）
 ```
 
 ### 1.3 入口設計
@@ -82,8 +101,8 @@ liff/
 ```
 ┌──────────────────────────────┐
 │       🏮 求籤問卦 🏮          │
-│    不需要生日，不需要問題      │
-│       心誠則靈，點即求         │
+│    不需要問題，只需一念誠心    │
+│       選擇神明，搖籤即得       │
 │                              │
 │  ┌────────────────────────┐  │
 │  │  🔮 觀音靈籤            │  │
@@ -196,7 +215,7 @@ liff/
 
 | 參數 | 必填 | 說明 |
 |------|------|------|
-| `lineUserId` | ✅ | LINE 使用者 ID（追蹤用，不需已綁定生日） |
+| `lineUserId` | ✅ | LINE 使用者 ID（必須已綁定生日，L-D3） |
 | `system` | ✅ | 籤詩系統：`KongMing` / `GuanYin` / `GuanDi` |
 
 #### 回應格式
@@ -226,13 +245,23 @@ liff/
 
 > 孔明籤額外回傳 `oracle.symbols` 陣列和 `cta.talisman_url`。
 
-### 3.2 籤號計算邏輯（獨立版）
+### 3.2 籤號計算邏輯
 
-獨立求籤**不使用易經爻碼**（使用者未提供生日），改用以下確定性算法：
+使用者已綁定生日（L-D3），因此可用生日參與籤號計算，與 MVP-2 輔助模式共用相似邏輯：
 
 ```
-seed = hash(lineUserId + system + today_date_string)
-// today_date_string = "2026-03-12"（每天換一次）
+// 從 Clients_Report 取得使用者生日
+birthday = client.Date_Of_Birth  // e.g. 1990-05-15
+
+// 子時換日（L-D2）：23:00 起算隔天
+today_date = adjustForZiHour(zoho.currenttime)  // 參考現有 Calendar.normalizeToTaipei
+
+// 確定性計算
+birthdayDigitSum = sumOfDigits(birthday)  // 1+9+9+0+0+5+1+5 = 30
+dateDigitSum = sumOfDigits(today_date)    // 2+0+2+6+0+3+1+2 = 16
+systemSeed = hash(system)                 // 不同系統不同種子
+
+seed = birthdayDigitSum + dateDigitSum + systemSeed
 
 if system == "KongMing":
     sign_num = (seed % 384) + 1
@@ -242,38 +271,58 @@ else:  // GuanYin or GuanDi
 
 | 設計決策 | 說明 |
 |----------|------|
-| **每日一籤** | 同一人同一天同一系統得到同一支籤（避免無限重抽找好籤） |
-| **跨系統不同** | 同一人同一天換系統會得到不同籤（鼓勵嘗試多系統） |
-| **隔天換籤** | 隔天再來會得到不同籤（鼓勵回訪） |
+| **每日換籤** | 同一人每天得到不同籤（因 dateDigitSum 每日不同），鼓勵回訪 |
+| **跨系統不同** | systemSeed 確保同一人同一天不同系統得到不同籤 |
+| **生日參與** | 不同人同一天同系統也會得到不同籤（因 birthdayDigitSum 不同） |
+| **子時換日** | 23:00 起算隔天，與現有占卜系統一致（L-D2） |
 
-> 注意：此邏輯與 MVP-2 輔助模式（§3.1 步驟 2）的算法不同，因為輔助模式有爻碼和生日可用。
+### 3.3 共用冷卻機制（L-D2 決策）
 
-### 3.3 不走冷卻機制
+求籤**共用現有冷卻機制** `AIInterpreter.checkCooldownStatus`：
 
-獨立求籤**不消耗 LLM token**，也**不走冷卻機制**：
-- 結果直接從籤詩表讀取固定文字，不經過 AI 解讀
-- 不寫入 `Divination_Logs`（不佔占卜配額）
-- 寫入獨立的 `Oracle_Draw_Logs`（見 §3.4）
+| 現有規則 | 在求籤場景的適用方式 |
+|----------|-------------------|
+| **規則 1：相同問題 3 天** | 求籤視為固定問題「求籤:{system}」，同系統 3 天內只能求一次 |
+| **規則 2：同類型 6 小時** | 求籤統一歸類為「其他」類型，6 小時內跨系統也只能求一次 |
+| **規則 3：不同類型 24 小時最多 2 種** | 求籤佔用 1 個「其他」配額，與完整占卜共享 24 小時額度 |
 
-### 3.4 新增表單：`Oracle_Draw_Logs`
+#### 實作方式
 
-| 欄位名 | 類型 | 說明 |
-|--------|------|------|
-| `ID` | Auto Number | PK |
-| `Line_User_ID` | Single Line | 使用者 ID |
-| `System` | Picklist | KongMing / GuanYin / GuanDi |
-| `Sign_Order_Num` | Number | 籤號 |
-| `Draw_Date` | Date | 抽籤日期（用於每日一籤邏輯） |
-| `Created_At` | Date-Time | 建立時間 |
+```
+Oracle.drawIndependent 流程：
+1. 查詢 Clients_Report（by lineUserId）→ 確認已綁定生日
+2. 呼叫 AIInterpreter.checkCooldownStatus(clientId, "求籤:" + system, now)
+   → 若 allowed == false → 回傳冷卻訊息（含 time_remaining）
+   → 若 allowed == true → 繼續
+3. 計算籤號 → 查詢籤詩表 → 組裝結果
+4. 寫入 Divination_Logs（Divination_Method = "籤詩"，Oracle_System = system）
+5. 回傳結果
+```
 
-> 用於分析：哪個系統最受歡迎、使用者回訪頻率、是否轉換至完整占卜。
+> **關鍵變更**：求籤結果寫入 `Divination_Logs`（而非獨立的 Oracle_Draw_Logs），
+> 確保冷卻機制可正確追蹤，且所有占卜/求籤行為集中在同一張表，利於分析。
 
-### 3.5 新增 Creator 函數
+#### Divination_Logs 求籤記錄欄位
+
+| 欄位 | 值 |
+|------|-----|
+| `Client_Link` | clientId |
+| `Original_Question` | `"求籤:{system}"` |
+| `Divination_Method` | `"籤詩"` （新增 picklist 選項） |
+| `Oracle_System` | `KongMing` / `GuanYin` / `GuanDi` |
+| `Oracle_Sign_Order` | 籤號 |
+| `Oracle_Poem_Text` | 籤文快照 |
+| `Oracle_Fortune_Level` | 吉凶等級快照 |
+| `AI_Interpretation` | 空（求籤不消耗 LLM） |
+| `Question_Type_AI` | `"其他"` |
+| `Status` | `"已提問"` |
+
+### 3.4 新增 Creator 函數
 
 | 函數 | 簽名 | 用途 |
 |------|------|------|
-| `Oracle.drawIndependent` | `map Oracle.drawIndependent(string lineUserId, string system)` | 獨立求籤主函數 |
-| `Oracle.calculateDailySign` | `int Oracle.calculateDailySign(string lineUserId, string system, string dateStr)` | 每日籤號計算 |
+| `Oracle.drawIndependent` | `map Oracle.drawIndependent(string lineUserId, string system)` | 獨立求籤主函數（含冷卻檢查） |
+| `Oracle.calculateSignByBirthday` | `int Oracle.calculateSignByBirthday(date birthday, string system, date divinationTime)` | 生日+日期+系統 → 籤號 |
 | `Oracle.formatOracleResponse` | `map Oracle.formatOracleResponse(string system, map oracleRecord)` | 格式化回應 |
 
 ---
@@ -314,23 +363,23 @@ else:  // GuanYin or GuanDi
 
 - [x] 籤詩 Excel 已上傳 repo
 - [ ] Creator 籤詩表已建立並匯入資料（DIVINATION_AUXILIARY_MODE_PLAN §S0–S2）
-- [ ] MVP-2 輔助模式已上線（非必須，但共用資料表）
+- [ ] Divination_Logs 已擴充 Oracle 欄位（DIVINATION_AUXILIARY_MODE_PLAN §S7）
+- [ ] `Divination_Method` picklist 已新增 `"籤詩"` 選項
 
 ### 5.2 實作階段
 
 | 階段 | 任務 | 負責 | 估計工作量 | 前置依賴 |
 |------|------|------|-----------|---------|
-| **L0** | Creator: `Oracle_Draw_Logs` 建表 | Creator UI | 0.5 天 | 無 |
-| **L1** | Creator: `Oracle.calculateDailySign` + `Oracle.drawIndependent` | Creator Deluge | 1 天 | 籤詩表已匯入 |
+| **L1** | Creator: `Oracle.calculateSignByBirthday` + `Oracle.drawIndependent`（含冷卻整合） | Creator Deluge | 1.5 天 | 籤詩表+Divination_Logs 已就緒 |
 | **L2** | Creator: `LIFF_Oracle_Draw_API` Custom API + Handler | Creator UI | 0.5 天 | L1 |
-| **L3** | LIFF: `oracle.html` 前端（選擇系統 + 搖籤動畫 + 結果展示） | 前端 | 2 天 | L2 |
-| **L4** | LIFF: CTA 分流（完整占卜引導 + 孔明符令 CTA） | 前端 | 0.5 天 | L3 |
+| **L3** | LIFF: `oracle.html` 前端（生日檢查 + 選擇系統 + 搖籤動畫 + 結果展示 + 冷卻提示） | 前端 | 2.5 天 | L2 |
+| **L4** | LIFF: CTA 分流（完整占卜引導 + 孔明符令 CTA + 分享到 LINE） | 前端 | 0.5 天 | L3 |
 | **L5** | n8n: LINE 關鍵字路由（求籤/觀音/關帝/孔明） | n8n | 0.5 天 | L3 |
 | **L6** | LINE: Rich Menu 新增「求籤」按鈕 | LINE OA 設定 | 0.5 天 | L3 |
 | **L7** | GitHub Pages 部署 `oracle.html` | 部署 | 0.5 天 | L3 |
-| **L8** | 端到端測試 | 手動 | 1 天 | L5 + L6 + L7 |
+| **L8** | 端到端測試（含冷卻規則驗證） | 手動 | 1 天 | L5 + L6 + L7 |
 
-**總估計：7 工作天**
+**總估計：7.5 工作天**
 
 ### 5.3 部署清單
 
@@ -338,11 +387,16 @@ else:  // GuanYin or GuanDi
 
 | # | 項目 | 類型 |
 |---|------|------|
-| 1 | `Oracle_Draw_Logs` 表單 | Form |
-| 2 | `Oracle.calculateDailySign.deluge` | Standalone Function |
-| 3 | `Oracle.drawIndependent.deluge` | Standalone Function |
-| 4 | `Oracle.formatOracleResponse.deluge` | Standalone Function |
-| 5 | `LIFF_Oracle_Draw_API` + Handler | Custom API |
+| 1 | `Oracle.calculateSignByBirthday.deluge` | Standalone Function |
+| 2 | `Oracle.drawIndependent.deluge` | Standalone Function |
+| 3 | `Oracle.formatOracleResponse.deluge` | Standalone Function |
+| 4 | `LIFF_Oracle_Draw_API` + Handler | Custom API |
+
+#### Creator — 修改
+
+| # | 項目 | 修改 |
+|---|------|------|
+| 5 | `Divination_Logs` → `Divination_Method` picklist | 新增 `"籤詩"` 選項 |
 
 #### LIFF — 新增
 
@@ -368,22 +422,12 @@ else:  // GuanYin or GuanDi
 
 | 風險 | 影響 | 緩解措施 |
 |------|------|---------|
-| **每日一籤限制導致使用者流失** | 中 | 鼓勵跨系統嘗試（3 系統 = 每天 3 次機會）；CTA 引導至完整占卜 |
+| **冷卻機制限制求籤頻率，使用者覺得太嚴格** | 中 | 冷卻觸發時顯示安撫訊息+等待時間；CTA 引導至完整占卜（問不同問題可繞過） |
+| **需綁定生日提高進入門檻** | 中 | 未綁定時顯示友善提示+一鍵跳轉 LIFF Binding 頁面；綁定後自動返回求籤 |
 | **LIFF 新頁面 CORS 問題** | 低 | 與現有 `index.html` 同 domain（GitHub Pages），CORS 設定已驗證 |
-| **hash 碰撞導致籤號分佈不均** | 低 | 使用 SHA-256 hash 前 8 碼轉數字，分佈足夠均勻 |
-| **使用者未登入 LINE 就開啟 LIFF** | 中 | LIFF SDK `liff.isLoggedIn()` 檢查 → 自動 `liff.login()` |
-| **獨立求籤不記錄到 Divination_Logs，無法追蹤轉換** | 中 | `Oracle_Draw_Logs` 記錄求籤行為；CTA 連結帶 UTM 參數追蹤轉換 |
-
----
-
-## 七、待確認決策
-
-| # | 決策 | 選項 | 建議 |
-|---|------|------|------|
-| L-D1 | LIFF 是新增頁面還是在現有頁面加 Tab？ | A. 新頁面 `oracle.html`（獨立 URL）<br>B. 現有 `index.html` 加 Tab 切換 | **A**：URL 可獨立分享、Rich Menu 可直連 |
-| L-D2 | 每日一籤的重置時間？ | A. 午夜 00:00 <br>B. 子時 23:00（與占卜系統一致） | **B**：與現有子時換日政策一致 |
-| L-D3 | 求籤是否需要已綁定生日？ | A. 不需要（零門檻）<br>B. 需要（可精準推薦符令） | **A**：降低門檻為首要目標 |
-| L-D4 | 求籤結果是否也推送 LINE 訊息？ | A. 不推送（只在 LIFF 內顯示）<br>B. 自動推送<br>C. 使用者可選「分享到 LINE」 | **C**：使用者主動分享，不打擾 |
+| **求籤與完整占卜共用冷卻配額，互相干擾** | 中 | 求籤歸「其他」類型，大部分完整占卜問題歸其他類型（愛情/工作等），互不佔用同類型配額 |
+| **使用者未登入 LINE 就開啟 LIFF** | 低 | LIFF SDK `liff.isLoggedIn()` 檢查 → 自動 `liff.login()` |
+| **子時換日（23:00）可能讓使用者困惑** | 低 | 前端不顯示技術細節，只在冷卻提示中顯示「預計 XX 時可再次求籤」 |
 
 ---
 
@@ -391,11 +435,11 @@ else:  // GuanYin or GuanDi
 
 | 維度 | MVP-2 籤詩輔助模式 | LIFF 獨立求籤 |
 |------|-------------------|-------------|
-| 入口 | LINE 訊息 → 完整占卜 → 自動附加 | LIFF 頁面 → 直接求籤 |
-| 輸入 | 生日 + 問題 + 爻碼 | LINE userId only |
-| 籤號算法 | 爻碼 mod / 生日+時間 mod | userId + system + date hash |
-| LLM 消耗 | 有（注入 prompt） | 無（直接回傳固定文字） |
-| 冷卻機制 | 受限 | 不受限（每日一籤自帶限制） |
-| 記錄 | Divination_Logs | Oracle_Draw_Logs |
+| 入口 | LINE 訊息 → 完整占卜 → 自動附加 | LIFF 頁面 → 選系統 → 搖籤 |
+| 輸入 | 生日 + 問題 + 爻碼 | 生日（已綁定）+ 系統選擇 |
+| 籤號算法 | 爻碼 mod / 生日+時間 mod | 生日+日期+系統 → digitSum mod |
+| LLM 消耗 | 有（注入 prompt） | **無**（直接回傳固定文字） |
+| 冷卻機制 | **共用** checkCooldownStatus | **共用**（求籤歸「其他」類型） |
+| 記錄 | Divination_Logs（Method=易經/塔羅） | Divination_Logs（Method=**籤詩**） |
 | 符令推薦 | 孔明籤觸發現有 Talisman 流程 | 孔明籤附加 CTA 連結 |
-| 共用 | 籤詩資料表（KongMing/GuanYin/GuanDi_Oracle） | 同左 |
+| 共用 | 籤詩資料表 + Divination_Logs + 冷卻機制 | 同左 |
