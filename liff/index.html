@@ -1440,14 +1440,16 @@
           })
           .then(function(r) { return r.json(); })
           .then(function(d) {
-            if (d.found && d.data) {
+            // Creator 回傳 {result:{found,data}} 兩層，相容處理
+            var pd = (d.result && d.result.found) ? d.result.data : (d.found ? d.data : null);
+            if (pd) {
               var ref = getInputs();
-              if (d.data.lastName  && ref.lastNameInput)  ref.lastNameInput.value  = d.data.lastName;
-              if (d.data.firstName && ref.firstNameInput) ref.firstNameInput.value = d.data.firstName;
-              if (d.data.phone     && ref.phoneInput)     ref.phoneInput.value     = d.data.phone;
-              if (d.data.email     && ref.emailInput)     ref.emailInput.value     = d.data.email;
-              if (d.data.birthDate && ref.birthDateInput) ref.birthDateInput.value = d.data.birthDate;
-              if (d.data.birthTime && ref.birthTimeInput) ref.birthTimeInput.value = d.data.birthTime;
+              if (pd.lastName  && ref.lastNameInput)  ref.lastNameInput.value  = pd.lastName;
+              if (pd.firstName && ref.firstNameInput) ref.firstNameInput.value = pd.firstName;
+              if (pd.phone     && ref.phoneInput)     ref.phoneInput.value     = pd.phone;
+              if (pd.email     && ref.emailInput)     ref.emailInput.value     = pd.email;
+              if (pd.birthDate && ref.birthDateInput) ref.birthDateInput.value = pd.birthDate;
+              if (pd.birthTime && ref.birthTimeInput) ref.birthTimeInput.value = pd.birthTime;
             }
           })
           .catch(function() { /* 預填失敗不影響主流程 */ });
