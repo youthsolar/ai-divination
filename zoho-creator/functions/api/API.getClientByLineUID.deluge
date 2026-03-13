@@ -39,7 +39,7 @@ map API.getClientByLineUID(string lineUserId)
 				raw_phone = if(c.Phone_Number != null, c.Phone_Number.toString(), "");
 				if(raw_phone.startsWith("+886"))
 				{
-					raw_phone = "0" + raw_phone.replaceAll("+886", "");
+					raw_phone = "0" + raw_phone.subString(4); // 切掉 +886（4碼）
 				}
 				clientData.put("phone", raw_phone);
 
