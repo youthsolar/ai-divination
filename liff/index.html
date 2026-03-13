@@ -1364,16 +1364,16 @@
       })
       .then(function(resp) { return resp.json(); })
       .then(function(data) {
-        if (data.success && data.data && data.data.paymentHtml) {
-          document.body.insertAdjacentHTML("beforeend", data.data.paymentHtml);
-          var ecpayForm = document.querySelector('form[action*="ecpay"]');
-          if (ecpayForm) {
-            ecpayForm.submit();
+        if (data.success && data.data && data.data.paymentToken) {
+          // LINE WebView 封鎖 form.submit，改用 liff.openWindow 在外部瀏覽器完成付款
+          var payUrl = "https://divinationserver-10121308063.development.catalystappsail.com/pay/" + data.data.paymentToken;
+          if (liff && liff.openWindow) {
+            liff.openWindow({ url: payUrl, external: true });
           } else {
-            showStatus("無法跳轉付款頁面，請稍後再試", "err");
-            btn.disabled = false;
-            btn.textContent = "🏮 解鎖完整版解讀及改運符令 NT$360";
+            window.open(payUrl, "_blank");
           }
+          btn.disabled = false;
+          btn.textContent = "🏮 解鎖完整版解讀及改運符令 NT$360";
         } else {
           showStatus(data.message || "建立訂單失敗", "err");
           btn.disabled = false;

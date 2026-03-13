@@ -22,6 +22,10 @@
 
 const express = require('express');
 const https = require('https');
+const crypto = require('crypto');
+
+// 暫存付款 HTML（LINE WebView 無法直接 form.submit，改用外部瀏覽器）
+const paymentStore = new Map(); // token → {html, expiresAt}
 
 const app = express();
 app.use(express.json());
@@ -185,11 +189,14 @@ app.post('/liff-order', async (req, res) => {
     // 攤平 Creator 兩層回傳：{result:{success,data:{payment_form,...}}} → {success,data:{paymentHtml,...}}
     const inner = (result.data && result.data.result) ? result.data.result : result.data;
     if (inner && inner.success && inner.data && inner.data.payment_form) {
+      // 暫存付款 HTML，給 /pay/:token 端點服務（讓 liff.openWindow 外部瀏覽器開啟）
+      const token = crypto.randomBytes(16).toString('hex');
+      paymentStore.set(token, { html: inner.data.payment_form, expiresAt: Date.now() + 30 * 60 * 1000 });
       res.json({
         success: true,
         message: inner.message || '訂單建立成功',
         data: {
-          paymentHtml:      inner.data.payment_form,
+          paymentToken:     token,
           merchantTradeNo:  inner.data.merchant_trade_no,
           paymentUrl:       inner.data.payment_url,
           amount:           inner.data.amount,
@@ -202,6 +209,17 @@ app.post('/liff-order', async (req, res) => {
   } else {
     res.status(500).json({ success: false, message: result.error || 'Creator error' });
   }
+});
+
+// GET /pay/:token → 伺服付款 HTML（供 liff.openWindow 外部瀏覽器直接 submit 到 ECPay）
+app.get('/pay/:token', (req, res) => {
+  const entry = paymentStore.get(req.params.token);
+  if (!entry || Date.now() > entry.expiresAt) {
+    return res.status(404).send('<h1>付款連結已過期或不存在</h1>');
+  }
+  paymentStore.delete(req.params.token); // 一次性使用
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(entry.html);
 });
 
 // =============================================================================
