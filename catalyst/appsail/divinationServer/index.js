@@ -182,7 +182,23 @@ app.post('/liff-order', async (req, res) => {
   // Creator Custom API 設定為 GET，用 query params 傳遞
   const result = await callCreatorGET(LIFF_ORDER_URL, LIFF_ORDER_KEY, body);
   if (result.ok) {
-    res.json(result.data);
+    // 攤平 Creator 兩層回傳：{result:{success,data:{payment_form,...}}} → {success,data:{paymentHtml,...}}
+    const inner = (result.data && result.data.result) ? result.data.result : result.data;
+    if (inner && inner.success && inner.data && inner.data.payment_form) {
+      res.json({
+        success: true,
+        message: inner.message || '訂單建立成功',
+        data: {
+          paymentHtml:      inner.data.payment_form,
+          merchantTradeNo:  inner.data.merchant_trade_no,
+          paymentUrl:       inner.data.payment_url,
+          amount:           inner.data.amount,
+          orderId:          inner.data.order_id
+        }
+      });
+    } else {
+      res.json({ success: false, message: (inner && inner.message) || '建立訂單失敗' });
+    }
   } else {
     res.status(500).json({ success: false, message: result.error || 'Creator error' });
   }
