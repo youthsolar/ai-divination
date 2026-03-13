@@ -99,7 +99,7 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			if(update_map.size() > 0)
 			{
 				update_map.put("Client_Type", "LIFF");
-				zoho.creator.updateRecord("uneedwind", "ai-divination", "Clients_Report", client_id.toLong(), update_map);
+				zoho.creator.updateRecord("uneedwind", "ai-divination", "Clients_Report", client_id.toLong(), update_map, Map(), "");
 			}
 		}
 		else
