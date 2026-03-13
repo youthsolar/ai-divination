@@ -1,0 +1,78 @@
+map API.getClientByLineUID(string lineUserId)
+{
+	// =============================================================================
+	// 函數名稱：API.getClientByLineUID
+	// 函數用途：根據 LINE User ID 查詢 Clients_Report，回傳回訪用戶資料供 LIFF 預填
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：
+	//   - 輸入 lineUserId，查詢 Clients_Report[Line_User_ID == lineUserId]
+	//   - 有找到 → 回傳 { found: true, data: { lastName, firstName, phone, email, birthDate, birthTime } }
+	//   - 找不到 → 回傳 { found: false }
+	//   - Date_Of_Birth 是 DateTime 欄位，拆成 birthDate（yyyy-MM-dd）和 birthTime（HH:mm）
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID
+	// 回傳格式：map - { found, data? }
+	// 相依性：Clients_Report
+	// =============================================================================
+	api_result = Map();
+	try
+	{
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			api_result.put("found", false);
+			return api_result;
+		}
+
+		client_records = Clients_Report[Line_User_ID == lineUserId];
+		if(client_records.count() > 0)
+		{
+			for each c in client_records
+			{
+				clientData = Map();
+				// 姓名
+				vname = c.Visitor_Name;
+				clientData.put("lastName", if(vname != null && vname.get("last_name") != null, vname.get("last_name").toString(), ""));
+				clientData.put("firstName", if(vname != null && vname.get("first_name") != null, vname.get("first_name").toString(), ""));
+
+				// 手機（E.164 → 本地格式：+886912345678 → 0912345678）
+				raw_phone = if(c.Phone != null, c.Phone.toString(), "");
+				if(raw_phone.startsWith("+886"))
+				{
+					raw_phone = "0" + raw_phone.removeFirstOccurrence("+886");
+				}
+				clientData.put("phone", raw_phone);
+
+				// Email
+				clientData.put("email", if(c.Email != null, c.Email.toString(), ""));
+
+				// 生日（DateTime → 拆分 birthDate / birthTime）
+				dob = c.Date_Of_Birth;
+				if(dob != null)
+				{
+					clientData.put("birthDate", dob.toString("yyyy-MM-dd"));
+					clientData.put("birthTime", dob.toString("HH:mm"));
+				}
+				else
+				{
+					clientData.put("birthDate", "");
+					clientData.put("birthTime", "");
+				}
+
+				api_result.put("found", true);
+				api_result.put("data", clientData);
+				break;
+			}
+		}
+		else
+		{
+			api_result.put("found", false);
+		}
+	}
+	catch (e)
+	{
+		info "API.getClientByLineUID error: " + e.toString();
+		api_result.put("found", false);
+	}
+	return api_result;
+}

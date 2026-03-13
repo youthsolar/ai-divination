@@ -1,13 +1,14 @@
-map API.liffDivinationMvp(string lineUserId, string birthday, string question)
+map API.liffDivinationMvp(string lineUserId, string birthday, string question, string lastName, string firstName, string phone, string email, string topicKey, string subKey, string thirdKey, string topicTitle, string subTitle, string thirdTitle)
 {
 	// =============================================================================
 	// 函數名稱：API.liffDivinationMvp
-	// 函數用途：LINE LIFF 占卜入口 API（MVP 版）
+	// 函數用途：LINE LIFF 占卜入口 API（V2）
 	// 平台：Zoho Creator
 	// 命名空間：API
-	// 功能描述：LINE LIFF 最小可行產品入口，處理「生日+問題」的占卜流程：
+	// 功能描述：LINE LIFF 占卜入口，處理「生日+問題+個人資料」的占卜流程：
 	//           - 參數驗證（lineUserId, birthday, question）
-	//           - 依 LINE User ID 查找或建立虛擬個案
+	//           - 依 LINE User ID 查找或建立個案（去重：有則更新，無則新建）
+	//           - 寫入 Zoho CRM Leads（以 Email 去重）
 	//           - 冷卻時間檢查（防止重複占卜）
 	//           - 占卜方式自動選擇（感情→塔羅、其他→易經）
 	//           - 生成免費摘要（約 300 字）
@@ -17,10 +18,15 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question)
 	//   - lineUserId (string): LINE 使用者 ID
 	//   - birthday (string): 生日，格式 YYYY-MM-DD
 	//   - question (string): 占卜問題
+	//   - lastName (string): 姓氏（V2 新增，可空）
+	//   - firstName (string): 名字（V2 新增，可空）
+	//   - phone (string): 手機 E.164（V2 新增，可空）
+	//   - email (string): Email（V2 新增，可空）
+	//   - topicKey/subKey/thirdKey (string): 三層選題 key（V2 新增，可空）
+	//   - topicTitle/subTitle/thirdTitle (string): 三層選題標題（V2 新增，可空）
 	// 回傳格式：map - {success, reading_id, summary_text, next_action, blocked?, cooldown?, ...}
 	// 相依性：Clients_Report, Divination_Logs, AIInterpreter.checkCooldownStatus,
-	//         LLM.callChat, API.linePushText
-	// 注意：原名 LIFF_Divination_MVP，已重命名為 camelCase
+	//         LLM.callChat, API.linePushText, Zoho CRM (Leads)
 	// =============================================================================
 	api_result = Map();
 	try
@@ -45,20 +51,60 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question)
 			return api_result;
 		}
 
-		// 2) Find or create client by LINE user id (Clients_Report has Line_User_ID)
+		// 2) Find or create client by LINE user id — 去重：有則更新，無則新建
+		// Normalize optional V2 params
+		v2_lastName = if(lastName != null, lastName.trim(), "");
+		v2_firstName = if(firstName != null, firstName.trim(), "");
+		v2_phone = if(phone != null, phone.trim(), "");
+		v2_email = if(email != null, email.trim(), "");
+
 		client_id = "";
 		client_records = Clients_Report[Line_User_ID == lineUserId];
 		if(client_records.count() > 0)
 		{
-			for each  c in client_records
+			// 回訪用戶 — 使用既有記錄，更新 V2 欄位
+			for each c in client_records
 			{
 				client_id = c.ID.toString();
 				break;
 			}
+			// 有新資料時更新既有記錄
+			update_map = Map();
+			if(v2_lastName != "" && v2_lastName != "(LINE)")
+			{
+				update_map.put("Visitor_Name.last_name", v2_lastName);
+			}
+			if(v2_firstName != "" && v2_firstName != "使用者")
+			{
+				update_map.put("Visitor_Name.first_name", v2_firstName);
+			}
+			if(v2_phone != "")
+			{
+				update_map.put("Phone", v2_phone);
+			}
+			if(v2_email != "")
+			{
+				update_map.put("Email", v2_email);
+			}
+			birth_dt = null;
+			try
+			{
+				birth_dt = birthday.toDate("yyyy-MM-dd");
+				update_map.put("Date_Of_Birth", birth_dt);
+			}
+			catch (e0)
+			{
+				// birthday parse failed, skip update
+			}
+			if(update_map.size() > 0)
+			{
+				update_map.put("Client_Type", "LIFF");
+				zoho.creator.updateRecord("uneedwind", "ai-divination", "Clients_Report", client_id.toLong(), update_map);
+			}
 		}
 		else
 		{
-			// create minimal virtual client (姓名未知；以虛擬個案保存生日與 lineUserId)
+			// 新用戶 — 建立 Clients_Report 記錄
 			birth_dt = null;
 			try
 			{
@@ -68,14 +114,18 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question)
 			{
 				birth_dt = zoho.currenttime;
 			}
+			display_last = if(v2_lastName != "", v2_lastName, "(LINE)");
+			display_first = if(v2_firstName != "", v2_firstName, "使用者");
 			new_client = insert into Clients_Report
 			[
 				Added_User=zoho.loginuser
-				Client_Type="虛擬"
-				Visitor_Name.last_name="(LINE)"
-				Visitor_Name.first_name="使用者"
+				Client_Type="LIFF"
+				Visitor_Name.last_name=display_last
+				Visitor_Name.first_name=display_first
 				Line_User_ID=lineUserId
 				Date_Of_Birth=birth_dt
+				Phone=v2_phone
+				Email=v2_email
 			];
 			if(new_client != null)
 			{
@@ -88,6 +138,31 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question)
 			api_result.put("success",false);
 			api_result.put("message","個案建立/查詢失敗");
 			return api_result;
+		}
+
+		// 2b) Zoho CRM Leads — 以 Email 去重，首次建立 Lead
+		if(v2_email != "" && v2_email.contains("@"))
+		{
+			try
+			{
+				crm_criteria = "(Email:equals:" + v2_email + ")";
+				existing_leads = zoho.crm.searchRecords("Leads", crm_criteria);
+				if(existing_leads.size() == 0)
+				{
+					lead_data = Map();
+					lead_data.put("Last_Name", if(v2_lastName != "", v2_lastName, "(LINE)"));
+					lead_data.put("First_Name", v2_firstName);
+					lead_data.put("Mobile", v2_phone);
+					lead_data.put("Email", v2_email);
+					lead_data.put("Lead_Source", "LINE占卜LIFF");
+					zoho.crm.createRecord("Leads", lead_data);
+				}
+			}
+			catch (crm_err)
+			{
+				info "CRM Leads write error: " + crm_err.toString();
+				// CRM 失敗不影響占卜主流程
+			}
 		}
 
 		// 3) Cooldown check (use existing logic)

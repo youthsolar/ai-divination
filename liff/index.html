@@ -874,6 +874,7 @@
     var LIFF_ID = "2009168674-G2KqF3Jv";
     var DIVINATION_API = "https://www.zohoapis.com/creator/custom/uneedwind/liffDivinationMvp?publickey=wqWnHTZqhSTFBNTARwwNjAERw";
     var CREATE_ORDER_API = "https://www.zohoapis.com/creator/custom/uneedwind/createTalismanOrder?publickey=1MyePwfpEhdx1dzuBr8VNVMCZ";
+    var PREFILL_API = "PREFILL_API_URL"; // TODO: Creator 部署 getClientByLineUID 後填入真實 public key URL
 
     // ===========================================
     // State
@@ -1384,6 +1385,27 @@
     }).then(function(profile) {
       if (profile) {
         lineUserId = profile.userId;
+        // 回訪用戶預填：用 LINE UID 查詢既有個案資料
+        if (lineUserId && PREFILL_API !== "PREFILL_API_URL") {
+          fetch(PREFILL_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lineUserId: lineUserId })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.found && d.data) {
+              var ref = getInputs();
+              if (d.data.lastName  && ref.lastNameInput)  ref.lastNameInput.value  = d.data.lastName;
+              if (d.data.firstName && ref.firstNameInput) ref.firstNameInput.value = d.data.firstName;
+              if (d.data.phone     && ref.phoneInput)     ref.phoneInput.value     = d.data.phone;
+              if (d.data.email     && ref.emailInput)     ref.emailInput.value     = d.data.email;
+              if (d.data.birthDate && ref.birthDateInput) ref.birthDateInput.value = d.data.birthDate;
+              if (d.data.birthTime && ref.birthTimeInput) ref.birthTimeInput.value = d.data.birthTime;
+            }
+          })
+          .catch(function() { /* 預填失敗不影響主流程 */ });
+        }
       }
     }).catch(function(e) {
       showStatus("LIFF 初始化失敗：" + e, "err");
