@@ -96,10 +96,16 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			{
 				// birthday parse failed, skip update
 			}
-			if(update_map.size() > 0)
+			// 用原生 Deluge 語法直接更新（不需要 Connection）
+			for each rec in Clients_Report[ID == client_id.toLong()]
 			{
-				update_map.put("Client_Type", "LIFF");
-				zoho.creator.updateRecord("uneedwind", "ai-divination", "Clients_Report", client_id.toLong(), update_map, Map(), "");
+				if(v2_lastName != "" && v2_lastName != "(LINE)") { rec.Visitor_Name.last_name = v2_lastName; }
+				if(v2_firstName != "" && v2_firstName != "使用者") { rec.Visitor_Name.first_name = v2_firstName; }
+				if(v2_phone != "") { rec.Phone_Number = v2_phone; }
+				if(v2_email != "") { rec.Email = v2_email; }
+				if(birth_dt != null) { rec.Date_Of_Birth = birth_dt; }
+				rec.Client_Type = "真實";
+				break;
 			}
 		}
 		else
