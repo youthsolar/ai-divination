@@ -80,7 +80,7 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			}
 			if(v2_phone != "")
 			{
-				update_map.put("Phone", v2_phone);
+				update_map.put("Phone_Number", v2_phone);
 			}
 			if(v2_email != "")
 			{
@@ -124,7 +124,7 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 				Visitor_Name.first_name=display_first
 				Line_User_ID=lineUserId
 				Date_Of_Birth=birth_dt
-				Phone=v2_phone
+				Phone_Number=v2_phone
 				Email=v2_email
 			];
 			if(new_client != null)

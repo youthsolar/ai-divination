@@ -36,7 +36,7 @@ map API.getClientByLineUID(string lineUserId)
 				clientData.put("firstName", if(vname != null && vname.get("first_name") != null, vname.get("first_name").toString(), ""));
 
 				// 手機（E.164 → 本地格式：+886912345678 → 0912345678）
-				raw_phone = if(c.Phone != null, c.Phone.toString(), "");
+				raw_phone = if(c.Phone_Number != null, c.Phone_Number.toString(), "");
 				if(raw_phone.startsWith("+886"))
 				{
 					raw_phone = "0" + raw_phone.removeFirstOccurrence("+886");
