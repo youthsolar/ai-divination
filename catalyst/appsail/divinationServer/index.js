@@ -42,6 +42,8 @@ const LIFF_PREFILL_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/getC
 const LIFF_PREFILL_KEY = 'XsW9ENZWBgDC7Jbua9JbQYXpu';
 const LIFF_ORDER_URL   = 'https://www.zohoapis.com/creator/custom/uneedwind/createTalismanOrder';
 const LIFF_ORDER_KEY   = '1MyePwfpEhdx1dzuBr8VNVMCZ';
+const LIFF_STATUS_URL  = 'https://www.zohoapis.com/creator/custom/uneedwind/liffGetLatestStatus';
+const LIFF_STATUS_KEY  = 'LIFF_STATUS_PUBLIC_KEY'; // TODO: 待 Jeffery 在 Creator 部署後填入
 
 // LIFF 來源（GitHub Pages）
 const LIFF_ORIGIN = 'https://youthsolar.github.io';
@@ -134,14 +136,40 @@ app.get('/liff-prefill', async (req, res) => {
   res.json(result.ok ? result.data : { result: { found: false } });
 });
 
-// POST /liff-submit → liffDivinationMvp（同步等待 LLM，最長 90 秒）
-app.post('/liff-submit', async (req, res) => {
+// POST /liff-submit → liffDivinationMvp（非同步：立即回 pending，背景執行 LLM）
+app.post('/liff-submit', (req, res) => {
   setCORSHeaders(res);
-  const result = await callCreatorPOST(LIFF_MVP_URL, LIFF_MVP_KEY, req.body || {}, 90000);
-  if (result.ok) {
-    res.json(result.data);
+  const payload = req.body || {};
+
+  if (!payload.lineUserId) {
+    return res.status(400).json({ success: false, message: 'missing lineUserId' });
+  }
+
+  // 立即回應，避免 AppSail timeout
+  res.json({ success: true, pending: true, lineUserId: payload.lineUserId });
+
+  // 背景執行 liffDivinationMvp（LLM 約 30-60 秒）
+  callCreatorPOST(LIFF_MVP_URL, LIFF_MVP_KEY, payload, 120000).then((result) => {
+    console.log(`[/liff-submit] liffDivinationMvp done: ok=${result.ok} data=${JSON.stringify(result.data || result).slice(0, 200)}`);
+  });
+});
+
+// GET /liff-status?lineUserId=XXX → 查詢最新占卜結果（LIFF polling 用）
+app.get('/liff-status', async (req, res) => {
+  setCORSHeaders(res);
+  const lineUserId = req.query.lineUserId || '';
+  if (!lineUserId) return res.json({ ready: false });
+
+  if (LIFF_STATUS_KEY === 'LIFF_STATUS_PUBLIC_KEY') {
+    // public key 未設定，回傳 not_configured
+    return res.json({ ready: false, error: 'status_api_not_configured' });
+  }
+
+  const result = await callCreatorGET(LIFF_STATUS_URL, LIFF_STATUS_KEY, { lineUserId });
+  if (result.ok && result.data && result.data.result) {
+    res.json(result.data.result);
   } else {
-    res.status(500).json({ success: false, message: result.error || 'Creator error' });
+    res.json({ ready: false });
   }
 });
 

@@ -1,0 +1,84 @@
+map API.liffGetLatestStatus(string lineUserId)
+{
+	// =============================================================================
+	// 函數名稱：API.liffGetLatestStatus
+	// 函數用途：查詢 LINE 用戶最近 5 分鐘內的占卜結果（供 LIFF polling 使用）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：
+	//   - LIFF 送出占卜後（非同步模式），前端輪詢此 API 確認 LLM 是否完成
+	//   - 查詢 Clients_Report[Line_User_ID == lineUserId] → 取得 client_id
+	//   - 查詢 Divination_Logs[Client_Link == client_id] 最近 5 分鐘內最新一筆
+	//   - AI_Interpretation 非空且非錯誤 → ready: true
+	//   - 否則 → ready: false（LLM 尚未完成）
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID
+	// 回傳格式：
+	//   { ready: true,  reading_id: "...", summary: "..." }
+	//   { ready: false }
+	// =============================================================================
+	result = Map();
+	result.put("ready", false);
+
+	try
+	{
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			return result;
+		}
+
+		// 1) 找到 Clients_Report 中的客戶
+		clients = Clients_Report[Line_User_ID == lineUserId];
+		if(clients.count() == 0)
+		{
+			return result;
+		}
+		client_id = "";
+		for each c in clients
+		{
+			client_id = c.ID.toString();
+			break;
+		}
+
+		// 2) 查詢最近 5 分鐘的 Divination_Log
+		five_mins_ago = zoho.currenttime.addMinutes(-5);
+		logs = Divination_Logs[Client_Link == client_id.toLong() && Divination_Timestamp >= five_mins_ago];
+
+		if(logs.count() == 0)
+		{
+			return result;
+		}
+
+		// 3) 取最新一筆（依 Divination_Timestamp 降序）
+		latest_time = null;
+		latest_log = null;
+		for each log in logs
+		{
+			if(latest_time == null || log.Divination_Timestamp > latest_time)
+			{
+				latest_time = log.Divination_Timestamp;
+				latest_log = log;
+			}
+		}
+
+		if(latest_log == null)
+		{
+			return result;
+		}
+
+		// 4) 確認 AI_Interpretation 是否已寫入（非空、非錯誤字串）
+		summary = if(latest_log.AI_Interpretation != null, latest_log.AI_Interpretation.toString(), "");
+		if(summary != "" && !summary.startsWith("Error") && summary.length() > 50)
+		{
+			result.put("ready", true);
+			result.put("reading_id", latest_log.ID.toString());
+			result.put("summary", summary);
+		}
+	}
+	catch (e)
+	{
+		info "API.liffGetLatestStatus error: " + e.toString();
+	}
+
+	return result;
+}

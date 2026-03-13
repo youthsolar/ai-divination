@@ -1171,6 +1171,47 @@
       $("summaryText").textContent = summaryHtml;
     }
 
+    // 非同步占卜：輪詢等待 LLM 結果（最多 90 秒，每 4 秒查一次）
+    function startPolling(uid) {
+      var loadingEl = $("loadingSection");
+      var topicEl   = $("topicSection");
+      if (topicEl)  topicEl.style.display  = "none";
+      if (loadingEl) {
+        loadingEl.style.display = "block";
+        var msgEl = loadingEl.querySelector("p") || loadingEl;
+        msgEl.textContent = "🔮 占卜進行中，請稍候…（約30-60秒）";
+      }
+
+      var attempts = 0;
+      var maxAttempts = 23; // 23 × 4s = 92s
+
+      var timer = setInterval(function() {
+        attempts++;
+        fetch(APPSAIL + "/liff-status?lineUserId=" + encodeURIComponent(uid))
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.ready && d.summary) {
+              clearInterval(timer);
+              divinationLogId = d.reading_id || "";
+              showResult(d.summary);
+            } else if (attempts >= maxAttempts) {
+              clearInterval(timer);
+              if (loadingEl) loadingEl.style.display = "none";
+              showStatus("占卜正在進行，結果將透過 LINE 推送，請留意通知 🔔", "warn");
+              showForm();
+            }
+          })
+          .catch(function() {
+            if (attempts >= maxAttempts) {
+              clearInterval(timer);
+              if (loadingEl) loadingEl.style.display = "none";
+              showStatus("占卜正在進行，結果將透過 LINE 推送，請留意通知 🔔", "warn");
+              showForm();
+            }
+          });
+      }, 4000);
+    }
+
     function showForm() {
       $("topicSection").style.display = "";
       $("loadingSection").style.display = "none";
@@ -1266,6 +1307,12 @@
         if (data.blocked) {
           showForm();
           showStatus(data.message || "冷卻中，請稍後再來", "warn");
+          return;
+        }
+
+        // 非同步模式：後端立即回 pending: true，前端輪詢等結果
+        if (data.pending) {
+          startPolling(data.lineUserId || lineUserId);
           return;
         }
 
