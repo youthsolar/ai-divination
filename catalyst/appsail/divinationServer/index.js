@@ -175,11 +175,12 @@ app.get('/liff-status', async (req, res) => {
   }
 });
 
-// POST /liff-order → createTalismanOrder（建立 ECPay 付款訂單）
+// POST /liff-order → createTalismanOrder（建立 ECPay 付款訂單，Creator API 用 GET）
 app.post('/liff-order', async (req, res) => {
   setCORSHeaders(res);
   const body = (typeof req.body === 'string') ? (() => { try { return JSON.parse(req.body); } catch(e) { return {}; } })() : (req.body || {});
-  const result = await callCreatorPOST(LIFF_ORDER_URL, LIFF_ORDER_KEY, body, 30000);
+  // Creator Custom API 設定為 GET，用 query params 傳遞
+  const result = await callCreatorGET(LIFF_ORDER_URL, LIFF_ORDER_KEY, body);
   if (result.ok) {
     res.json(result.data);
   } else {
