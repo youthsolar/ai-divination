@@ -872,9 +872,11 @@
     // Config
     // ===========================================
     var LIFF_ID = "2009168674-G2KqF3Jv";
-    var DIVINATION_API = "https://www.zohoapis.com/creator/custom/uneedwind/liffDivinationMvp?publickey=wqWnHTZqhSTFBNTARwwNjAERw";
-    var CREATE_ORDER_API = "https://www.zohoapis.com/creator/custom/uneedwind/createTalismanOrder?publickey=1MyePwfpEhdx1dzuBr8VNVMCZ";
-    var PREFILL_API = "https://www.zohoapis.com/creator/custom/uneedwind/getClientByLineUID?publickey=XsW9ENZWBgDC7Jbua9JbQYXpu";
+    // 透過 AppSail CORS 代理（Zoho Creator Custom API 不支援瀏覽器直接呼叫）
+    var APPSAIL = "https://divinationserver-10121308063.development.catalystappsail.com";
+    var DIVINATION_API  = APPSAIL + "/liff-submit";
+    var CREATE_ORDER_API = APPSAIL + "/liff-order";
+    var PREFILL_API      = APPSAIL + "/liff-prefill";
 
     // ===========================================
     // State
@@ -1230,8 +1232,8 @@
 
       fetch(DIVINATION_API, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           lineUserId: lineUserId,
           birthday:   birthday,
           question:   summaryText,
@@ -1245,7 +1247,7 @@
           topicTitle: selectedTopicTitle || "",
           subTitle:   selectedSubTitle || "",
           thirdTitle: selectedThirdTitle || ""
-        }).toString()
+        })
       })
       .then(function(resp) {
         if (!resp.ok) {
@@ -1300,8 +1302,8 @@
 
       fetch(CREATE_ORDER_API, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           firstName:    fd.firstName || "",
           lastName:     fd.lastName || "",
           email:        fd.email || "",
@@ -1311,7 +1313,7 @@
           element:      "",
           price:        "360",
           lineUserId:   lineUserId
-        }).toString()
+        })
       })
       .then(function(resp) { return resp.json(); })
       .then(function(data) {
@@ -1386,7 +1388,7 @@
         lineUserId = profile.userId;
         // 回訪用戶預填：用 LINE UID 查詢既有個案資料
         if (lineUserId) {
-          fetch(PREFILL_API + "&lineUserId=" + encodeURIComponent(lineUserId), {
+          fetch(PREFILL_API + "?lineUserId=" + encodeURIComponent(lineUserId), {
             method: "GET"
           })
           .then(function(r) { return r.json(); })
