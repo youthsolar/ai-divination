@@ -874,7 +874,7 @@
     var LIFF_ID = "2009168674-G2KqF3Jv";
     var DIVINATION_API = "https://www.zohoapis.com/creator/custom/uneedwind/liffDivinationMvp?publickey=wqWnHTZqhSTFBNTARwwNjAERw";
     var CREATE_ORDER_API = "https://www.zohoapis.com/creator/custom/uneedwind/createTalismanOrder?publickey=1MyePwfpEhdx1dzuBr8VNVMCZ";
-    var PREFILL_API = "PREFILL_API_URL"; // TODO: Creator 部署 getClientByLineUID 後填入真實 public key URL
+    var PREFILL_API = "https://www.zohoapis.com/creator/custom/uneedwind/getClientByLineUID?publickey=XsW9ENZWBgDC7Jbua9JbQYXpu";
 
     // ===========================================
     // State
@@ -1386,11 +1386,9 @@
       if (profile) {
         lineUserId = profile.userId;
         // 回訪用戶預填：用 LINE UID 查詢既有個案資料
-        if (lineUserId && PREFILL_API !== "PREFILL_API_URL") {
-          fetch(PREFILL_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lineUserId: lineUserId })
+        if (lineUserId) {
+          fetch(PREFILL_API + "&lineUserId=" + encodeURIComponent(lineUserId), {
+            method: "GET"
           })
           .then(function(r) { return r.json(); })
           .then(function(d) {
