@@ -1273,7 +1273,7 @@
 
       fetch(DIVINATION_API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
           lineUserId: lineUserId,
           birthday:   birthday,
@@ -1349,7 +1349,7 @@
 
       fetch(CREATE_ORDER_API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
           firstName:    fd.firstName || "",
           lastName:     fd.lastName || "",

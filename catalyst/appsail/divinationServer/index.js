@@ -25,6 +25,8 @@ const https = require('https');
 
 const app = express();
 app.use(express.json());
+// text/plain 支援：LIFF 用 text/plain 送 JSON 以避免 CORS preflight
+app.use(express.text({ type: 'text/plain' }));
 
 // =============================================================================
 // Creator API 設定
@@ -139,7 +141,7 @@ app.get('/liff-prefill', async (req, res) => {
 // POST /liff-submit → liffDivinationMvp（非同步：立即回 pending，背景執行 LLM）
 app.post('/liff-submit', (req, res) => {
   setCORSHeaders(res);
-  const payload = req.body || {};
+  const payload = (typeof req.body === 'string') ? (() => { try { return JSON.parse(req.body); } catch(e) { return {}; } })() : (req.body || {});
 
   if (!payload.lineUserId) {
     return res.status(400).json({ success: false, message: 'missing lineUserId' });
@@ -176,7 +178,8 @@ app.get('/liff-status', async (req, res) => {
 // POST /liff-order → createTalismanOrder（建立 ECPay 付款訂單）
 app.post('/liff-order', async (req, res) => {
   setCORSHeaders(res);
-  const result = await callCreatorPOST(LIFF_ORDER_URL, LIFF_ORDER_KEY, req.body || {}, 30000);
+  const body = (typeof req.body === 'string') ? (() => { try { return JSON.parse(req.body); } catch(e) { return {}; } })() : (req.body || {});
+  const result = await callCreatorPOST(LIFF_ORDER_URL, LIFF_ORDER_KEY, body, 30000);
   if (result.ok) {
     res.json(result.data);
   } else {
