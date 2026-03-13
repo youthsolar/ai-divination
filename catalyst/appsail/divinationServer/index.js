@@ -43,7 +43,7 @@ const LIFF_PREFILL_KEY = 'XsW9ENZWBgDC7Jbua9JbQYXpu';
 const LIFF_ORDER_URL   = 'https://www.zohoapis.com/creator/custom/uneedwind/createTalismanOrder';
 const LIFF_ORDER_KEY   = '1MyePwfpEhdx1dzuBr8VNVMCZ';
 const LIFF_STATUS_URL  = 'https://www.zohoapis.com/creator/custom/uneedwind/liffGetLatestStatus';
-const LIFF_STATUS_KEY  = 'LIFF_STATUS_PUBLIC_KEY'; // TODO: 待 Jeffery 在 Creator 部署後填入
+const LIFF_STATUS_KEY  = '6bQPVRAGPUu2RxX46hjZpNN6F';
 
 // LIFF 來源（GitHub Pages）
 const LIFF_ORIGIN = 'https://youthsolar.github.io';
