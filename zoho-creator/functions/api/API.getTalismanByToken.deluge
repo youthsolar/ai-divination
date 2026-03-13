@@ -103,10 +103,33 @@ map API.getTalismanByToken(map payload)
 			purchaseTime    = if(o.Purchase_Timestamp != null,   o.Purchase_Timestamp.toString("yyyy-MM-dd HH:mm:ss"),    "");
 			expiryStr       = if(expiresAt != null,              expiresAt.toString("yyyy-MM-dd"),                        "");
 
+			// ── 透過 Divination_Log_Link 取得完整版解讀 ──
+			// generatePaidInterpretation 將完整版寫入 Divination_Logs.AI_Interpretation_Full
+			// delivery.html 使用 hexagram_content 欄位顯示，故優先回傳完整版
+			// 注意：Divination_Log_Link 是 Lookup 欄位，需用 .toString() 取 ID 再 .toLong() 查詢
+			fullInterpretation = "";
+			divLogLinkVal = if(o.Divination_Log_Link != null, o.Divination_Log_Link.toString(), "");
+			if(divLogLinkVal != "")
+			{
+				divLogs = Divination_Logs[ID == divLogLinkVal.toLong()];
+				for each dl in divLogs
+				{
+					if(dl.AI_Interpretation_Full != null && dl.AI_Interpretation_Full != "")
+					{
+						fullInterpretation = dl.AI_Interpretation_Full.toString();
+					}
+					break;
+				}
+			}
+
+			// 優先順序：完整版解讀 > hexagram_content > 空字串
+			displayContent = if(fullInterpretation != "", fullInterpretation, hexagramContent);
+
 			resp.put("ok",true);
 			resp.put("item_name",itemName);
 			resp.put("description",description);
-			resp.put("hexagram_content",hexagramContent);
+			resp.put("hexagram_content",displayContent);
+			resp.put("full_interpretation",fullInterpretation);
 			resp.put("purchased_at",purchaseTime);
 			resp.put("expires_at",expiryStr);
 			resp.put("message","符令已為您準備好，請在有效期內使用。");
