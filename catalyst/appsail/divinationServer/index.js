@@ -512,7 +512,16 @@ app.post('/ecpay-notify', (req, res) => {
   const payload = { ecpay_params: ecpayParams };
   callCreatorPOST(ECPAY_RETURN_URL, ECPAY_RETURN_KEY, payload, 120000)
     .then((result) => {
-      console.log(`[/ecpay-notify] ecPayReturn result: ok=${result.ok} data=${JSON.stringify(result.data || result).slice(0, 200)}`);
+      const logEntry = {
+        time: new Date().toISOString(),
+        merchantTradeNo,
+        creatorOk: result.ok,
+        creatorResponse: JSON.stringify(result.data || result).slice(0, 500),
+        payloadSent: JSON.stringify(payload).slice(0, 300)
+      };
+      console.log(`[/ecpay-notify] ecPayReturn:`, JSON.stringify(logEntry));
+      // 存到 debug log
+      ecpayNotifyLog[0] = { ...ecpayNotifyLog[0], ...logEntry };
     });
 });
 
