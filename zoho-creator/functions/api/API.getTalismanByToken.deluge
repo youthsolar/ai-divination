@@ -106,9 +106,10 @@ map API.getTalismanByToken(map payload)
 			// ── 透過 Divination_Log_Link 取得完整版解讀 ──
 			// generatePaidInterpretation 將完整版寫入 Divination_Logs.AI_Interpretation_Full
 			// delivery.html 使用 hexagram_content 欄位顯示，故優先回傳完整版
-			// 注意：Divination_Log_Link 是 Lookup 欄位，需用 .toString() 取 ID 再 .toLong() 查詢
+			// 注意：Lookup 欄位 .toString() 可能回傳顯示值而非 Record ID
+			// 必須用 .ID 取得數字 ID，再轉 Long 查詢
 			fullInterpretation = "";
-			divLogLinkVal = if(o.Divination_Log_Link != null, o.Divination_Log_Link.toString(), "");
+			divLogLinkVal = if(o.Divination_Log_Link != null, o.Divination_Log_Link.ID.toString(), "");
 			if(divLogLinkVal != "")
 			{
 				divLogs = Divination_Logs[ID == divLogLinkVal.toLong()];
