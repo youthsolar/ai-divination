@@ -465,11 +465,12 @@ app.post('/ecpay-notify', (req, res) => {
     return;
   }
 
-  // 把 ECPay 表單參數轉成 JSON payload 送給 Creator
-  const payload = {};
+  // 把 ECPay 表單參數包在 ecpay_params key 裡（Creator 函數簽名要求）
+  const ecpayParams = {};
   for (const [k, v] of Object.entries(params)) {
-    payload[k] = v;
+    ecpayParams[k] = v;
   }
+  const payload = { ecpay_params: ecpayParams };
   callCreatorPOST(ECPAY_RETURN_URL, ECPAY_RETURN_KEY, payload, 120000)
     .then((result) => {
       console.log(`[/ecpay-notify] ecPayReturn result: ok=${result.ok} data=${JSON.stringify(result.data || result).slice(0, 200)}`);
