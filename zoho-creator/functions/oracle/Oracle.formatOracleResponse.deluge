@@ -1,0 +1,75 @@
+map Oracle.formatOracleResponse(string system, map oracleRecord)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.formatOracleResponse
+	// 函數用途：格式化籤詩記錄為 API 回應結構
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   將籤詩查詢記錄（map）格式化為 LIFF 前端可直接使用的 API 回應格式。
+	//   不同系統回傳不同欄位：
+	//   - 共用：sign_order, sign_order_num, fortune_level, poem_text
+	//   - GuanYin: poem_title, holy_meaning, sign_interpretation, divine_guidance, allusion
+	//   - GuanDi: poem_title, holy_meaning, sign_interpretation, meaning_explanation,
+	//             detailed_explanation, dongpo_commentary, bixian_commentary
+	//   - KongMing: palace, current_hexagram, changed_hexagram, fortune_category,
+	//               five_elements, symbols (1-5), interpretation
+	// 參數說明：
+	//   - system (string): 籤詩系統（KongMing / GuanYin / GuanDi）
+	//   - oracleRecord (map): 籤詩記錄 map（來自表單查詢）
+	// 回傳格式：map - 格式化後的 oracle 回應物件
+	// 相依性：無
+	// =============================================================================
+
+	resp = Map();
+	resp.put("system", system);
+
+	// ── 共用欄位 ──
+	resp.put("sign_order", if(oracleRecord.get("Sign_Order") != null, oracleRecord.get("Sign_Order").toString(), ""));
+	resp.put("sign_order_num", if(oracleRecord.get("Sign_Order_Num") != null, oracleRecord.get("Sign_Order_Num"), 0));
+	resp.put("fortune_level", if(oracleRecord.get("Fortune_Level") != null, oracleRecord.get("Fortune_Level").toString(), ""));
+	resp.put("poem_text", if(oracleRecord.get("Poem_Text") != null, oracleRecord.get("Poem_Text").toString(), ""));
+
+	if(system == "GuanYin")
+	{
+		// ── 觀音靈籤專屬欄位 ──
+		resp.put("poem_title", if(oracleRecord.get("Poem_Title") != null, oracleRecord.get("Poem_Title").toString(), ""));
+		resp.put("holy_meaning", if(oracleRecord.get("Holy_Meaning") != null, oracleRecord.get("Holy_Meaning").toString(), ""));
+		resp.put("sign_interpretation", if(oracleRecord.get("Sign_Interpretation") != null, oracleRecord.get("Sign_Interpretation").toString(), ""));
+		resp.put("divine_guidance", if(oracleRecord.get("Divine_Guidance") != null, oracleRecord.get("Divine_Guidance").toString(), ""));
+		resp.put("allusion", if(oracleRecord.get("Allusion") != null, oracleRecord.get("Allusion").toString(), ""));
+		resp.put("talisman_cta", null);
+	}
+	else if(system == "GuanDi")
+	{
+		// ── 關帝靈籤專屬欄位 ──
+		resp.put("poem_title", if(oracleRecord.get("Poem_Title") != null, oracleRecord.get("Poem_Title").toString(), ""));
+		resp.put("holy_meaning", if(oracleRecord.get("Holy_Meaning") != null, oracleRecord.get("Holy_Meaning").toString(), ""));
+		resp.put("sign_interpretation", if(oracleRecord.get("Sign_Interpretation") != null, oracleRecord.get("Sign_Interpretation").toString(), ""));
+		resp.put("meaning_explanation", if(oracleRecord.get("Meaning_Explanation") != null, oracleRecord.get("Meaning_Explanation").toString(), ""));
+		resp.put("detailed_explanation", if(oracleRecord.get("Detailed_Explanation") != null, oracleRecord.get("Detailed_Explanation").toString(), ""));
+		resp.put("dongpo_commentary", if(oracleRecord.get("DongPo_Commentary") != null, oracleRecord.get("DongPo_Commentary").toString(), ""));
+		resp.put("bixian_commentary", if(oracleRecord.get("BiXian_Commentary") != null, oracleRecord.get("BiXian_Commentary").toString(), ""));
+		resp.put("talisman_cta", null);
+	}
+	else if(system == "KongMing")
+	{
+		// ── 孔明大易神術專屬欄位 ──
+		resp.put("palace", if(oracleRecord.get("Palace") != null, oracleRecord.get("Palace").toString(), ""));
+		resp.put("current_hexagram", if(oracleRecord.get("Current_Hexagram") != null, oracleRecord.get("Current_Hexagram").toString(), ""));
+		resp.put("changed_hexagram", if(oracleRecord.get("Changed_Hexagram") != null, oracleRecord.get("Changed_Hexagram").toString(), ""));
+		resp.put("fortune_category", if(oracleRecord.get("Fortune_Category") != null, oracleRecord.get("Fortune_Category").toString(), ""));
+		resp.put("five_elements", if(oracleRecord.get("Five_Elements") != null, oracleRecord.get("Five_Elements").toString(), ""));
+		resp.put("symbol_1", if(oracleRecord.get("Symbol_1") != null, oracleRecord.get("Symbol_1").toString(), ""));
+		resp.put("symbol_2", if(oracleRecord.get("Symbol_2") != null, oracleRecord.get("Symbol_2").toString(), ""));
+		resp.put("symbol_3", if(oracleRecord.get("Symbol_3") != null, oracleRecord.get("Symbol_3").toString(), ""));
+		resp.put("symbol_4", if(oracleRecord.get("Symbol_4") != null, oracleRecord.get("Symbol_4").toString(), ""));
+		resp.put("symbol_5", if(oracleRecord.get("Symbol_5") != null, oracleRecord.get("Symbol_5").toString(), ""));
+		resp.put("interpretation", if(oracleRecord.get("Interpretation") != null, oracleRecord.get("Interpretation").toString(), ""));
+		// 孔明籤有符令 CTA 預留
+		/* TODO: 待設定符令 CTA 內容 */
+		resp.put("talisman_cta", null);
+	}
+
+	return resp;
+}

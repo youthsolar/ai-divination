@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🏮 求籤問卦 — 找風問幸福</title>
+  <style>
+    /* ===========================================
+       Winds Design System — Oracle Page
+       =========================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #faf8f6;
+      color: #474747;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @keyframes windsFadeInUp {
+      0%   { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .winds-page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    .winds-hidden { display: none !important; }
+
+    /* --- Header --- */
+    .winds-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .winds-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 6px 0;
+    }
+    .winds-header p {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+    .winds-header-divider {
+      height: 2px;
+      background: linear-gradient(to right, transparent, #c9a84c, transparent);
+      margin: 12px 40px;
+    }
+
+    /* --- Buttons --- */
+    .winds-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      text-align: center;
+      text-decoration: none;
+    }
+    .winds-btn:active { transform: scale(0.98); }
+
+    .winds-btn-primary {
+      background: #3b262a;
+      color: #fff;
+    }
+    .winds-btn-primary:hover { background: #4a333a; }
+
+    .winds-btn-gold {
+      background: #c9a84c;
+      color: #3b262a;
+      font-size: 14px;
+    }
+    .winds-btn-gold:hover { background: #b8963f; }
+
+    .winds-btn-outline {
+      background: #fff;
+      color: #3b262a;
+      border: 1px solid #5a656b;
+      margin-top: 10px;
+    }
+    .winds-btn-outline:hover { background: #f0e6e6; }
+
+    .winds-btn-share {
+      background: #06C755;
+      color: #fff;
+      margin-top: 10px;
+    }
+    .winds-btn-share:hover { background: #05b34d; }
+
+    .winds-btn-talisman {
+      background: #8B4513;
+      color: #fff;
+      margin-top: 10px;
+    }
+    .winds-btn-talisman:hover { background: #7a3c10; }
+
+    /* --- Footer --- */
+    .winds-footer {
+      text-align: center;
+      color: #999;
+      font-size: 11px;
+      margin-top: 24px;
+    }
+
+    /* ===========================================
+       Oracle System Cards
+       =========================================== */
+    .winds-oracle-card {
+      display: block;
+      width: 100%;
+      background: #ffffff;
+      border: 0.5px solid #5a656b;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .winds-oracle-card:hover {
+      border-color: #5a656b;
+      background: #f0e6e6;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+    .winds-oracle-card:active {
+      transform: scale(0.98);
+    }
+    .winds-oracle-card-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    .winds-oracle-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 4px 0;
+    }
+    .winds-oracle-card-sub {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    /* ===========================================
+       Shaking Animation
+       =========================================== */
+    .winds-shaking {
+      text-align: center;
+      padding: 60px 20px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-shaking-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      animation: windsShake 0.4s ease-in-out infinite;
+    }
+    @keyframes windsShake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-12deg); }
+      75% { transform: rotate(12deg); }
+    }
+    .winds-shaking-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 16px 0;
+    }
+    .winds-progress-bar {
+      width: 200px;
+      height: 6px;
+      background: #dcd2d2;
+      border-radius: 3px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .winds-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #c9a84c;
+      border-radius: 3px;
+      animation: windsFillBar 1.5s ease-in-out forwards;
+    }
+    @keyframes windsFillBar {
+      0%   { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    /* ===========================================
+       Oracle Result
+       =========================================== */
+    .winds-oracle-result {
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-oracle-divider {
+      text-align: center;
+      color: #c9a84c;
+      font-size: 14px;
+      letter-spacing: 2px;
+      margin: 8px 0;
+      user-select: none;
+    }
+    .winds-oracle-result-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .winds-oracle-system-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 4px 0;
+    }
+    .winds-fortune-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 6px 0;
+    }
+    .winds-fortune-badge.fortune-upper {
+      background: #c9a84c;
+      color: #fff;
+    }
+    .winds-fortune-badge.fortune-middle {
+      background: #5a8db5;
+      color: #fff;
+    }
+    .winds-fortune-badge.fortune-lower {
+      background: #999;
+      color: #fff;
+    }
+    .winds-oracle-poem-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 8px 0 4px 0;
+    }
+    .winds-oracle-poem {
+      text-align: center;
+      font-size: 15px;
+      line-height: 2;
+      color: #3b262a;
+      margin: 12px 0;
+      white-space: pre-wrap;
+    }
+
+    /* --- Oracle Sections --- */
+    .winds-oracle-section {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 0.5px solid #dcd2d2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 12px;
+    }
+    .winds-oracle-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #c9a84c;
+      margin: 0 0 8px 0;
+    }
+    .winds-oracle-section-body {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #474747;
+      white-space: pre-wrap;
+    }
+
+    /* ===========================================
+       Cooldown & Binding States
+       =========================================== */
+    .winds-message-box {
+      text-align: center;
+      padding: 40px 20px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-message-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .winds-message-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 8px;
+    }
+    .winds-message-desc {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0 0 20px;
+      line-height: 1.6;
+    }
+
+    /* ===========================================
+       Loading Dots (LIFF init)
+       =========================================== */
+    .winds-loading {
+      text-align: center;
+      padding: 60px 20px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-dots { margin-bottom: 20px; }
+    .winds-dots span {
+      display: inline-block;
+      width: 10px; height: 10px;
+      margin: 0 4px;
+      background: #c9a84c;
+      border-radius: 50%;
+      animation: windsBounce 1.2s infinite ease-in-out;
+    }
+    .winds-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .winds-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes windsBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1);   opacity: 1; }
+    }
+    .winds-loading-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 6px;
+    }
+    .winds-loading-sub {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="winds-page">
+    <!-- Header -->
+    <div class="winds-header">
+      <h1>🏮 求籤問卦</h1>
+      <p>不需要問題，只需一念誠心</p>
+      <div class="winds-header-divider"></div>
+    </div>
+
+    <!-- State: LIFF Loading -->
+    <div id="stateLoading">
+      <div class="winds-loading">
+        <div class="winds-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="winds-loading-title">載入中…</p>
+        <p class="winds-loading-sub">正在準備求籤頁面</p>
+      </div>
+    </div>
+
+    <!-- State: System Selection -->
+    <div id="stateSelect" class="winds-hidden">
+      <p style="text-align:center; color:#5a656b; margin:0 0 16px;">選擇神明，搖籤即得</p>
+
+      <div class="winds-oracle-card" data-system="GuanYin">
+        <div class="winds-oracle-card-icon">🔮</div>
+        <div class="winds-oracle-card-title">觀音靈籤</div>
+        <p class="winds-oracle-card-sub">百首靈籤・慈悲指引</p>
+      </div>
+
+      <div class="winds-oracle-card" data-system="GuanDi">
+        <div class="winds-oracle-card-icon">⚔️</div>
+        <div class="winds-oracle-card-title">關帝靈籤</div>
+        <p class="winds-oracle-card-sub">百首靈籤・忠義正道</p>
+      </div>
+
+      <div class="winds-oracle-card" data-system="KongMing">
+        <div class="winds-oracle-card-icon">📜</div>
+        <div class="winds-oracle-card-title">孔明大易神術</div>
+        <p class="winds-oracle-card-sub">三百八十四籤・卦理五行</p>
+      </div>
+    </div>
+
+    <!-- State: Shaking Animation -->
+    <div id="stateShaking" class="winds-hidden">
+      <div class="winds-shaking">
+        <div class="winds-shaking-icon">🏮</div>
+        <p class="winds-shaking-text">搖籤中…</p>
+        <div class="winds-progress-bar">
+          <div id="progressFill" class="winds-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State: Result -->
+    <div id="stateResult" class="winds-hidden">
+      <div class="winds-oracle-result">
+        <div class="winds-oracle-divider">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+        <div class="winds-oracle-result-header">
+          <p id="resultSystemName" class="winds-oracle-system-name"></p>
+          <span id="resultFortuneBadge" class="winds-fortune-badge"></span>
+          <p id="resultPoemTitle" class="winds-oracle-poem-title"></p>
+        </div>
+        <div id="resultPoem" class="winds-oracle-poem"></div>
+        <div class="winds-oracle-divider">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+
+        <div id="resultSections"></div>
+
+        <!-- CTA Buttons -->
+        <div id="resultCTA" style="margin-top:20px;">
+          <a id="ctaDivination" href="index.html" class="winds-btn winds-btn-gold">🔮 想更深入？免費占卜</a>
+          <button id="ctaRetry" class="winds-btn winds-btn-outline">🔄 再來一支</button>
+          <button id="ctaShare" class="winds-btn winds-btn-share">📤 分享到 LINE</button>
+          <a id="ctaTalisman" href="#" class="winds-btn winds-btn-talisman winds-hidden">📿 請購對應符令 NT$360</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- State: Cooldown -->
+    <div id="stateCooldown" class="winds-hidden">
+      <div class="winds-message-box">
+        <div class="winds-message-icon">⏳</div>
+        <p class="winds-message-title">心誠則靈，不宜頻繁求籤</p>
+        <p id="cooldownDesc" class="winds-message-desc"></p>
+      </div>
+      <a href="index.html" class="winds-btn winds-btn-gold">🔮 想更深入？免費占卜</a>
+      <button id="cooldownRetry" class="winds-btn winds-btn-outline">🔄 換個系統試試</button>
+    </div>
+
+    <!-- State: Need Binding -->
+    <div id="stateBinding" class="winds-hidden">
+      <div class="winds-message-box">
+        <div class="winds-message-icon">🎂</div>
+        <p class="winds-message-title">需先綁定生日</p>
+        <p class="winds-message-desc">求籤需要您的生辰資訊來計算籤號，<br>請先完成生日綁定。</p>
+      </div>
+      <a href="index.html" class="winds-btn winds-btn-primary">前往綁定生日</a>
+    </div>
+
+    <!-- State: Error -->
+    <div id="stateError" class="winds-hidden">
+      <div class="winds-message-box">
+        <div class="winds-message-icon">🔒</div>
+        <p id="errorTitle" class="winds-message-title"></p>
+        <p id="errorDesc" class="winds-message-desc"></p>
+      </div>
+      <button id="errorRetry" class="winds-btn winds-btn-outline">重新嘗試</button>
+    </div>
+
+    <!-- Footer -->
+    <div class="winds-footer">找風問幸福 &copy; 宇風企管顧問有限公司</div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  (function() {
+    "use strict";
+
+    /* ===========================================
+       Config
+       =========================================== */
+    var LIFF_ID = "2009168674-G2KqF3Jv";
+    var APPSAIL_BASE = "https://divinationserver-10121308063.development.catalystappsail.com";
+    var ORACLE_API = APPSAIL_BASE + "/liff-oracle"; // TODO: AppSail endpoint not yet created
+
+    /* ===========================================
+       State references
+       =========================================== */
+    var lineUserId = null;
+    var currentSystem = null;
+    var currentResult = null;
+
+    var SYSTEM_LABELS = {
+      GuanYin: "觀音靈籤",
+      GuanDi: "關帝靈籤",
+      KongMing: "孔明大易神術"
+    };
+
+    /* ===========================================
+       DOM helpers
+       =========================================== */
+    function $(id) { return document.getElementById(id); }
+
+    var ALL_STATES = ["stateLoading", "stateSelect", "stateShaking", "stateResult", "stateCooldown", "stateBinding", "stateError"];
+
+    function showState(stateId) {
+      ALL_STATES.forEach(function(id) {
+        var el = $(id);
+        if (id === stateId) {
+          el.classList.remove("winds-hidden");
+        } else {
+          el.classList.add("winds-hidden");
+        }
+      });
+    }
+
+    /* ===========================================
+       Fortune badge helper
+       =========================================== */
+    function getFortuneClass(level) {
+      if (!level) return "fortune-middle";
+      if (level.indexOf("上") !== -1) return "fortune-upper";
+      if (level.indexOf("下") !== -1) return "fortune-lower";
+      return "fortune-middle";
+    }
+
+    /* ===========================================
+       Render result — different layout per system
+       =========================================== */
+    function renderResult(oracle) {
+      currentResult = oracle;
+
+      // Header
+      var systemLabel = SYSTEM_LABELS[oracle.system] || oracle.system;
+      $("resultSystemName").textContent = "🏮 " + systemLabel + "・" + (oracle.sign_order || "");
+      $("resultFortuneBadge").textContent = oracle.fortune_level || "";
+      $("resultFortuneBadge").className = "winds-fortune-badge " + getFortuneClass(oracle.fortune_level);
+
+      // Poem title
+      if (oracle.poem_title) {
+        $("resultPoemTitle").textContent = oracle.poem_title;
+        $("resultPoemTitle").style.display = "";
+      } else {
+        $("resultPoemTitle").style.display = "none";
+      }
+
+      // Poem text
+      if (oracle.poem_text) {
+        $("resultPoem").textContent = oracle.poem_text;
+        $("resultPoem").style.display = "";
+      } else {
+        $("resultPoem").style.display = "none";
+      }
+
+      // Sections — build per system
+      var sectionsHTML = "";
+
+      if (oracle.system === "GuanYin") {
+        if (oracle.holy_meaning) sectionsHTML += buildSection("聖意", oracle.holy_meaning);
+        if (oracle.sign_interpretation) sectionsHTML += buildSection("籤解", oracle.sign_interpretation);
+        if (oracle.divine_guidance) sectionsHTML += buildSection("仙機", oracle.divine_guidance);
+        if (oracle.allusion) sectionsHTML += buildSection("典故", oracle.allusion);
+      } else if (oracle.system === "GuanDi") {
+        if (oracle.holy_meaning) sectionsHTML += buildSection("聖意", oracle.holy_meaning);
+        if (oracle.sign_interpretation) sectionsHTML += buildSection("東坡解", oracle.sign_interpretation);
+        if (oracle.dongpo_interpretation) sectionsHTML += buildSection("東坡解", oracle.dongpo_interpretation);
+        if (oracle.bixian_note) sectionsHTML += buildSection("碧仙注", oracle.bixian_note);
+        if (oracle.divine_guidance) sectionsHTML += buildSection("仙機", oracle.divine_guidance);
+        if (oracle.allusion) sectionsHTML += buildSection("典故", oracle.allusion);
+      } else if (oracle.system === "KongMing") {
+        if (oracle.sign_interpretation) sectionsHTML += buildSection("籤解", oracle.sign_interpretation);
+        if (oracle.five_elements) sectionsHTML += buildSection("五行", oracle.five_elements);
+        if (oracle.symbols) sectionsHTML += buildSection("符令", oracle.symbols.join("  "));
+        if (oracle.divine_guidance) sectionsHTML += buildSection("仙機", oracle.divine_guidance);
+      }
+
+      $("resultSections").innerHTML = sectionsHTML;
+
+      // Talisman CTA — KongMing only
+      var talismanBtn = $("ctaTalisman");
+      if (oracle.system === "KongMing" && oracle.talisman_cta) {
+        talismanBtn.href = oracle.talisman_cta || "#";
+        talismanBtn.classList.remove("winds-hidden");
+      } else {
+        talismanBtn.classList.add("winds-hidden");
+      }
+
+      showState("stateResult");
+    }
+
+    function buildSection(title, body) {
+      return '<div class="winds-oracle-section">' +
+        '<p class="winds-oracle-section-title">【' + escapeHtml(title) + '】</p>' +
+        '<div class="winds-oracle-section-body">' + escapeHtml(body) + '</div>' +
+        '</div>';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    /* ===========================================
+       API call
+       =========================================== */
+    function drawOracle(system) {
+      currentSystem = system;
+
+      // Show shaking animation
+      showState("stateShaking");
+      // Reset progress bar animation
+      var fill = $("progressFill");
+      fill.style.animation = "none";
+      fill.offsetHeight; // force reflow
+      fill.style.animation = "windsFillBar 1.5s ease-in-out forwards";
+
+      // Build request body as text/plain JSON to avoid CORS preflight
+      var bodyStr = JSON.stringify({
+        lineUserId: lineUserId,
+        system: system
+      });
+
+      var apiDone = false;
+      var apiResult = null;
+      var apiError = null;
+      var animDone = false;
+
+      // Minimum 1.5s shaking animation
+      setTimeout(function() {
+        animDone = true;
+        if (apiDone) handleApiResponse(apiResult, apiError);
+      }, 1600);
+
+      fetch(ORACLE_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: bodyStr
+      })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        apiDone = true;
+        apiResult = data;
+        if (animDone) handleApiResponse(data, null);
+      })
+      .catch(function(err) {
+        apiDone = true;
+        apiError = err;
+        if (animDone) handleApiResponse(null, err);
+      });
+    }
+
+    function handleApiResponse(data, err) {
+      if (err) {
+        $("errorTitle").textContent = "系統暫時無法取得籤詩";
+        $("errorDesc").textContent = "請稍後重試。（" + err.toString() + "）";
+        showState("stateError");
+        return;
+      }
+
+      if (!data) {
+        $("errorTitle").textContent = "系統暫時無法取得籤詩";
+        $("errorDesc").textContent = "未收到回應，請稍後重試。";
+        showState("stateError");
+        return;
+      }
+
+      // Success
+      if (data.success === true && data.oracle) {
+        renderResult(data.oracle);
+        return;
+      }
+
+      // Cooldown blocked
+      if (data.blocked === true || data.cooldown === true) {
+        var cooldownMsg = data.message || "您已於近期求過籤，請稍候再試。";
+        if (data.time_remaining) {
+          cooldownMsg += "\n預計 " + data.time_remaining + " 後可再次求籤。";
+        }
+        $("cooldownDesc").textContent = cooldownMsg;
+        showState("stateCooldown");
+        return;
+      }
+
+      // Need birthday binding
+      if (data.error === "需先綁定生日" || data.reason === "no_birthday") {
+        showState("stateBinding");
+        return;
+      }
+
+      // Other errors
+      $("errorTitle").textContent = "求籤失敗";
+      $("errorDesc").textContent = data.message || data.error || "未知錯誤，請稍後重試。";
+      showState("stateError");
+    }
+
+    /* ===========================================
+       Share to LINE
+       =========================================== */
+    function shareToLine() {
+      if (!currentResult) return;
+
+      var oracle = currentResult;
+      var systemLabel = SYSTEM_LABELS[oracle.system] || oracle.system;
+      var shareText = "🏮 " + systemLabel + "・" + (oracle.sign_order || "") + "\n";
+      shareText += (oracle.fortune_level || "") + "\n";
+      if (oracle.poem_title) shareText += oracle.poem_title + "\n";
+      shareText += "\n";
+      if (oracle.poem_text) shareText += oracle.poem_text + "\n";
+      shareText += "\n——來自「找風問幸福」";
+
+      // Truncate if too long
+      if (shareText.length > 500) {
+        shareText = shareText.substring(0, 497) + "...";
+      }
+
+      if (typeof liff !== "undefined" && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")) {
+        liff.shareTargetPicker([{
+          type: "text",
+          text: shareText
+        }]).catch(function() {
+          // Fallback: try sendMessages
+          trySendMessages(shareText);
+        });
+      } else {
+        trySendMessages(shareText);
+      }
+    }
+
+    function trySendMessages(text) {
+      if (typeof liff !== "undefined" && liff.isApiAvailable && liff.isApiAvailable("sendMessages")) {
+        liff.sendMessages([{
+          type: "text",
+          text: text
+        }]).catch(function() {
+          // Silent fail
+        });
+      }
+    }
+
+    /* ===========================================
+       Reset to system selection
+       =========================================== */
+    function resetToSelect() {
+      currentSystem = null;
+      currentResult = null;
+      showState("stateSelect");
+    }
+
+    /* ===========================================
+       URL param support: ?system=GuanYin
+       =========================================== */
+    function getUrlSystem() {
+      var params = new URLSearchParams(window.location.search);
+      var sys = params.get("system");
+      if (sys && SYSTEM_LABELS[sys]) return sys;
+      return null;
+    }
+
+    /* ===========================================
+       Event listeners
+       =========================================== */
+    // System card clicks
+    var cards = document.querySelectorAll(".winds-oracle-card");
+    for (var i = 0; i < cards.length; i++) {
+      (function(card) {
+        card.addEventListener("click", function() {
+          var system = card.getAttribute("data-system");
+          if (system) drawOracle(system);
+        });
+      })(cards[i]);
+    }
+
+    // CTA buttons
+    $("ctaRetry").addEventListener("click", function(e) {
+      e.preventDefault();
+      resetToSelect();
+    });
+
+    $("ctaShare").addEventListener("click", function(e) {
+      e.preventDefault();
+      shareToLine();
+    });
+
+    $("cooldownRetry").addEventListener("click", function(e) {
+      e.preventDefault();
+      resetToSelect();
+    });
+
+    $("errorRetry").addEventListener("click", function(e) {
+      e.preventDefault();
+      resetToSelect();
+    });
+
+    /* ===========================================
+       LIFF Init
+       =========================================== */
+    showState("stateLoading");
+
+    liff.init({ liffId: LIFF_ID }).then(function() {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      return liff.getProfile();
+    }).then(function(profile) {
+      if (!profile) return;
+      lineUserId = profile.userId;
+
+      // Check URL param for auto-select
+      var urlSystem = getUrlSystem();
+      if (urlSystem) {
+        drawOracle(urlSystem);
+      } else {
+        showState("stateSelect");
+      }
+    }).catch(function(err) {
+      $("errorTitle").textContent = "無法初始化";
+      $("errorDesc").textContent = "請確認您是在 LINE 中開啟此頁面。（" + err.toString() + "）";
+      showState("stateError");
+    });
+
+  })();
+  </script>
+</body>
+</html>

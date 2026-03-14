@@ -1,0 +1,167 @@
+map Oracle.selectSign(string system, string yaoCode, string birthday, string divinationTime)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.selectSign
+	// 函數用途：確定性計算籤號並查詢籤詩內容
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   依據籤詩系統、爻碼、生日、占卜時間，以確定性演算法計算籤號，
+	//   再從對應的 Creator 表單查詢籤詩記錄。
+	// 參數說明：
+	//   - system (string): 籤詩系統（KongMing / GuanYin / GuanDi）
+	//   - yaoCode (string): 爻碼（用於孔明籤號計算）
+	//   - birthday (string): 生日字串，例如 "1990-05-15"
+	//   - divinationTime (string): 占卜時間字串，例如 "2026-03-12 14:30:00"
+	// 回傳格式：map - 籤詩記錄所有欄位 + sign_order_num；查無記錄時 found=false
+	// 演算法（D3 確定性計算）：
+	//   KongMing: yaoCode 數值 mod 384 + 1
+	//   GuanYin/GuanDi: (birthdayDigitSum + divinationTimeDigitSum) mod 100 + 1
+	// 相依性：KongMing_Oracle, GuanYin_Oracle, GuanDi_Oracle
+	// =============================================================================
+
+	result = Map();
+	result.put("found", false);
+	result.put("system", system);
+
+	signNum = 0;
+
+	if(system == "KongMing")
+	{
+		// ── 孔明：以爻碼數值 mod 384 + 1 ──
+		yaoNumeric = 0;
+		try
+		{
+			yaoNumeric = yaoCode.toLong();
+		}
+		catch (e)
+		{
+			// 無法轉數字時，使用字元碼總和
+			charSum = 0;
+			yaoChars = yaoCode.toList();
+			for each  ch in yaoChars
+			{
+				charCode = ch.toNumber();
+				if(charCode != null)
+				{
+					charSum = charSum + charCode;
+				}
+			}
+			yaoNumeric = charSum;
+		}
+		// 確保正數
+		if(yaoNumeric < 0)
+		{
+			yaoNumeric = yaoNumeric * -1;
+		}
+		signNum = (yaoNumeric % 384).toInt() + 1;
+	}
+	else
+	{
+		// ── 觀音/關帝：(birthdayDigitSum + divinationTimeDigitSum) mod 100 + 1 ──
+		birthdayDigitSum = 0;
+		if(birthday != null)
+		{
+			bdChars = birthday.toList();
+			for each  c in bdChars
+			{
+				try
+				{
+					digitVal = c.toLong();
+					birthdayDigitSum = birthdayDigitSum + digitVal;
+				}
+				catch (e)
+				{
+					// 非數字字元（如 '-'），跳過
+				}
+			}
+		}
+
+		divinationTimeDigitSum = 0;
+		if(divinationTime != null)
+		{
+			dtChars = divinationTime.toList();
+			for each  c in dtChars
+			{
+				try
+				{
+					digitVal = c.toLong();
+					divinationTimeDigitSum = divinationTimeDigitSum + digitVal;
+				}
+				catch (e)
+				{
+					// 非數字字元（如 '-', ':', ' '），跳過
+				}
+			}
+		}
+
+		totalSum = birthdayDigitSum + divinationTimeDigitSum;
+		signNum = (totalSum % 100).toInt() + 1;
+	}
+
+	result.put("sign_order_num", signNum);
+
+	// ── 查詢對應的籤詩表 ──
+	if(system == "KongMing")
+	{
+		records = KongMing_Oracle[Sign_Order_Num == signNum];
+		for each  rec in records
+		{
+			result.put("found", true);
+			result.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+			result.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+			result.put("Palace", if(rec.Palace != null, rec.Palace.toString(), ""));
+			result.put("Current_Hexagram", if(rec.Current_Hexagram != null, rec.Current_Hexagram.toString(), ""));
+			result.put("Change_Trigger", if(rec.Change_Trigger != null, rec.Change_Trigger.toString(), ""));
+			result.put("Changed_Hexagram", if(rec.Changed_Hexagram != null, rec.Changed_Hexagram.toString(), ""));
+			result.put("Fortune_Category", if(rec.Fortune_Category != null, rec.Fortune_Category.toString(), ""));
+			result.put("Five_Elements", if(rec.Five_Elements != null, rec.Five_Elements.toString(), ""));
+			result.put("Symbol_1", if(rec.Symbol_1 != null, rec.Symbol_1.toString(), ""));
+			result.put("Symbol_2", if(rec.Symbol_2 != null, rec.Symbol_2.toString(), ""));
+			result.put("Symbol_3", if(rec.Symbol_3 != null, rec.Symbol_3.toString(), ""));
+			result.put("Symbol_4", if(rec.Symbol_4 != null, rec.Symbol_4.toString(), ""));
+			result.put("Symbol_5", if(rec.Symbol_5 != null, rec.Symbol_5.toString(), ""));
+			result.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+			result.put("Interpretation", if(rec.Interpretation != null, rec.Interpretation.toString(), ""));
+			break;
+		}
+	}
+	else if(system == "GuanYin")
+	{
+		records = GuanYin_Oracle[Sign_Order_Num == signNum];
+		for each  rec in records
+		{
+			result.put("found", true);
+			result.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+			result.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+			result.put("Poem_Title", if(rec.Poem_Title != null, rec.Poem_Title.toString(), ""));
+			result.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+			result.put("Holy_Meaning", if(rec.Holy_Meaning != null, rec.Holy_Meaning.toString(), ""));
+			result.put("Sign_Interpretation", if(rec.Sign_Interpretation != null, rec.Sign_Interpretation.toString(), ""));
+			result.put("Divine_Guidance", if(rec.Divine_Guidance != null, rec.Divine_Guidance.toString(), ""));
+			result.put("Allusion", if(rec.Allusion != null, rec.Allusion.toString(), ""));
+			break;
+		}
+	}
+	else if(system == "GuanDi")
+	{
+		records = GuanDi_Oracle[Sign_Order_Num == signNum];
+		for each  rec in records
+		{
+			result.put("found", true);
+			result.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+			result.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+			result.put("Poem_Title", if(rec.Poem_Title != null, rec.Poem_Title.toString(), ""));
+			result.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+			result.put("Holy_Meaning", if(rec.Holy_Meaning != null, rec.Holy_Meaning.toString(), ""));
+			result.put("Sign_Interpretation", if(rec.Sign_Interpretation != null, rec.Sign_Interpretation.toString(), ""));
+			result.put("Meaning_Explanation", if(rec.Meaning_Explanation != null, rec.Meaning_Explanation.toString(), ""));
+			result.put("Detailed_Explanation", if(rec.Detailed_Explanation != null, rec.Detailed_Explanation.toString(), ""));
+			result.put("DongPo_Commentary", if(rec.DongPo_Commentary != null, rec.DongPo_Commentary.toString(), ""));
+			result.put("BiXian_Commentary", if(rec.BiXian_Commentary != null, rec.BiXian_Commentary.toString(), ""));
+			break;
+		}
+	}
+
+	return result;
+}

@@ -1,0 +1,158 @@
+string Oracle.buildPromptContext(map oracleResult)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.buildPromptContext
+	// 函數用途：將籤詩查詢結果格式化為 LLM prompt 片段
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   將 Oracle.selectSign 回傳的 map 組裝為 LLM prompt context 文字，
+	//   依據不同籤詩系統使用對應模板（A/B/C）。
+	//   含截斷控制：Interpretation 前 200 字、Allusion 前 150 字。
+	// 參數說明：
+	//   - oracleResult (map): Oracle.selectSign 回傳的籤詩記錄 map
+	// 回傳格式：string - LLM prompt 注入文字；查無資料時回傳空字串
+	// 相依性：Oracle.selectSign
+	// =============================================================================
+
+	if(oracleResult == null)
+	{
+		return "";
+	}
+
+	isFound = oracleResult.get("found");
+	if(isFound == null || isFound == false)
+	{
+		return "";
+	}
+
+	system = if(oracleResult.get("system") != null, oracleResult.get("system").toString(), "");
+	promptText = "";
+
+	if(system == "KongMing")
+	{
+		// ── 模板 A：孔明大易神術 ──
+		signOrder = if(oracleResult.get("Sign_Order") != null, oracleResult.get("Sign_Order").toString(), "");
+		fortuneLevel = if(oracleResult.get("Fortune_Level") != null, oracleResult.get("Fortune_Level").toString(), "");
+		palace = if(oracleResult.get("Palace") != null, oracleResult.get("Palace").toString(), "");
+		currentHexagram = if(oracleResult.get("Current_Hexagram") != null, oracleResult.get("Current_Hexagram").toString(), "");
+		changedHexagram = if(oracleResult.get("Changed_Hexagram") != null, oracleResult.get("Changed_Hexagram").toString(), "");
+		fiveElements = if(oracleResult.get("Five_Elements") != null, oracleResult.get("Five_Elements").toString(), "");
+		fortuneCategory = if(oracleResult.get("Fortune_Category") != null, oracleResult.get("Fortune_Category").toString(), "");
+		symbol1 = if(oracleResult.get("Symbol_1") != null, oracleResult.get("Symbol_1").toString(), "");
+		symbol2 = if(oracleResult.get("Symbol_2") != null, oracleResult.get("Symbol_2").toString(), "");
+		symbol3 = if(oracleResult.get("Symbol_3") != null, oracleResult.get("Symbol_3").toString(), "");
+		symbol4 = if(oracleResult.get("Symbol_4") != null, oracleResult.get("Symbol_4").toString(), "");
+		symbol5 = if(oracleResult.get("Symbol_5") != null, oracleResult.get("Symbol_5").toString(), "");
+		poemText = if(oracleResult.get("Poem_Text") != null, oracleResult.get("Poem_Text").toString(), "");
+		interpretation = if(oracleResult.get("Interpretation") != null, oracleResult.get("Interpretation").toString(), "");
+
+		// 截斷：Interpretation 前 200 字
+		if(interpretation.length() > 200)
+		{
+			interpretation = interpretation.subString(0, 200) + "...";
+		}
+
+		promptText = "【籤詩輔助參考 — 孔明大易神術】\n";
+		promptText = promptText + "以下古籤詩與你的易經卦象同源（皆出自易經體系），僅作為解讀的文化補充與靈感素材。\n";
+		promptText = promptText + "不需逐字翻譯，但應自然融入你的解讀中，讓使用者感受到古人智慧的印證。\n\n";
+		promptText = promptText + "籤序：" + signOrder + "（" + fortuneLevel + "）\n";
+		promptText = promptText + "本位：" + palace + "宮 ｜ 現爻：" + currentHexagram + " ｜ 變爻：" + changedHexagram + "\n";
+		promptText = promptText + "五行：" + fiveElements + " ｜ 吉凶：" + fortuneCategory + "\n";
+		promptText = promptText + "符令五行序列：" + symbol1 + " → " + symbol2 + " → " + symbol3 + " → " + symbol4 + " → " + symbol5 + "\n\n";
+		promptText = promptText + "籤文：\n" + poemText + "\n\n";
+		promptText = promptText + "籤解（摘要）：\n" + interpretation + "\n\n";
+		promptText = promptText + "整合要求：\n";
+		promptText = promptText + "1. 在你的解讀中引用此籤文的意境，但以易經卦象為主體\n";
+		promptText = promptText + "2. 若此籤的吉凶與卦象一致，可用「古籤亦云…」語氣強化\n";
+		promptText = promptText + "3. 若此籤的吉凶與卦象矛盾，應解讀為「不同角度的提醒」，例如：\n";
+		promptText = promptText + "   「卦象雖示吉兆，但古籤提醒我們仍需留意…」\n";
+		promptText = promptText + "4. 在回覆最後，請附上以下格式的籤文明示區塊（一字不改）：\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━\n";
+		promptText = promptText + "🏮 孔明大易神術・" + signOrder + "・" + fortuneLevel + "\n";
+		promptText = promptText + "「" + poemText + "」\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━";
+	}
+	else if(system == "GuanYin")
+	{
+		// ── 模板 B：觀音靈籤 ──
+		signOrder = if(oracleResult.get("Sign_Order") != null, oracleResult.get("Sign_Order").toString(), "");
+		fortuneLevel = if(oracleResult.get("Fortune_Level") != null, oracleResult.get("Fortune_Level").toString(), "");
+		poemTitle = if(oracleResult.get("Poem_Title") != null, oracleResult.get("Poem_Title").toString(), "");
+		poemText = if(oracleResult.get("Poem_Text") != null, oracleResult.get("Poem_Text").toString(), "");
+		holyMeaning = if(oracleResult.get("Holy_Meaning") != null, oracleResult.get("Holy_Meaning").toString(), "");
+		signInterpretation = if(oracleResult.get("Sign_Interpretation") != null, oracleResult.get("Sign_Interpretation").toString(), "");
+		divineGuidance = if(oracleResult.get("Divine_Guidance") != null, oracleResult.get("Divine_Guidance").toString(), "");
+		allusion = if(oracleResult.get("Allusion") != null, oracleResult.get("Allusion").toString(), "");
+
+		// 截斷：Allusion 前 150 字
+		if(allusion.length() > 150)
+		{
+			allusion = allusion.subString(0, 150) + "...";
+		}
+
+		promptText = "【籤詩輔助參考 — 觀音靈籤】\n";
+		promptText = promptText + "以下觀音靈籤僅作為解讀的文化補充。觀音靈籤側重人生際遇與處世態度，\n";
+		promptText = promptText + "可為你的易經/塔羅解讀提供更具人情味的視角。\n\n";
+		promptText = promptText + "籤序：" + signOrder + "（" + fortuneLevel + "）\n";
+		promptText = promptText + "籤詩標題：" + poemTitle + "\n\n";
+		promptText = promptText + "籤文：\n" + poemText + "\n\n";
+		promptText = promptText + "聖意：" + holyMeaning + "\n";
+		promptText = promptText + "籤解：" + signInterpretation + "\n\n";
+		promptText = promptText + "仙機（分項參考）：\n" + divineGuidance + "\n\n";
+		promptText = promptText + "典故：\n" + allusion + "\n\n";
+		promptText = promptText + "整合要求：\n";
+		promptText = promptText + "1. 以易經/塔羅為主體，觀音靈籤為「古人智慧的另一面鏡子」\n";
+		promptText = promptText + "2. 仙機中的分項判斷（婚姻、疾病、求財等）可對應使用者問題類型，擇相關項目引用\n";
+		promptText = promptText + "3. 典故可簡化為一句話帶過，增加故事感（例：「正如古時" + poemTitle + "的故事…」）\n";
+		promptText = promptText + "4. 若吉凶矛盾：「觀音菩薩從慈悲角度另有提醒…」\n";
+		promptText = promptText + "5. 回覆最後附上籤文明示區塊：\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━\n";
+		promptText = promptText + "🏮 觀音靈籤・" + signOrder + "・" + fortuneLevel + "\n";
+		promptText = promptText + "「" + poemText + "」\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━";
+	}
+	else if(system == "GuanDi")
+	{
+		// ── 模板 C：關帝靈籤 ──
+		signOrder = if(oracleResult.get("Sign_Order") != null, oracleResult.get("Sign_Order").toString(), "");
+		fortuneLevel = if(oracleResult.get("Fortune_Level") != null, oracleResult.get("Fortune_Level").toString(), "");
+		poemTitle = if(oracleResult.get("Poem_Title") != null, oracleResult.get("Poem_Title").toString(), "");
+		poemText = if(oracleResult.get("Poem_Text") != null, oracleResult.get("Poem_Text").toString(), "");
+		holyMeaning = if(oracleResult.get("Holy_Meaning") != null, oracleResult.get("Holy_Meaning").toString(), "");
+		signInterpretation = if(oracleResult.get("Sign_Interpretation") != null, oracleResult.get("Sign_Interpretation").toString(), "");
+		meaningExplanation = if(oracleResult.get("Meaning_Explanation") != null, oracleResult.get("Meaning_Explanation").toString(), "");
+		dongPoCommentary = if(oracleResult.get("DongPo_Commentary") != null, oracleResult.get("DongPo_Commentary").toString(), "");
+		biXianCommentary = if(oracleResult.get("BiXian_Commentary") != null, oracleResult.get("BiXian_Commentary").toString(), "");
+
+		// 截斷：Meaning_Explanation 前 150 字
+		if(meaningExplanation.length() > 150)
+		{
+			meaningExplanation = meaningExplanation.subString(0, 150) + "...";
+		}
+
+		promptText = "【籤詩輔助參考 — 關帝靈籤】\n";
+		promptText = promptText + "以下關帝靈籤側重忠義正道與決斷力，適合需要勇氣面對的問題。\n";
+		promptText = promptText + "關帝靈籤有多家註解，你可以擇取最貼合使用者情境的角度。\n\n";
+		promptText = promptText + "籤序：" + signOrder + "（" + fortuneLevel + "）\n";
+		promptText = promptText + "籤詩標題：" + poemTitle + "\n\n";
+		promptText = promptText + "籤文：\n" + poemText + "\n\n";
+		promptText = promptText + "聖意：" + holyMeaning + "\n\n";
+		promptText = promptText + "解讀角度（擇一或融合）：\n";
+		promptText = promptText + "- 籤解：" + signInterpretation + "\n";
+		promptText = promptText + "- 白話釋意：" + meaningExplanation + "\n";
+		promptText = promptText + "- 東坡解：" + dongPoCommentary + "\n";
+		promptText = promptText + "- 碧仙注：" + biXianCommentary + "\n\n";
+		promptText = promptText + "整合要求：\n";
+		promptText = promptText + "1. 以易經/塔羅為主體，關帝靈籤為「正氣角度的補充」\n";
+		promptText = promptText + "2. 多家註解中，選最貼合問題的 1–2 個角度引用即可，不需全部列出\n";
+		promptText = promptText + "3. 若吉凶矛盾：「關聖帝君從忠義正道的角度提醒…」\n";
+		promptText = promptText + "4. 回覆最後附上籤文明示區塊：\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━\n";
+		promptText = promptText + "🏮 關帝靈籤・" + signOrder + "・" + fortuneLevel + "\n";
+		promptText = promptText + "「" + poemText + "」\n";
+		promptText = promptText + "━━━━━━━━━━━━━━━━━━";
+	}
+
+	return promptText;
+}

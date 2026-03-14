@@ -1,0 +1,90 @@
+int Oracle.calculateSignByBirthday(string birthday, string system, string divinationDate)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.calculateSignByBirthday
+	// 函數用途：依生日+日期+系統確定性計算籤號（獨立求籤專用）
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   用於 LIFF 獨立求籤場景，以生日數字和、日期數字和、系統種子
+	//   三者相加後取模，產生確定性籤號。
+	//   同人同天同系統必出同籤，但每日換籤、跨系統不同籤。
+	// 參數說明：
+	//   - birthday (string): 生日字串，例如 "1990-05-15"
+	//   - system (string): 籤詩系統（KongMing / GuanYin / GuanDi）
+	//   - divinationDate (string): 占卜日期字串，例如 "2026-03-12"
+	// 回傳格式：int - 籤號（KongMing: 1~384, GuanYin/GuanDi: 1~100）
+	// 演算法（LIFF_ORACLE_STANDALONE_PLAN §3.2）：
+	//   birthdayDigitSum = sum of digits in birthday
+	//   dateDigitSum = sum of digits in divinationDate
+	//   systemSeed: KongMing=7, GuanYin=3, GuanDi=5
+	//   seed = birthdayDigitSum + dateDigitSum + systemSeed
+	//   KongMing: (seed % 384) + 1
+	//   GuanYin/GuanDi: (seed % 100) + 1
+	// 相依性：無
+	// =============================================================================
+
+	// ── 計算 birthdayDigitSum ──
+	birthdayDigitSum = 0;
+	if(birthday != null)
+	{
+		bdChars = birthday.toList();
+		for each  c in bdChars
+		{
+			try
+			{
+				digitVal = c.toLong();
+				birthdayDigitSum = birthdayDigitSum + digitVal;
+			}
+			catch (e)
+			{
+				// 非數字字元（如 '-'），跳過
+			}
+		}
+	}
+
+	// ── 計算 dateDigitSum ──
+	dateDigitSum = 0;
+	if(divinationDate != null)
+	{
+		dtChars = divinationDate.toList();
+		for each  c in dtChars
+		{
+			try
+			{
+				digitVal = c.toLong();
+				dateDigitSum = dateDigitSum + digitVal;
+			}
+			catch (e)
+			{
+				// 非數字字元（如 '-'），跳過
+			}
+		}
+	}
+
+	// ── systemSeed：不同系統不同種子 ──
+	systemSeed = 3;
+	if(system == "KongMing")
+	{
+		systemSeed = 7;
+	}
+	else if(system == "GuanDi")
+	{
+		systemSeed = 5;
+	}
+
+	// ── 計算籤號 ──
+	seed = birthdayDigitSum + dateDigitSum + systemSeed;
+
+	signNum = 0;
+	if(system == "KongMing")
+	{
+		signNum = (seed % 384).toInt() + 1;
+	}
+	else
+	{
+		signNum = (seed % 100).toInt() + 1;
+	}
+
+	return signNum;
+}

@@ -1,0 +1,240 @@
+map Oracle.drawIndependent(string lineUserId, string system)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.drawIndependent
+	// 函數用途：LIFF 獨立求籤主函數
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   獨立求籤完整流程：驗證參數 → 查詢個案（取生日）→ 冷卻檢查
+	//   → 計算籤號 → 查詢籤詩 → 格式化回應 → 寫入 Divination_Logs → 回傳結果。
+	//   不消耗 LLM token，直接回傳固定解籤文字。
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID（需已綁定生日）
+	//   - system (string): 籤詩系統（KongMing / GuanYin / GuanDi）
+	// 回傳格式：map - { success, oracle, cta } 或 { success: false, message }
+	// 相依性：Clients_Report, Divination_Logs, KongMing_Oracle, GuanYin_Oracle,
+	//         GuanDi_Oracle, AIInterpreter.checkCooldownStatus,
+	//         Oracle.calculateSignByBirthday, Oracle.formatOracleResponse
+	// =============================================================================
+
+	result = Map();
+
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：驗證參數
+		// ────────────────────────────────────────────────────────────────────
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			result.put("success", false);
+			result.put("message", "lineUserId 不能為空");
+			return result;
+		}
+
+		if(system == null || system.trim() == "")
+		{
+			result.put("success", false);
+			result.put("message", "system 不能為空");
+			return result;
+		}
+
+		// 驗證系統名稱有效性
+		validSystem = false;
+		if(system == "KongMing" || system == "GuanYin" || system == "GuanDi")
+		{
+			validSystem = true;
+		}
+		if(!validSystem)
+		{
+			result.put("success", false);
+			result.put("message", "無效的籤詩系統，請選擇 KongMing / GuanYin / GuanDi");
+			return result;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：查詢個案，取得生日（L-D3：需已綁定生日）
+		// ────────────────────────────────────────────────────────────────────
+		clientId = "";
+		birthdayStr = "";
+		clientRecords = Clients_Report[Line_User_ID == lineUserId];
+		for each  cr in clientRecords
+		{
+			clientId = cr.ID.toString();
+			if(cr.Date_Of_Birth != null)
+			{
+				birthdayStr = cr.Date_Of_Birth.toString("yyyy-MM-dd");
+			}
+			break;
+		}
+
+		if(clientId == "")
+		{
+			result.put("success", false);
+			result.put("message", "找不到此使用者，請先完成註冊");
+			return result;
+		}
+
+		if(birthdayStr == "")
+		{
+			result.put("success", false);
+			result.put("message", "需先綁定生日");
+			return result;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：冷卻檢查（共用現有機制）
+		// ────────────────────────────────────────────────────────────────────
+		nowTime = zoho.currenttime;
+		cooldownQuestion = "求籤:" + system;
+		cooldownCheck = thisapp.AIInterpreter.checkCooldownStatus(clientId, cooldownQuestion, nowTime);
+
+		if(cooldownCheck != null && cooldownCheck.get("allowed") == false)
+		{
+			result.put("success", true);
+			result.put("blocked", true);
+			result.put("cooldown", true);
+			cooldownMsg = if(cooldownCheck.get("message") != null, cooldownCheck.get("message").toString(), "冷卻中，請稍後再來");
+			result.put("message", cooldownMsg);
+			return result;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：計算籤號
+		// ────────────────────────────────────────────────────────────────────
+		divinationDateStr = nowTime.toString("yyyy-MM-dd");
+		signNum = thisapp.Oracle.calculateSignByBirthday(birthdayStr, system, divinationDateStr);
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：查詢籤詩表
+		// ────────────────────────────────────────────────────────────────────
+		oracleRecord = Map();
+		oracleRecord.put("found", false);
+
+		if(system == "KongMing")
+		{
+			records = KongMing_Oracle[Sign_Order_Num == signNum];
+			for each  rec in records
+			{
+				oracleRecord.put("found", true);
+				oracleRecord.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+				oracleRecord.put("Sign_Order_Num", signNum);
+				oracleRecord.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+				oracleRecord.put("Palace", if(rec.Palace != null, rec.Palace.toString(), ""));
+				oracleRecord.put("Current_Hexagram", if(rec.Current_Hexagram != null, rec.Current_Hexagram.toString(), ""));
+				oracleRecord.put("Changed_Hexagram", if(rec.Changed_Hexagram != null, rec.Changed_Hexagram.toString(), ""));
+				oracleRecord.put("Fortune_Category", if(rec.Fortune_Category != null, rec.Fortune_Category.toString(), ""));
+				oracleRecord.put("Five_Elements", if(rec.Five_Elements != null, rec.Five_Elements.toString(), ""));
+				oracleRecord.put("Symbol_1", if(rec.Symbol_1 != null, rec.Symbol_1.toString(), ""));
+				oracleRecord.put("Symbol_2", if(rec.Symbol_2 != null, rec.Symbol_2.toString(), ""));
+				oracleRecord.put("Symbol_3", if(rec.Symbol_3 != null, rec.Symbol_3.toString(), ""));
+				oracleRecord.put("Symbol_4", if(rec.Symbol_4 != null, rec.Symbol_4.toString(), ""));
+				oracleRecord.put("Symbol_5", if(rec.Symbol_5 != null, rec.Symbol_5.toString(), ""));
+				oracleRecord.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+				oracleRecord.put("Interpretation", if(rec.Interpretation != null, rec.Interpretation.toString(), ""));
+				break;
+			}
+		}
+		else if(system == "GuanYin")
+		{
+			records = GuanYin_Oracle[Sign_Order_Num == signNum];
+			for each  rec in records
+			{
+				oracleRecord.put("found", true);
+				oracleRecord.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+				oracleRecord.put("Sign_Order_Num", signNum);
+				oracleRecord.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+				oracleRecord.put("Poem_Title", if(rec.Poem_Title != null, rec.Poem_Title.toString(), ""));
+				oracleRecord.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+				oracleRecord.put("Holy_Meaning", if(rec.Holy_Meaning != null, rec.Holy_Meaning.toString(), ""));
+				oracleRecord.put("Sign_Interpretation", if(rec.Sign_Interpretation != null, rec.Sign_Interpretation.toString(), ""));
+				oracleRecord.put("Divine_Guidance", if(rec.Divine_Guidance != null, rec.Divine_Guidance.toString(), ""));
+				oracleRecord.put("Allusion", if(rec.Allusion != null, rec.Allusion.toString(), ""));
+				break;
+			}
+		}
+		else if(system == "GuanDi")
+		{
+			records = GuanDi_Oracle[Sign_Order_Num == signNum];
+			for each  rec in records
+			{
+				oracleRecord.put("found", true);
+				oracleRecord.put("Sign_Order", if(rec.Sign_Order != null, rec.Sign_Order.toString(), ""));
+				oracleRecord.put("Sign_Order_Num", signNum);
+				oracleRecord.put("Fortune_Level", if(rec.Fortune_Level != null, rec.Fortune_Level.toString(), ""));
+				oracleRecord.put("Poem_Title", if(rec.Poem_Title != null, rec.Poem_Title.toString(), ""));
+				oracleRecord.put("Poem_Text", if(rec.Poem_Text != null, rec.Poem_Text.toString(), ""));
+				oracleRecord.put("Holy_Meaning", if(rec.Holy_Meaning != null, rec.Holy_Meaning.toString(), ""));
+				oracleRecord.put("Sign_Interpretation", if(rec.Sign_Interpretation != null, rec.Sign_Interpretation.toString(), ""));
+				oracleRecord.put("Meaning_Explanation", if(rec.Meaning_Explanation != null, rec.Meaning_Explanation.toString(), ""));
+				oracleRecord.put("Detailed_Explanation", if(rec.Detailed_Explanation != null, rec.Detailed_Explanation.toString(), ""));
+				oracleRecord.put("DongPo_Commentary", if(rec.DongPo_Commentary != null, rec.DongPo_Commentary.toString(), ""));
+				oracleRecord.put("BiXian_Commentary", if(rec.BiXian_Commentary != null, rec.BiXian_Commentary.toString(), ""));
+				break;
+			}
+		}
+
+		if(oracleRecord.get("found") == false)
+		{
+			result.put("success", false);
+			result.put("message", "查無對應籤詩（籤號：" + signNum + "），請稍後再試");
+			return result;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：格式化回應
+		// ────────────────────────────────────────────────────────────────────
+		oracleResponse = thisapp.Oracle.formatOracleResponse(system, oracleRecord);
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 7：寫入 Divination_Logs
+		// ────────────────────────────────────────────────────────────────────
+		poemTextSnapshot = if(oracleRecord.get("Poem_Text") != null, oracleRecord.get("Poem_Text").toString(), "");
+		fortuneLevelSnapshot = if(oracleRecord.get("Fortune_Level") != null, oracleRecord.get("Fortune_Level").toString(), "");
+
+		newLogId = insert into Divination_Logs
+		[
+			Added_User=zoho.loginuser
+			Client_Link=clientId.toLong()
+			Original_Question=cooldownQuestion
+			Divination_Timestamp=nowTime
+			Divination_Method="籤詩"
+			Oracle_System=system
+			Oracle_Sign_Order=signNum
+			Oracle_Poem_Text=poemTextSnapshot
+			Oracle_Fortune_Level=fortuneLevelSnapshot
+			Status="已提問"
+			Question_Type_AI="其他"
+		];
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 8：組裝最終回應
+		// ────────────────────────────────────────────────────────────────────
+		result.put("success", true);
+		result.put("oracle", oracleResponse);
+
+		// CTA 資訊
+		ctaInfo = Map();
+		/* TODO: 待設定 LIFF URL */
+		ctaInfo.put("full_divination_url", "");
+		ctaInfo.put("talisman_url", null);
+
+		// 孔明籤額外附加符令 CTA
+		if(system == "KongMing")
+		{
+			/* TODO: 待設定符令 CTA URL */
+			ctaInfo.put("talisman_url", "");
+		}
+
+		result.put("cta", ctaInfo);
+
+		return result;
+	}
+	catch (e)
+	{
+		result.put("success", false);
+		result.put("message", "系統錯誤：" + e.toString());
+		return result;
+	}
+	return result;
+}

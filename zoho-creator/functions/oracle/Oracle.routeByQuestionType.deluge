@@ -1,0 +1,48 @@
+string Oracle.routeByQuestionType(string questionType)
+{
+	// =============================================================================
+	// 函數名稱：Oracle.routeByQuestionType
+	// 函數用途：依問題類型選擇對應的籤詩系統
+	// 平台：Zoho Creator
+	// 命名空間：Oracle
+	// 功能描述：
+	//   根據 AIInterpreter.classifyQuestionType 回傳的問題類型，
+	//   路由到對應的籤詩系統（KongMing / GuanYin / GuanDi）。
+	// 參數說明：
+	//   - questionType (string): 問題類型（愛情、婚姻、事業、財運、健康 等）
+	// 回傳格式：string - 籤詩系統名稱
+	// 路由規則：
+	//   事業/財運/考試 → KongMing（孔明大易神術）
+	//   感情/婚姻/人際 → GuanYin（觀音靈籤）
+	//   健康/訴訟/決策 → GuanDi（關帝靈籤）
+	//   一般/旅行/其他/fallback → GuanYin（觀音靈籤）
+	// 相依性：無
+	// =============================================================================
+
+	// 預設為觀音靈籤（fallback）
+	oracleSystem = "GuanYin";
+
+	if(questionType != null)
+	{
+		qt = questionType.trim();
+
+		// 孔明大易神術：事業/財運/考試
+		if(qt == "事業" || qt == "財運" || qt == "考試")
+		{
+			oracleSystem = "KongMing";
+		}
+		// 觀音靈籤：感情/婚姻/人際/愛情
+		else if(qt == "感情" || qt == "婚姻" || qt == "人際" || qt == "愛情")
+		{
+			oracleSystem = "GuanYin";
+		}
+		// 關帝靈籤：健康/訴訟/決策
+		else if(qt == "健康" || qt == "訴訟" || qt == "決策")
+		{
+			oracleSystem = "GuanDi";
+		}
+		// 一般/旅行/其他 → GuanYin（已是預設值）
+	}
+
+	return oracleSystem;
+}
