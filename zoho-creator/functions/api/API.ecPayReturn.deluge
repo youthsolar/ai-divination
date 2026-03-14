@@ -161,7 +161,7 @@ string API.ecPayReturn(map ecpay_params)
 							push_payload.put("lineUserId",line_uid);
 							push_payload.put("merchantTradeNo",merchant_trade_no);
 							push_payload.put("deliveryToken",delivery_token);
-							push_payload.put("deliveryUrl",base_url + "?deliveryToken=" + delivery_token);
+							push_payload.put("deliveryUrl",base_url + "?deliveryToken=" + delivery_token + "&openExternalBrowser=1");
 							notifyHeaders = Map();
 							notifyHeaders.put("Content-Type","application/json");
 							ignore = invokeurl

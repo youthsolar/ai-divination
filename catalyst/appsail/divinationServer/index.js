@@ -375,7 +375,9 @@ app.post('/delivery-content', async (req, res) => {
 
   const result = await callCreatorPOST(GET_TALISMAN_URL, GET_TALISMAN_KEY, { token }, 30000);
   if (result.ok && result.data) {
-    res.json(result.data);
+    // Creator 回傳格式為 { result: {...}, code: 3000 }，需解包 result 層
+    const creatorResult = (result.data.result !== undefined) ? result.data.result : result.data;
+    res.json(creatorResult);
   } else {
     res.json({ ok: false, reason: 'server_error', message: '伺服器錯誤，請稍後再試' });
   }
