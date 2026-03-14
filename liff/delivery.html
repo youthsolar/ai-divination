@@ -329,14 +329,10 @@
     showLoading();
     var token = getDeliveryToken();
 
+    // delivery.html 不需要 LINE 身份驗證，delivery token 本身即為授權憑證
     liff.init({ liffId: LIFF_ID }).then(function() {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
       fetchDelivery(token);
     }).catch(function() {
-      // Even if LIFF init fails, still try to fetch
       fetchDelivery(token);
     });
 
