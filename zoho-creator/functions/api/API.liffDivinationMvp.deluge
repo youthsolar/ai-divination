@@ -212,19 +212,106 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			}
 		}
 
-		// 5) Generate free summary (約300字)
-		prompt = "你是專業占卜師。請依指定占卜方式提供約300字的摘要解讀（繁體中文）。\n" +
+		// 5A) 真正取卦 — 呼叫易經引擎（不論塔羅/易經都取卦，符令需要 Hexagram_Code）
+		hex_code = "";
+		hex_appearance = "";
+		hex_yao_article = "";
+		hex_question_yao = "";
+		talisman_element_1 = "";
+		try
+		{
+			// 取出純日期部分（birthday 格式可能是 "yyyy-MM-dd" 或 "yyyy-MM-dd HH:mm"）
+			birth_str = birthday.trim();
+			if(birth_str.contains(" ")) { birth_str = birth_str.subString(0, birth_str.indexOf(" ")); }
+			iching_result = thisapp.IChing.getDivinationResult(birth_str.toDate("yyyy-MM-dd"));
+			if(iching_result.get("success") == true)
+			{
+				hex_code = if(iching_result.get("yao_code") != null, iching_result.get("yao_code").toString(), "");
+				hex_appearance = if(iching_result.get("appearance") != null, iching_result.get("appearance").toString(), "");
+				hex_yao_article = if(iching_result.get("yao_article") != null, iching_result.get("yao_article").toString(), "");
+				talisman_element_1 = if(iching_result.get("symbol_1") != null, iching_result.get("symbol_1").toString(), "");
+				// 依問題類型選對應爻辭
+				if(selected_question_type == "愛情" || selected_question_type == "婚姻")
+				{
+					hex_question_yao = if(iching_result.get("yao_love") != null, iching_result.get("yao_love").toString(), "");
+				}
+				else if(selected_question_type == "事業" || selected_question_type == "工作")
+				{
+					hex_question_yao = if(iching_result.get("yao_work") != null, iching_result.get("yao_work").toString(), "");
+				}
+				else if(selected_question_type == "學業")
+				{
+					hex_question_yao = if(iching_result.get("yao_study") != null, iching_result.get("yao_study").toString(), "");
+				}
+				else
+				{
+					hex_question_yao = if(iching_result.get("yao_wish") != null, iching_result.get("yao_wish").toString(), "");
+				}
+			}
+		}
+		catch (eHex)
+		{
+			// 取卦失敗不阻斷流程，hex_code 維持空字串，LLM 仍會生成解讀
+			info "易經取卦失敗，跳過：" + eHex;
+		}
+
+		// 5B) 若是塔羅方法，額外抽牌取得牌義
+		tarot_card_summary = "";
+		if(div_method == "塔羅")
+		{
+			try
+			{
+				tarot_spread = thisapp.Tarot.drawRandomSpread();
+				if(tarot_spread != null && tarot_spread.size() > 0)
+				{
+					card_desc_list = List();
+					spread_count = 0;
+					for each card_map in tarot_spread
+					{
+						if(spread_count < 3)
+						{
+							c_meaning = if(card_map.get("Card_Meaning") != null, card_map.get("Card_Meaning").toString(), "");
+							c_orient = if(card_map.get("Is_Reversed") == true, "（逆位）", "（正位）");
+							card_desc_list.add(c_meaning + c_orient);
+							spread_count = spread_count + 1;
+						}
+					}
+					tarot_card_summary = card_desc_list.toString("；");
+				}
+			}
+			catch (eTarot)
+			{
+				info "塔羅抽牌失敗，跳過：" + eTarot;
+			}
+		}
+
+		// 5C) 組合含真實卦象/牌義的占卜 prompt
+		hex_context = "";
+		if(hex_code != "")
+		{
+			hex_context = "【易經卦象】" + hex_appearance + "（爻碼：" + hex_code + "）\n" +
+				"爻辭：" + hex_yao_article + "\n" +
+				if(hex_question_yao != "", "對應指引：" + hex_question_yao + "\n", "");
+		}
+		tarot_context = "";
+		if(tarot_card_summary != "")
+		{
+			tarot_context = "【塔羅主牌牌義】" + tarot_card_summary + "\n";
+		}
+		prompt = "你是專業占卜師（塔羅＋易經）。請依以下真實占卜資訊，提供約300字的摘要解讀（繁體中文）。\n" +
 			"占卜方式：" + div_method + "\n" +
 			"問題類型：" + selected_question_type + "\n" +
 			"使用者國曆生日：" + birthday + "\n" +
-			"問題：" + question + "\n\n" +
-			"請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
+			"問題：" + question + "\n" +
+			hex_context +
+			tarot_context +
+			"\n請包含：1) 目前狀態 2) 主要提醒 3) 一個可執行建議。語氣溫柔但冷靜，不要使用簡體字。";
 		liff_opts = Map();
 		liff_opts.put("max_tokens", 600);
 		liff_opts.put("temperature", 0.7);
 		summary_text = thisapp.LLM.callChat("你是專業占卜師。請用繁體中文回答，語氣溫柔但冷靜，不要使用簡體字。", prompt, liff_opts);
 
-		// 6) Create Divination_Logs record (use DS-defined fields)
+		// 6) Create Divination_Logs record（含 Hexagram_Code，供 Talisman 推薦使用）
 		new_log_id = insert into Divination_Logs
 		[
 			Added_User=zoho.loginuser
@@ -235,16 +322,21 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			Status="已提問"
 			Question_Type_AI=selected_question_type
 			AI_Interpretation=summary_text
+			Hexagram_Code=hex_code
 		];
 
 		api_result.put("success",true);
 		api_result.put("reading_id",new_log_id.toString());
 		api_result.put("summary_text",summary_text);
+		api_result.put("hexagram_code",hex_code);
+		api_result.put("hexagram_appearance",hex_appearance);
 		next_action = Map();
 		next_action.put("kind","offer_unlock");
 		next_action.put("price",360);
 		next_action.put("currency","TWD");
 		next_action.put("cta_label","解鎖完整版/購買符令");
+		next_action.put("talisman_name","改運符令");
+		next_action.put("element",talisman_element_1);
 		api_result.put("next_action",next_action);
 
 		// 6) Push summary to LINE (MVP: text + unlock hint)

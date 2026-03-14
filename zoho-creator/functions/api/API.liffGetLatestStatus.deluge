@@ -73,6 +73,25 @@ map API.liffGetLatestStatus(string lineUserId)
 			result.put("ready", true);
 			result.put("reading_id", latest_log.ID.toString());
 			result.put("summary", summary);
+			// 補回 next_action（含符令元素），供 LIFF 建立訂單時使用
+			talisman_element_val = "";
+			hex_code_val = if(latest_log.Hexagram_Code != null, latest_log.Hexagram_Code.toString(), "");
+			if(hex_code_val != "")
+			{
+				try
+				{
+					i_ching_rec = I_Ching_Form[yao == hex_code_val];
+					if(i_ching_rec != null) { talisman_element_val = if(i_ching_rec.symbol_1 != null, i_ching_rec.symbol_1.toString(), ""); }
+				}
+				catch (eStatus) { }
+			}
+			next_action_status = Map();
+			next_action_status.put("kind", "offer_unlock");
+			next_action_status.put("price", 360);
+			next_action_status.put("currency", "TWD");
+			next_action_status.put("talisman_name", "改運符令");
+			next_action_status.put("element", talisman_element_val);
+			result.put("next_action", next_action_status);
 		}
 	}
 	catch (e)

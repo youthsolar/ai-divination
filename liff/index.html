@@ -883,6 +883,8 @@
     // ===========================================
     var lineUserId = "";
     var divinationLogId = "";
+    var divinationElement = "";   // 由 liffDivinationMvp 回傳（next_action.element）
+    var divinationTalismanName = "改運符令";  // 預設，可被回傳值覆蓋
 
     var selectedTopicKey = null;
     var selectedTopicTitle = "";
@@ -1196,6 +1198,11 @@
             if (d.ready && d.summary) {
               clearInterval(timer);
               divinationLogId = d.reading_id || "";
+              // 儲存符令元素（從 next_action 取得，供後續建立訂單用）
+              if (d.next_action) {
+                divinationElement = d.next_action.element || "";
+                divinationTalismanName = d.next_action.talisman_name || "改運符令";
+              }
               showResult(d.summary);
             } else if (attempts >= maxAttempts) {
               clearInterval(timer);
@@ -1320,6 +1327,10 @@
         }
 
         divinationLogId = data.reading_id || "";
+        if (data.next_action) {
+          divinationElement = data.next_action.element || "";
+          divinationTalismanName = data.next_action.talisman_name || "改運符令";
+        }
         var summary = data.summary_text || "";
         showResult(summary);
 
@@ -1359,8 +1370,8 @@
           email:        fd.email || "",
           phoneNumber:  fd.phone || "",
           divinationId: divinationLogId,
-          talismanName: "改運符令",
-          element:      "",
+          talismanName: divinationTalismanName,
+          element:      divinationElement,
           price:        "360",
           lineUserId:   lineUserId
         })
