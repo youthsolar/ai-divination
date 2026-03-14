@@ -337,6 +337,23 @@ app.get('/pay/:token', (req, res) => {
   if (!entry || Date.now() > entry.expiresAt) {
     return res.status(404).send('<h1>付款連結已過期或不存在</h1>');
   }
+  // Debug: 擷取 ReturnURL 值
+  const hasEcpayNotify = entry.html.includes('ecpay-notify');
+  const hasCatalyst = entry.html.includes('catalystappsail');
+  const hasVercel = entry.html.includes('vercel');
+  const returnUrlMatch = entry.html.match(/ReturnURL[^,}]*/);
+  const debugInfo = {
+    time: new Date().toISOString(),
+    token: req.params.token.slice(0, 8) + '...',
+    returnUrlSnippet: returnUrlMatch ? returnUrlMatch[0].slice(0, 150) : 'NOT FOUND',
+    hasEcpayNotify,
+    hasCatalyst,
+    hasVercel
+  };
+  console.log(`[/pay/:token] debug:`, JSON.stringify(debugInfo));
+  payTokenLog.unshift(debugInfo);
+  if (payTokenLog.length > 10) payTokenLog.pop();
+
   paymentStore.delete(req.params.token); // 一次性使用
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(entry.html);
@@ -451,9 +468,12 @@ app.post('/delivery-push', (req, res) => {
 // 暫存最近的 ECPay 回調記錄（debug 用，最多保留 10 筆）
 const ecpayNotifyLog = [];
 
-// GET /ecpay-debug → 查看最近的 ECPay 回調記錄
+// 暫存 /pay/:token 的 debug log
+const payTokenLog = [];
+
+// GET /ecpay-debug → 查看最近的 ECPay 回調記錄 + pay token log
 app.get('/ecpay-debug', (req, res) => {
-  res.json({ count: ecpayNotifyLog.length, logs: ecpayNotifyLog });
+  res.json({ ecpayNotify: ecpayNotifyLog, payToken: payTokenLog });
 });
 
 app.post('/ecpay-notify', (req, res) => {
