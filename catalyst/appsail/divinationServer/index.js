@@ -373,11 +373,12 @@ app.post('/delivery-content', async (req, res) => {
   const token = (body.token || '').trim();
   if (!token) return res.json({ ok: false, reason: 'missing_token', message: '缺少 Token' });
 
-  const result = await callCreatorPOST(GET_TALISMAN_URL, GET_TALISMAN_KEY, { token }, 30000);
+  // Creator getTalismanByToken 的 map 參數名稱是 payload，需包一層 {"payload":{...}}
+  const result = await callCreatorPOST(GET_TALISMAN_URL, GET_TALISMAN_KEY, { payload: { token } }, 30000);
   if (result.ok && result.data) {
-    // Creator 回傳格式為 { result: {...}, code: 3000 }，需解包 result 層
-    const creatorResult = (result.data.result !== undefined) ? result.data.result : result.data;
-    res.json(creatorResult);
+    // Creator 回傳 { result:{...}, code:3000 }，解包 result 層
+    const inner = (result.data && result.data.result !== undefined) ? result.data.result : result.data;
+    res.json(inner);
   } else {
     res.json({ ok: false, reason: 'server_error', message: '伺服器錯誤，請稍後再試' });
   }
