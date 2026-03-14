@@ -448,12 +448,31 @@ app.post('/delivery-push', (req, res) => {
 // ECPay 付款回調端點（取代 Vercel proxy）
 // ECPay ServerNotify → AppSail → 立即回 "1|OK" → 背景呼叫 Creator ecPayReturn
 // =============================================================================
+// 暫存最近的 ECPay 回調記錄（debug 用，最多保留 10 筆）
+const ecpayNotifyLog = [];
+
+// GET /ecpay-debug → 查看最近的 ECPay 回調記錄
+app.get('/ecpay-debug', (req, res) => {
+  res.json({ count: ecpayNotifyLog.length, logs: ecpayNotifyLog });
+});
+
 app.post('/ecpay-notify', (req, res) => {
   // ECPay 送 application/x-www-form-urlencoded
   const params = req.body || {};
   const merchantTradeNo = params.MerchantTradeNo || '';
   const rtnCode = params.RtnCode || '';
   console.log(`[/ecpay-notify] MerchantTradeNo=${merchantTradeNo} RtnCode=${rtnCode}`);
+
+  // 記錄到 debug log
+  ecpayNotifyLog.unshift({
+    time: new Date().toISOString(),
+    merchantTradeNo,
+    rtnCode,
+    contentType: req.headers['content-type'],
+    bodyKeys: Object.keys(params),
+    bodyPreview: JSON.stringify(params).slice(0, 300)
+  });
+  if (ecpayNotifyLog.length > 10) ecpayNotifyLog.pop();
 
   // 立即回傳 "1|OK"（ECPay 規定格式，純文字）
   res.setHeader('Content-Type', 'text/plain');
