@@ -100,9 +100,15 @@ map Oracle.drawIndependent(string lineUserId, string system)
 		}
 
 		// ────────────────────────────────────────────────────────────────────
-		// 步驟 4：計算籤號
+		// 步驟 4：計算籤號（子時換日：23:00 起算隔天，L-D2）
 		// ────────────────────────────────────────────────────────────────────
-		divinationDateStr = nowTime.toString("yyyy-MM-dd");
+		divinationDate = nowTime;
+		hourNow = nowTime.toString("HH").toLong();
+		if(hourNow >= 23)
+		{
+			divinationDate = nowTime.addDay(1);
+		}
+		divinationDateStr = divinationDate.toString("yyyy-MM-dd");
 		signNum = thisapp.Oracle.calculateSignByBirthday(birthdayStr, system, divinationDateStr);
 
 		// ────────────────────────────────────────────────────────────────────
