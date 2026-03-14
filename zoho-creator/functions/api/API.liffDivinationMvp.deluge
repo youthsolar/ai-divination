@@ -10,13 +10,13 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 	//           - 依 LINE User ID 查找或建立個案（去重：有則更新，無則新建）
 	//           - 寫入 Zoho CRM Leads（以 Email 去重）
 	//           - 冷卻時間檢查（防止重複占卜）
-	//           - 占卜方式自動選擇（感情→塔羅、其他→易經）
-	//           - 生成免費摘要（約 300 字）
-	//           - 建立 Divination_Logs 記錄
-	//           - LINE 推播免費摘要 + 解鎖引導
+	//           - 占卜方式自動選擇（見下方法則）
+	//           - 呼叫完整占卜函數（不自己跑 prompt，委派給法則函數）
+	//           - 補寫 Hexagram_Code 至 Divination_Logs（供符令推薦）
+	//           - LINE 推播免費摘要（含牌陣清單或卦象）+ 解鎖引導
 	// 參數說明：
 	//   - lineUserId (string): LINE 使用者 ID
-	//   - birthday (string): 生日，格式 YYYY-MM-DD
+	//   - birthday (string): 生日，格式 YYYY-MM-DD 或 YYYY-MM-DD HH:mm
 	//   - question (string): 占卜問題
 	//   - lastName (string): 姓氏（V2 新增，可空）
 	//   - firstName (string): 名字（V2 新增，可空）
@@ -26,7 +26,37 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 	//   - topicTitle/subTitle/thirdTitle (string): 三層選題標題（V2 新增，可空）
 	// 回傳格式：map - {success, reading_id, summary_text, next_action, blocked?, cooldown?, ...}
 	// 相依性：Clients_Report, Divination_Logs, AIInterpreter.checkCooldownStatus,
-	//         LLM.callChat, API.linePushText, Zoho CRM (Leads)
+	//         AIInterpreter.getPredictionByQuestionAndBirthday, Tarot.tarotDivinationFunction,
+	//         GuaCalculator.bitToHexagramCode, API.linePushText, Zoho CRM (Leads)
+	//
+	// ============================================================
+	// ★ 占卜方式路由法則（Jeffery 規定，禁止繞過）
+	// ============================================================
+	// 1. 問題分類（由 AIInterpreter.checkCooldownStatus → classifyQuestionType 完成）
+	//    - 愛情 / 婚姻 → 塔羅（Tarot.tarotDivinationFunction）
+	//    - 人際關係（question 含「朋友」「同事」「家人」「關係」等關鍵字）→ 塔羅
+	//    - 其餘所有類型（事業、財運、學業、健康、大方向、抉擇等）→ 易經
+	//
+	// 2. 易經取卦象規則（由 AIInterpreter.getPredictionByQuestionAndBirthday 執行）
+	//    - 起卦時間 = 占卜當下的 now_time（非使用者生日）
+	//    - 含個性線索：八字、星座、生肖、星宿、太歲
+	//    - 語氣自動選擇（四種）：comforting_guardian / clear_direct / poetic_mystic / playful_light
+	//    - Prompt 必含：卦名、上卦象、下卦象、五行、生死論、爻辭總論、爻辭解釋、
+	//                    願望爻、感情爻、事業爻、商業爻、學業爻、旅遊爻、符令圖示
+	//    - 不得自行組 prompt 取代此函數
+	//
+	// 3. 塔羅無視論（由 Tarot.tarotDivinationFunction 執行）
+	//    - 依問題類型取五個牌位意義（Tarot.getPositionMeanings）
+	//    - 抽取五張塔羅牌（Tarot.drawRandomSpread），正逆位隨機
+	//    - 每張牌強化意義：牌名＋元素＋牌義描述＋符令生剋提示
+	//    - 主卦分析（Tarot.determinePrimaryCard）→ 決定符令元素及符令圖
+	//    - AI 解讀由 Flow 觸發（async）或備援 ChatGPT（sync）
+	//    - LINE 推播必須列出全部五張牌名＋正逆位
+	//    - 不得自行抽牌取代此函數
+	//
+	// 4. Hexagram_Code 補寫
+	//    - 不論易經或塔羅，都以 GuaCalculator.bitToHexagramCode(now_time) 取爻碼
+	//    - 占卜完成後補寫至 Divination_Logs.Hexagram_Code（Talisman.getTalismanRecommendation 需要）
 	// =============================================================================
 	api_result = Map();
 	try

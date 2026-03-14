@@ -26,6 +26,30 @@ string AIInterpreter.getPredictionByQuestionAndBirthday(string question, date so
 	//   - Bug #4 修正 — 空 clientId 前置擋回
 	//   - 已從 OpenAI Assistants API v2（Thread-based）遷移至 LLM.callChat（同步）
 	//   - Thread_ID 欄位已棄用（deprecated），不再寫入新記錄
+	//
+	// ============================================================
+	// ★ 易經取卦象規則（Jeffery 規定，禁止繞過）
+	// ============================================================
+	// 1. 起卦時間：solarDateTime = 占卜當下的現在時間（非使用者生日）
+	//    → 呼叫方（liffDivinationMvp）傳入 now_time，不是 birthday
+	// 2. 個性線索（自動讀取，不讓使用者選）：
+	//    - 八字（Full_Bazi）、星座（Zodiac_Signs）、生肖（Earthly_Branches/Chinese_Zodiac）
+	//    - 星宿（Twenty_Eight_Lunar_Mansions）、太歲（Taisui_Conflict_Status）
+	//    - 若已有個性側寫（Personality_Profile > 50 字），優先引用前 200 字
+	// 3. 語氣自動選擇（根據個性線索，不告知使用者）：
+	//    - comforting_guardian：溫柔安撫、給界線、讓人冷靜
+	//    - clear_direct：清晰直白、條列、少形容詞
+	//    - poetic_mystic：有靈性意象但不浮誇、句子短
+	//    - playful_light：輕鬆但不嘲諷、不油、不傷人
+	// 4. Prompt 必含的卦象欄位（缺一不可）：
+	//    - 爻碼（yaoCode）、卦名（appearance）、上/下卦象（up_appearance / down_appearance）
+	//    - 五行（five_elements）、生死論（life_and_death）
+	//    - 爻辭總論（yao_article）、爻辭解釋（yao_comment）
+	//    - 願望爻（yao_wish）、感情爻（yao_love）、事業爻（yao_work）
+	//    - 商業爻（yao_business）、學業爻（yao_study）、旅遊爻（yao_travel）
+	//    - 符令圖示（symbol_1 ~ symbol_5 組合）
+	// 5. 輸出：同步回傳解讀字串 + 自行建立 Divination_Logs 記錄（Method="易經"）
+	//    → 呼叫方不需再建立記錄，只需補寫 Hexagram_Code
 	// =============================================================================
 	finalResult = "";
 	try

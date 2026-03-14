@@ -20,6 +20,27 @@ map Tarot.tarotDivinationFunction(string client_id, string user_question)
 	//         Tarot.drawRandomSpread, Tarot.determinePrimaryCard,
 	//         Flow.triggerTarotFlowProcessor, Divination_Logs 表單, All_Tarot_Cards 表單
 	// 注意：原名 TarotDivinationFunction，已重命名為 camelCase
+	//
+	// ============================================================
+	// ★ 塔羅無視論（Jeffery 規定，禁止繞過）
+	// ============================================================
+	// 1. 牌位意義：依問題類型（classifyQuestionType）呼叫 Tarot.getPositionMeanings
+	//    → 五個牌位各有不同象徵意義（過去/現在/未來/建議/結果 或依類型重組）
+	// 2. 抽牌：Tarot.drawRandomSpread() 抽五張，正逆位由系統時間亂數決定
+	//    → 每張牌回傳：Card_ID, Card_Name, Card_Image, Card_Meaning, Is_Reversed
+	// 3. 強化牌位意義（每張牌皆做）：
+	//    格式：【牌位名稱】：正/逆位 牌名（元素），牌義，描述，符令生剋提示
+	//    → 正位：Outsight_Element + Upright_Talisman
+	//    → 逆位：Reversed_Outsight_Element + Reversed_Talisman（要使用 X 元素來生剋）
+	// 4. 主卦分析：Tarot.determinePrimaryCard(card_ids, reversed_statuses)
+	//    → 決定主卦 ID（primary_card_id）及其正逆位（primary_polarity）
+	//    → 主卦的 Upright_Talisman_Image / Reverse_Talisman_Image 寫入 Divination_Logs
+	// 5. AI 解讀：Flow.triggerTarotFlowProcessor（async）→ 失敗則備援 ChatGPT（sync）
+	//    → Async 時 AI_Interpretation 先寫「AI正在解讀...」，LIFF 輪詢等候
+	// 6. LINE 顯示：外層（liffDivinationMvp）必須列出全部五張牌名＋正逆位
+	//    → 從 Divination_Logs.Card_1_Link ~ Card_5_Link 讀回牌名
+	// 7. 符令元素：取主卦的 Outsight_Element（正位）或 Reversed_Outsight_Element（逆位）
+	//    → 寫入 Talisman_Purchases.element 欄位（不可為空）
 	// =============================================================================
 	// 建立最終回傳的 Map，採用單一出口模式
 	result = Map();
