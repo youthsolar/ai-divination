@@ -54,6 +54,109 @@ const LIFF_STATUS_KEY  = '6bQPVRAGPUu2RxX46hjZpNN6F';
 // LIFF 來源（GitHub Pages）
 const LIFF_ORIGIN = 'https://youthsolar.github.io';
 
+// LINE Messaging API（推播付款按鈕用）
+const LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
+const LINE_CHANNEL_TOKEN = 'Z8xxDDn3v+BNPmyiZ/ZAuJ8/sGH1eFyBpnDsn0OYgS+zQNVkv1wIDf6eDCwQ8K/qkMfK62WGlK/IiaBYXJobgtmiXkcrINzjpCK+at9yXJpedzkiWYiMZi4VQFWvpqhT4Lxs/zWfqSw39L4Ht8pKkAdB04t89/1o/w1cDnyilFU=';
+
+// AppSail 自己的 URL（供 /pay/:token 生成外部連結）
+const APPSAIL_BASE_URL = 'https://divinationserver-10121308063.development.catalystappsail.com';
+
+// 推播 LINE Flex Message 付款按鈕
+function pushLinePaymentButton(lineUserId, paymentToken, amount, merchantTradeNo) {
+  const payUrl = `${APPSAIL_BASE_URL}/pay/${paymentToken}`;
+  const flexMessage = {
+    to: lineUserId,
+    messages: [{
+      type: 'flex',
+      altText: '🏮 您的符令訂單已建立，請點擊付款按鈕完成付款',
+      contents: {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'text',
+            text: '🏮 找風問幸福',
+            color: '#8B4513',
+            weight: 'bold',
+            size: 'sm'
+          }],
+          backgroundColor: '#FFF8DC',
+          paddingAll: '12px'
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '符令訂單已建立',
+              weight: 'bold',
+              size: 'md',
+              color: '#333333'
+            },
+            {
+              type: 'text',
+              text: `金額：NT$${amount}`,
+              size: 'sm',
+              color: '#666666',
+              margin: 'sm'
+            },
+            {
+              type: 'text',
+              text: `訂單：${merchantTradeNo}`,
+              size: 'xxs',
+              color: '#999999',
+              margin: 'xs'
+            }
+          ],
+          paddingAll: '16px'
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'button',
+            action: {
+              type: 'uri',
+              label: '💳 前往付款 NT$' + amount,
+              uri: payUrl
+            },
+            style: 'primary',
+            color: '#C0392B',
+            height: 'sm'
+          }],
+          paddingAll: '12px',
+          backgroundColor: '#FFF8DC'
+        }
+      }
+    }]
+  };
+
+  const body = JSON.stringify(flexMessage);
+  return new Promise((resolve) => {
+    const req = https.request('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}`,
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        console.log(`[LINE push payment] status=${res.statusCode} body=${data}`);
+        resolve({ ok: res.statusCode === 200 });
+      });
+    });
+    req.on('error', (e) => { console.error('[LINE push payment] error:', e.message); resolve({ ok: false }); });
+    req.write(body);
+    req.end();
+  });
+}
+
 // =============================================================================
 // CORS helper（LIFF 端點專用）
 // =============================================================================
@@ -192,15 +295,26 @@ app.post('/liff-order', async (req, res) => {
       // 暫存付款 HTML，給 /pay/:token 端點服務（讓 liff.openWindow 外部瀏覽器開啟）
       const token = crypto.randomBytes(16).toString('hex');
       paymentStore.set(token, { html: inner.data.payment_form, expiresAt: Date.now() + 30 * 60 * 1000 });
+
+      // 推播 LINE Flex Message 付款按鈕（背景執行，不阻塞回應）
+      const lineUserId = body.lineUserId || '';
+      const amount = inner.data.amount || 360;
+      const merchantTradeNo = inner.data.merchant_trade_no || '';
+      if (lineUserId) {
+        pushLinePaymentButton(lineUserId, token, amount, merchantTradeNo)
+          .then(r => console.log(`[/liff-order] LINE push result: ok=${r.ok}`));
+      }
+
       res.json({
         success: true,
-        message: inner.message || '訂單建立成功',
+        message: '訂單建立成功，付款連結已傳送到您的 LINE，請返回對話點擊付款按鈕',
         data: {
           paymentToken:     token,
-          merchantTradeNo:  inner.data.merchant_trade_no,
+          merchantTradeNo:  merchantTradeNo,
           paymentUrl:       inner.data.payment_url,
-          amount:           inner.data.amount,
-          orderId:          inner.data.order_id
+          amount:           amount,
+          orderId:          inner.data.order_id,
+          linePushSent:     !!lineUserId
         }
       });
     } else {
