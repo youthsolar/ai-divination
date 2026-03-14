@@ -29,10 +29,9 @@ string ECPay.generateCheckMacValue(map params, string hashKey, string hashIV)
 		if(value != null)
 		{
 			valueStr = value.toString();
-			if(valueStr != "")
-			{
-				paramString = paramString + key + "=" + valueStr + "&";
-			}
+			// 注意：不可跳過空值！ECPay 回調包含 CustomField1=, StoreID= 等空值欄位
+			// 這些空值欄位也參與 CheckMacValue 計算，跳過會導致驗簽失敗
+			paramString = paramString + key + "=" + valueStr + "&";
 		}
 	}
 	paramString = paramString.substring(0,paramString.length() - 1);
