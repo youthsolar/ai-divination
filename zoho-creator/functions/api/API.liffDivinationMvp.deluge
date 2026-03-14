@@ -89,13 +89,14 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			birth_dt = null;
 			try
 			{
-				birth_dt = birthday.toDate("yyyy-MM-dd");
-				update_map.put("Date_Of_Birth", birth_dt);
+				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"（含時間），先嘗試完整解析
+				birth_dt = birthday.toDate("yyyy-MM-dd HH:mm");
 			}
-			catch (e0)
+			catch (eBdt1)
 			{
-				// birthday parse failed, skip update
+				try { birth_dt = birthday.toDate("yyyy-MM-dd"); } catch (eBdt2) { birth_dt = null; }
 			}
+			if(birth_dt != null) { update_map.put("Date_Of_Birth", birth_dt); }
 			// 用原生 Deluge 語法直接更新（不需要 Connection）
 			for each rec in Clients_Report[ID == client_id.toLong()]
 			{
@@ -114,11 +115,12 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			birth_dt = null;
 			try
 			{
-				birth_dt = birthday.toDate("yyyy-MM-dd");
+				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"（含時間），先嘗試完整解析
+				birth_dt = birthday.toDate("yyyy-MM-dd HH:mm");
 			}
-			catch (e0)
+			catch (eBdt3)
 			{
-				birth_dt = zoho.currenttime;
+				try { birth_dt = birthday.toDate("yyyy-MM-dd"); } catch (eBdt4) { birth_dt = zoho.currenttime; }
 			}
 			display_last = if(v2_lastName != "", v2_lastName, "(LINE)");
 			display_first = if(v2_firstName != "", v2_firstName, "使用者");

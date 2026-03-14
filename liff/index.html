@@ -1151,8 +1151,11 @@
       input.addEventListener("click", handler);
     }
 
-    applyDefaultOnFirstFocus("birthDate", "1990-07-01");
-    applyDefaultOnFirstFocus("birthTime", "12:00");
+    // 頁面載入立刻設預設值（不等 focus），回訪用戶有資料時會被 prefill 覆蓋
+    (function() {
+      var bd = $("birthDate"); if (bd && !bd.value) bd.value = "1990-07-01";
+      var bt = $("birthTime"); if (bt && !bt.value) bt.value = "12:00";
+    })();
 
     // ===========================================
     // Page State Transitions
