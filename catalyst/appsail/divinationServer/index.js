@@ -31,6 +31,8 @@ const app = express();
 app.use(express.json());
 // text/plain 支援：LIFF 用 text/plain 送 JSON 以避免 CORS preflight
 app.use(express.text({ type: 'text/plain' }));
+// ECPay 回調用 application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
 // =============================================================================
 // Creator API 設定
@@ -50,6 +52,10 @@ const LIFF_ORDER_URL   = 'https://www.zohoapis.com/creator/custom/uneedwind/crea
 const LIFF_ORDER_KEY   = 'FrOCmCUszzMjTZOeaDNAwETkA';
 const LIFF_STATUS_URL  = 'https://www.zohoapis.com/creator/custom/uneedwind/liffGetLatestStatus';
 const LIFF_STATUS_KEY  = '6bQPVRAGPUu2RxX46hjZpNN6F';
+
+// ECPay 付款回調 → Creator ecPayReturn
+const ECPAY_RETURN_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/ecPayReturn';
+const ECPAY_RETURN_KEY = '__ECPAY_RETURN_PUBLIC_KEY__'; // TODO: Jeffery 建立 ecPayReturn Custom API 後填入
 
 // LIFF 來源（GitHub Pages）
 const LIFF_ORIGIN = 'https://youthsolar.github.io';
@@ -334,6 +340,38 @@ app.get('/pay/:token', (req, res) => {
   paymentStore.delete(req.params.token); // 一次性使用
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(entry.html);
+});
+
+// =============================================================================
+// ECPay 付款回調端點（取代 Vercel proxy）
+// ECPay ServerNotify → AppSail → 立即回 "1|OK" → 背景呼叫 Creator ecPayReturn
+// =============================================================================
+app.post('/ecpay-notify', (req, res) => {
+  // ECPay 送 application/x-www-form-urlencoded
+  const params = req.body || {};
+  const merchantTradeNo = params.MerchantTradeNo || '';
+  const rtnCode = params.RtnCode || '';
+  console.log(`[/ecpay-notify] MerchantTradeNo=${merchantTradeNo} RtnCode=${rtnCode}`);
+
+  // 立即回傳 "1|OK"（ECPay 規定格式，純文字）
+  res.setHeader('Content-Type', 'text/plain');
+  res.send('1|OK');
+
+  // 背景呼叫 Creator ecPayReturn 處理訂單更新
+  if (ECPAY_RETURN_KEY === '__ECPAY_RETURN_PUBLIC_KEY__') {
+    console.error('[/ecpay-notify] ecPayReturn public key 尚未設定！');
+    return;
+  }
+
+  // 把 ECPay 表單參數轉成 JSON payload 送給 Creator
+  const payload = {};
+  for (const [k, v] of Object.entries(params)) {
+    payload[k] = v;
+  }
+  callCreatorPOST(ECPAY_RETURN_URL, ECPAY_RETURN_KEY, payload, 120000)
+    .then((result) => {
+      console.log(`[/ecpay-notify] ecPayReturn result: ok=${result.ok} data=${JSON.stringify(result.data || result).slice(0, 200)}`);
+    });
 });
 
 // =============================================================================
