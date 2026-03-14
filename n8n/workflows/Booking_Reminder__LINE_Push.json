@@ -1,0 +1,217 @@
+{
+  "name": "Booking Reminder — LINE Push (N-09)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule (Every Hour)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "notes": "每小時執行一次。\n查詢未來 24 小時內的已確認預約，發送 LINE 提醒。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/getUpcomingBookings?publickey=__GET_UPCOMING_BOOKINGS_PUBLIC_KEY__",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Query Upcoming Bookings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "從 Creator 查詢未來 24h 內的預約。\n查詢條件：Status=已確認 AND Booking_DateTime 在 now ~ now+24h。\n回傳：Booking_ID, Line_User_ID, Provider_Name, Service_Name, Booking_DateTime, Reminder_Sent。\n⚠️ 替換 __GET_UPCOMING_BOOKINGS_PUBLIC_KEY__。\n⚠️ 或用 Zoho Creator GET records API + criteria 篩選。"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 篩選尚未發送提醒的預約\nconst bookings = $json.data || $json.bookings || $json || [];\nconst items = Array.isArray(bookings) ? bookings : [];\n\nconst needReminder = items.filter(b => {\n  // 排除已提醒的\n  if (b.Reminder_Sent === true || b.Reminder_Sent === 'true') return false;\n  // 排除沒有 LINE User ID 的\n  if (!b.Line_User_ID) return false;\n  return true;\n});\n\nreturn needReminder.map(b => ({ json: b }));"
+      },
+      "name": "Filter Not Reminded",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ],
+      "notes": "篩選條件：\n- Reminder_Sent != true（尚未提醒）\n- Line_User_ID 非空（可發送 LINE push）"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        300
+      ],
+      "notes": "逐筆發送 LINE 提醒訊息。"
+    },
+    {
+      "parameters": {
+        "url": "https://api.line.me/v2/bot/message/push",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.LINE_CHANNEL_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $json.Line_User_ID }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"預約提醒 📅\\n\\n您好，提醒您明天有一個預約：\\n\\n服務：{{ $json.Service_Name }}\\n老師：{{ $json.Provider_Name }}\\n時間：{{ $json.Booking_DateTime }}\\n\\n請準時出席，如需更改請提前聯繫我們。\\n祝您諮詢順利 🙏\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "LINE Push Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1300,
+        300
+      ],
+      "notes": "發送 LINE push 預約提醒訊息。\n內容包含：服務名稱、老師名稱、預約時間。\n需環境變數：LINE_CHANNEL_ACCESS_TOKEN。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/markBookingReminded?publickey=__MARK_REMINDED_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"booking_id\": \"{{ $json.Booking_ID }}\",\n  \"reminder_sent\": true,\n  \"reminded_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "Mark as Reminded",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1560,
+        300
+      ],
+      "notes": "回寫 Creator 標記已發送提醒。\n更新 Booking_Logs：Reminder_Sent=true, Reminded_At=now。\n避免重複發送提醒。\n⚠️ 替換 __MARK_REMINDED_PUBLIC_KEY__。"
+    }
+  ],
+  "connections": {
+    "Schedule (Every Hour)": {
+      "main": [
+        [
+          {
+            "node": "Query Upcoming Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Upcoming Bookings": {
+      "main": [
+        [
+          {
+            "node": "Filter Not Reminded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Not Reminded": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "LINE Push Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Push Reminder": {
+      "main": [
+        [
+          {
+            "node": "Mark as Reminded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Reminded": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-09: 預約提醒 LINE Push。\n用途：每小時查詢未來 24h 內已確認的預約 → 篩選尚未提醒的 → 逐筆 LINE push 提醒 → 標記已提醒。\n觸發：Schedule（每小時）。\n依賴：Creator C-03 Booking_Logs 已部署。\n⚠️ 替換所有 __PLACEHOLDER__ 值。\n⚠️ 需設定 LINE_CHANNEL_ACCESS_TOKEN 環境變數。"
+  }
+}

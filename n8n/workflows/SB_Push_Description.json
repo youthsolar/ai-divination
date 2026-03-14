@@ -1,0 +1,222 @@
+{
+  "name": "SB Push Description (N-04)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "notes": "手動觸發：人工審核 Service_Catalog 後，將清洗過的描述回寫至 SimplyBook。\n執行前確認 Service_Catalog 有 Sync_Status=pending_sync 且 Source=SimplyBook 的記錄。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/getPendingSyncRecords?publickey=__GET_PENDING_SYNC_PUBLIC_KEY__",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "GET Pending Sync Records",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "從 Creator 取得待回寫記錄。\n查詢條件：Source=SimplyBook AND Sync_Status=pending_sync。\n回傳欄位：Catalog_ID, External_ID, Name, Cleaned_Description, SEO_Title, SEO_Description。\n⚠️ 替換 __GET_PENDING_SYNC_PUBLIC_KEY__。\n⚠️ 或可改用 Zoho Creator GET records API + criteria 篩選。"
+    },
+    {
+      "parameters": {
+        "url": "https://user-api.simplybook.me/login",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"getUserToken\",\n  \"params\": [\"__SB_COMPANY__\", \"__SB_ADMIN_USERNAME__\", \"__SB_ADMIN_PASSWORD__\"],\n  \"id\": 1\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "SB getUserToken (Admin)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        520
+      ],
+      "notes": "取得 SimplyBook Admin API token（寫入用）。\nJSON-RPC getUserToken(company, username, password)。\nAdmin token 才能執行 editEvent 等寫入操作。\n⚠️ 替換 __SB_COMPANY__, __SB_ADMIN_USERNAME__, __SB_ADMIN_PASSWORD__。"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        820,
+        300
+      ],
+      "notes": "逐筆處理待回寫記錄。\n一次處理一筆，避免觸發 SB rate limit（≤5 次/秒）。"
+    },
+    {
+      "parameters": {
+        "url": "https://user-api.simplybook.me/admin",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Company-Login",
+              "value": "__SB_COMPANY__"
+            },
+            {
+              "name": "X-Token",
+              "value": "={{ $('SB getUserToken (Admin)').first().json.result }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"editEvent\",\n  \"params\": [\n    {{ $json.External_ID }},\n    {\n      \"name\": {{ JSON.stringify($json.Name) }},\n      \"description\": {{ JSON.stringify($json.Cleaned_Description) }}\n    }\n  ],\n  \"id\": 1\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "SB editEvent (per record)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1080,
+        300
+      ],
+      "notes": "呼叫 SimplyBook Admin API editEvent (JSON-RPC)。\n回寫清洗後的 Name 和 Cleaned_Description 到 SB。\n⚠️ editEvent 完整參數需對照 SB Admin API 文件確認。\n⚠️ 替換 __SB_COMPANY__。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/updateSyncStatus?publickey=__UPDATE_SYNC_STATUS_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"catalog_id\": \"{{ $json.Catalog_ID }}\",\n  \"sync_status\": \"synced\",\n  \"last_synced_to\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "Update Creator Sync Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1340,
+        300
+      ],
+      "notes": "更新 Creator Service_Catalog：\n- Sync_Status = synced\n- Last_Synced_To = now\n⚠️ 替換 __UPDATE_SYNC_STATUS_PUBLIC_KEY__。"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "GET Pending Sync Records",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SB getUserToken (Admin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pending Sync Records": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "SB editEvent (per record)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB editEvent (per record)": {
+      "main": [
+        [
+          {
+            "node": "Update Creator Sync Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Creator Sync Status": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-04: SimplyBook 描述回寫。\n用途：人工審核 Service_Catalog 後，將 Cleaned_Description 回寫至 SimplyBook editEvent。\n流程：取得 pending_sync 記錄 → SB Admin token → 逐筆 editEvent → 更新 Sync_Status=synced。\n觸發：手動執行。\n依賴：Service_Catalog 有 pending_sync 記錄, SB Admin 憑證 (C-18, C-19)。\n⚠️ 替換所有 __PLACEHOLDER__ 值。"
+  }
+}

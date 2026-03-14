@@ -1,0 +1,212 @@
+{
+  "name": "Catalog SEO Generate (N-08)",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "notes": "手動或排程觸發 SEO 內容生成。\n從 Service_Catalog 取得 Sync_Status=pending 的記錄，用 LLM 批次產出 SEO 欄位。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/getPendingCatalogRecords?publickey=__GET_PENDING_CATALOG_PUBLIC_KEY__",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "GET Pending Catalog Records",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "從 Creator 取得待 SEO 加工的記錄。\n查詢條件：Sync_Status=pending。\n回傳：Catalog_ID, Name, Category, Price, Raw_Description。\n⚠️ 替換 __GET_PENDING_CATALOG_PUBLIC_KEY__。\n⚠️ 或可改用 Zoho Creator GET records API + criteria。"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        780,
+        300
+      ],
+      "notes": "逐筆處理，避免 Anthropic API 並發問題。\n每筆約 500 input + 800 output tokens（Haiku 模型）。"
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "__ANTHROPIC_API_KEY__"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"max_tokens\": 800,\n  \"temperature\": 0.5,\n  \"system\": \"你是專業的 SEO 文案專家。請為以下服務/商品產出 SEO 優化內容。\\n必須使用繁體中文。目標市場：台灣。\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"【原始描述】\\n\" + {{ JSON.stringify($json.Raw_Description || '') }} + \"\\n\\n【服務/商品名稱】\" + {{ JSON.stringify($json.Name || '') }} + \"\\n【分類】\" + {{ JSON.stringify($json.Category || '') }} + \"\\n【價格】NT$\" + {{ $json.Price || 0 }} + \"\\n\\n請產出以下欄位（嚴格 JSON 格式）：\\n{\\n  \\\"seo_title\\\": \\\"SEO 標題（60 字內，含關鍵字）\\\",\\n  \\\"seo_description\\\": \\\"SEO meta description（155 字內，含行動呼籲）\\\",\\n  \\\"seo_keywords\\\": \\\"3-5 個目標關鍵字，逗號分隔\\\",\\n  \\\"og_title\\\": \\\"社群分享標題（40 字內，吸引點擊）\\\",\\n  \\\"og_description\\\": \\\"社群分享描述（80 字內）\\\",\\n  \\\"cleaned_description\\\": \\\"優化後的正式描述（保留原意，提升可讀性和 SEO 友善度）\\\",\\n  \\\"llm_description\\\": \\\"一段式描述，合併目的+功能+適用情境，供 AI 推薦系統使用（100-200 字）\\\"\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "Anthropic Claude (Haiku) SEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1040,
+        300
+      ],
+      "notes": "呼叫 Anthropic Claude API (Haiku) 產出 SEO 欄位。\nPrompt 來自 §7.3。\nmodel: claude-haiku-4-5-20251001, max_tokens: 800, temperature: 0.5\n回傳嚴格 JSON 格式，含 seo_title, seo_description, seo_keywords, og_title, og_description, cleaned_description, llm_description。\n⚠️ 替換 __ANTHROPIC_API_KEY__。"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 解析 Anthropic Claude API JSON 回應\nconst response = $json;\nconst catalog_id = $('SplitInBatches').first().json.Catalog_ID;\n\ntry {\n  const text = response.content[0].text;\n  // 嘗試解析 JSON（可能包含 markdown code block）\n  const jsonStr = text.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  const seoData = JSON.parse(jsonStr);\n\n  return [{\n    json: {\n      catalog_id,\n      seo_title: seoData.seo_title || '',\n      seo_description: seoData.seo_description || '',\n      seo_keywords: seoData.seo_keywords || '',\n      og_title: seoData.og_title || '',\n      og_description: seoData.og_description || '',\n      cleaned_description: seoData.cleaned_description || '',\n      llm_description: seoData.llm_description || '',\n      parse_success: true\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      catalog_id,\n      error: e.message,\n      raw_response: JSON.stringify(response),\n      parse_success: false\n    }\n  }];\n}"
+      },
+      "name": "Parse LLM JSON Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        300
+      ],
+      "notes": "解析 Claude API 回應中的 JSON。\n處理可能的 markdown code block 包裝。\n失敗時記錄 error + raw_response 供除錯。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/updateCatalogSEO?publickey=__UPDATE_CATALOG_SEO_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"catalog_id\": \"{{ $json.catalog_id }}\",\n  \"seo_title\": {{ JSON.stringify($json.seo_title) }},\n  \"seo_description\": {{ JSON.stringify($json.seo_description) }},\n  \"seo_keywords\": {{ JSON.stringify($json.seo_keywords) }},\n  \"og_title\": {{ JSON.stringify($json.og_title) }},\n  \"og_description\": {{ JSON.stringify($json.og_description) }},\n  \"cleaned_description\": {{ JSON.stringify($json.cleaned_description) }},\n  \"llm_description\": {{ JSON.stringify($json.llm_description) }},\n  \"sync_status\": \"draft\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Update Creator SEO Fields",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1560,
+        300
+      ],
+      "notes": "更新 Creator Service_Catalog SEO 欄位：\n- SEO_Title, SEO_Description, SEO_Keywords\n- OG_Title, OG_Description\n- Cleaned_Description, LLM_Description\n- Sync_Status = draft（等待人工審核）\n⚠️ 替換 __UPDATE_CATALOG_SEO_PUBLIC_KEY__。"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "GET Pending Catalog Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pending Catalog Records": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Claude (Haiku) SEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Claude (Haiku) SEO": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM JSON Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM JSON Response": {
+      "main": [
+        [
+          {
+            "node": "Update Creator SEO Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Creator SEO Fields": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-08: Service_Catalog SEO 內容生成。\n用途：批次取得 Sync_Status=pending 的 Service_Catalog 記錄 → 用 Claude Haiku 產出 SEO 欄位 → 更新 Sync_Status=draft 等待人工審核。\n觸發：手動或排程。\nLLM：claude-haiku-4-5-20251001, max_tokens=800, temperature=0.5。\nPrompt 定義見 §7.3。\n依賴：Anthropic API Key, Service_Catalog 有 pending 記錄。\n⚠️ 替換 __ANTHROPIC_API_KEY__, __GET_PENDING_CATALOG_PUBLIC_KEY__, __UPDATE_CATALOG_SEO_PUBLIC_KEY__。"
+  }
+}

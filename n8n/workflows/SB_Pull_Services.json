@@ -1,0 +1,188 @@
+{
+  "name": "SB Pull Services (N-03)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule (Daily 06:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "notes": "每日 06:00 自動拉取 SimplyBook 服務清單。\n也可手動執行。"
+    },
+    {
+      "parameters": {
+        "url": "https://user-api.simplybook.me/login",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"getToken\",\n  \"params\": [\"__SB_COMPANY__\", \"__SB_API_KEY__\"],\n  \"id\": 1\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "SB getToken",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "取得 SimplyBook API token（讀取用）。\nJSON-RPC 2.0 呼叫 getToken(company, api_key)。\nToken 有效期 1 小時。\n⚠️ 替換 __SB_COMPANY__ 和 __SB_API_KEY__。"
+    },
+    {
+      "parameters": {
+        "url": "https://user-api.simplybook.me",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Company-Login",
+              "value": "__SB_COMPANY__"
+            },
+            {
+              "name": "X-Token",
+              "value": "={{ $json.result }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"getEventList\",\n  \"params\": [true],\n  \"id\": 2\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "SB getEventList",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        780,
+        300
+      ],
+      "notes": "呼叫 SimplyBook getEventList (JSON-RPC)。\nX-Token 來自前一步 getToken 的 result。\n回傳所有服務（含名稱、描述、價格、時長、圖片等）。\nRate limit: 5,000 次/天，≤5 次/秒。"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 將 SB getEventList 結果對應到 Creator Service_Catalog 格式\nconst events = $json.result;\nconst mapped = [];\n\nif (events && typeof events === 'object') {\n  for (const [eventId, event] of Object.entries(events)) {\n    mapped.push({\n      Source: 'SimplyBook',\n      External_ID: eventId,\n      Name: event.name || '',\n      Raw_Description: event.description || '',\n      Price: parseFloat(event.price) || 0,\n      Image_URL: event.picture_path ? `https://user-api.simplybook.me${event.picture_path}` : '',\n      Active: event.is_active === '1' || event.is_active === true,\n      Priority_Score: parseInt(event.position) || 0,\n      Specifications: event.duration ? `時長：${event.duration} 分鐘` : ''\n    });\n  }\n}\n\nreturn [{ json: { service_list: mapped, count: mapped.length } }];"
+      },
+      "name": "Map SB to Creator Format",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ],
+      "notes": "欄位對應（§2.2）：\n- id → External_ID\n- name → Name\n- description → Raw_Description\n- price → Price\n- picture_path → Image_URL\n- is_active → Active\n- position → Priority_Score\n- duration → Specifications"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/syncCatalogFromSB?publickey=__SYNC_CATALOG_SB_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ service_list: $json.service_list }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "POST to Creator syncCatalogFromSB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1300,
+        300
+      ],
+      "notes": "呼叫 Creator API.syncCatalogFromSB (C-10)。\n逐筆比對 External_ID → 新增或更新 Service_Catalog。\nSync_Status 設為 pending（等待 LLM SEO 加工）。\n⚠️ 替換 __SYNC_CATALOG_SB_PUBLIC_KEY__。"
+    }
+  ],
+  "connections": {
+    "Schedule (Daily 06:00)": {
+      "main": [
+        [
+          {
+            "node": "SB getToken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB getToken": {
+      "main": [
+        [
+          {
+            "node": "SB getEventList",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB getEventList": {
+      "main": [
+        [
+          {
+            "node": "Map SB to Creator Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map SB to Creator Format": {
+      "main": [
+        [
+          {
+            "node": "POST to Creator syncCatalogFromSB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-03: SimplyBook 服務拉取同步。\n用途：排程或手動從 SimplyBook 拉取所有服務 → 對應欄位 → 推送至 Creator Service_Catalog。\n觸發：每日 06:00 或手動。\n依賴：Creator C-10 API.syncCatalogFromSB 已部署。\n⚠️ 替換 __SB_COMPANY__, __SB_API_KEY__, __SYNC_CATALOG_SB_PUBLIC_KEY__。"
+  }
+}

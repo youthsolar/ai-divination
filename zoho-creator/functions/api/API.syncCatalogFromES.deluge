@@ -1,0 +1,125 @@
+map API.syncCatalogFromES(list productList)
+{
+	// =============================================================================
+	// 函數名稱：API.syncCatalogFromES
+	// 函數用途：接收 n8n 推送的 EasyStore 商品清單，同步至 Service_Catalog
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 編號：C-11
+	// 功能描述：
+	//   - 接收 n8n 從 ES GET /products.json 拉取後推送的商品清單（list of maps）
+	//   - 逐筆比對 External_ID，已存在→更新，不存在→新增
+	//   - 回傳同步統計：{success, synced, created, updated}
+	// 參數說明：
+	//   - productList (list): ES 商品清單，每筆 map 含 id, handle, title,
+	//     body_html, price (from variants[0].price), image_src (from images[0].src), published
+	// 回傳格式：map - {success: boolean, synced: number, created: number, updated: number}
+	// 相依性：Service_Catalog
+	// =============================================================================
+	apiResult = Map();
+	createdCount = 0;
+	updatedCount = 0;
+	syncedCount = 0;
+	try
+	{
+		if(productList == null || productList.size() == 0)
+		{
+			apiResult.put("success", true);
+			apiResult.put("synced", 0);
+			apiResult.put("created", 0);
+			apiResult.put("updated", 0);
+			apiResult.put("message", "productList 為空，無需同步");
+			return apiResult;
+		}
+		/* 逐筆處理 ES 商品 */
+		for each  productItem in productList
+		{
+			/* 欄位提取與對應 */
+			esId = "";
+			if(productItem.get("handle") != null && productItem.get("handle").toString().trim() != "")
+			{
+				esId = productItem.get("handle").toString().trim();
+			}
+			else if(productItem.get("id") != null)
+			{
+				esId = productItem.get("id").toString().trim();
+			}
+			esTitle = if(productItem.get("title") != null, productItem.get("title").toString(), "");
+			esBodyHtml = if(productItem.get("body_html") != null, productItem.get("body_html").toString(), "");
+			/* 價格：從 variants[0].price 取得 */
+			esPrice = 0.0;
+			if(productItem.get("price") != null)
+			{
+				try
+				{
+					esPrice = productItem.get("price").toDecimal();
+				}
+				catch (priceErr)
+				{
+					esPrice = 0.0;
+				}
+			}
+			/* 圖片：從 images[0].src 取得 */
+			esImageSrc = if(productItem.get("image_src") != null, productItem.get("image_src").toString(), "");
+			/* 上架狀態 */
+			esPublished = false;
+			if(productItem.get("published") != null)
+			{
+				publishedVal = productItem.get("published").toString().toLowerCase();
+				esPublished = if(publishedVal == "true" || publishedVal == "1", true, false);
+			}
+			/* TODO: 表尚未建立 — Service_Catalog 查詢與寫入 */
+			/*
+			// --- 查詢是否已存在 ---
+			existingRecords = Service_Catalog[External_ID == esId && Source == "EasyStore"];
+			if(existingRecords.count() > 0)
+			{
+				// 已存在 → 更新
+				for each  existingRec in existingRecords
+				{
+					existingRec.Name = esTitle;
+					existingRec.Raw_Description = esBodyHtml;
+					existingRec.Price = esPrice;
+					existingRec.Image_URL = esImageSrc;
+					existingRec.Active = esPublished;
+					existingRec.Last_Synced_From = zoho.currenttime;
+					break;
+				}
+				updatedCount = updatedCount + 1;
+			}
+			else
+			{
+				// 不存在 → 新增
+				newRec = insert into Service_Catalog
+				[
+					Added_User = zoho.loginuser
+					Source = "EasyStore"
+					External_ID = esId
+					Name = esTitle
+					Raw_Description = esBodyHtml
+					Price = esPrice
+					Image_URL = esImageSrc
+					Active = esPublished
+					Sync_Status = "pending"
+					Last_Synced_From = zoho.currenttime
+				];
+				createdCount = createdCount + 1;
+			}
+			*/
+			syncedCount = syncedCount + 1;
+		}
+		apiResult.put("success", true);
+		apiResult.put("synced", syncedCount);
+		apiResult.put("created", createdCount);
+		apiResult.put("updated", updatedCount);
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "同步失敗：" + e.toString());
+		apiResult.put("synced", syncedCount);
+		apiResult.put("created", createdCount);
+		apiResult.put("updated", updatedCount);
+	}
+	return apiResult;
+}

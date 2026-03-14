@@ -1,0 +1,94 @@
+map API.trackRecommendationClick(string recommendationLogId, string clickedCatalogId)
+{
+	// =============================================================================
+	// 函數名稱：API.trackRecommendationClick
+	// 函數用途：記錄推薦連結點擊事件 (C-09)
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收推薦紀錄 ID 和使用者點擊的目錄項目 ID
+	// - 更新 Recommendation_Logs 的 Clicked_At 和 Clicked_Catalog_ID 欄位
+	// - 由 LIFF 中間頁（redirect.html）或 redirect tracker 呼叫
+	//
+	// 參數說明：
+	// @param recommendationLogId (string) - Recommendation_Logs 記錄 ID
+	// @param clickedCatalogId (string) - 使用者實際點擊的 Service_Catalog 項目 ID
+	//
+	// 回傳格式：
+	// @return (map)
+	//   成功 → {success: true}
+	//   失敗 → {success: false, message: "..."}
+	//
+	// 相依性：
+	// - Recommendation_Logs（更新）— TODO: 表尚未建立
+	// =============================================================================
+
+	apiResult = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：驗證輸入參數
+		// ────────────────────────────────────────────────────────────────────
+		if(recommendationLogId == null || recommendationLogId.trim() == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "recommendationLogId 不能為空");
+			return apiResult;
+		}
+		if(clickedCatalogId == null || clickedCatalogId.trim() == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "clickedCatalogId 不能為空");
+			return apiResult;
+		}
+
+		recommendationLogId = recommendationLogId.trim();
+		clickedCatalogId = clickedCatalogId.trim();
+
+		info "API.trackRecommendationClick: 收到點擊追蹤 - recLogId=" + recommendationLogId + ", catalogId=" + clickedCatalogId;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：查找 Recommendation_Logs 記錄並更新點擊資訊
+		// ────────────────────────────────────────────────────────────────────
+
+		/* TODO: Recommendation_Logs 表尚未建立，以下為預期邏輯 */
+		/*
+		recRecords = Recommendation_Logs[ID == recommendationLogId.toLong()];
+		recordFound = false;
+		for each rec in recRecords
+		{
+			recordFound = true;
+
+			// 更新點擊時間與點擊的目錄項目 ID
+			rec.Clicked_At = zoho.currenttime;
+			rec.Clicked_Catalog_ID = clickedCatalogId;
+
+			info "API.trackRecommendationClick: 已更新 Recommendation_Logs ID=" + recommendationLogId + " - Clicked_At=" + zoho.currenttime.toString() + ", Clicked_Catalog_ID=" + clickedCatalogId;
+			break;
+		}
+
+		if(!recordFound)
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "找不到推薦紀錄 ID=" + recommendationLogId);
+			info "API.trackRecommendationClick: 找不到 Recommendation_Logs ID=" + recommendationLogId;
+			return apiResult;
+		}
+		*/
+		info "API.trackRecommendationClick: [PLACEHOLDER] 預期更新 Recommendation_Logs - ID=" + recommendationLogId + ", Clicked_At=" + zoho.currenttime.toString() + ", Clicked_Catalog_ID=" + clickedCatalogId;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：回傳成功結果
+		// ────────────────────────────────────────────────────────────────────
+		apiResult.put("success", true);
+		return apiResult;
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "系統錯誤：" + e.toString());
+		info "API.trackRecommendationClick: 系統錯誤 - " + e.toString();
+		return apiResult;
+	}
+}

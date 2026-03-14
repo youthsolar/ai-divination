@@ -1,0 +1,137 @@
+{
+  "name": "ES Pull Products (N-06)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule (Daily 06:30)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "notes": "每日 06:30 自動拉取 EasyStore 商品清單。\n排在 SB_Pull_Services (06:00) 之後，避免同時更新 Service_Catalog。\n也可手動執行。"
+    },
+    {
+      "parameters": {
+        "url": "https://__ES_SHOP__/api/3.0/products.json",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "EasyStore-Access-Token",
+              "value": "__ES_ACCESS_TOKEN__"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "GET ES Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "呼叫 EasyStore REST API 取得所有商品。\n認證：OAuth 2.0 token via EasyStore-Access-Token header。\nScope 需求：read_products。\n⚠️ 替換 __ES_SHOP__ (如 winds.easy.co) 和 __ES_ACCESS_TOKEN__。"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 將 EasyStore products 對應到 Creator Service_Catalog 格式\nconst response = $json;\nconst products = response.products || response || [];\nconst mapped = [];\n\nfor (const product of (Array.isArray(products) ? products : [])) {\n  // 取第一個 variant 的價格\n  const variants = product.variants || [];\n  const price = variants.length > 0 ? parseFloat(variants[0].price) || 0 : 0;\n\n  // 取第一張圖片\n  const images = product.images || [];\n  const image_url = images.length > 0 ? (images[0].src || '') : '';\n\n  mapped.push({\n    Source: 'EasyStore',\n    External_ID: product.handle || String(product.id),\n    Name: product.title || '',\n    Raw_Description: product.body_html || '',\n    Price: price,\n    Image_URL: image_url,\n    Active: product.published !== false,\n    Product_URL: product.url || `https://__ES_SHOP__/products/${product.handle}`\n  });\n}\n\nreturn [{ json: { product_list: mapped, count: mapped.length } }];"
+      },
+      "name": "Map ES to Creator Format",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ],
+      "notes": "欄位對應（§2.3）：\n- id/handle → External_ID\n- title → Name\n- body_html → Raw_Description\n- variants[0].price → Price\n- images[0].src → Image_URL\n- published → Active"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/syncCatalogFromES?publickey=__SYNC_CATALOG_ES_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ product_list: $json.product_list }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "POST to Creator syncCatalogFromES",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1040,
+        300
+      ],
+      "notes": "呼叫 Creator API.syncCatalogFromES (C-11)。\n逐筆比對 External_ID → 新增或更新 Service_Catalog (Source=EasyStore)。\nSync_Status 設為 pending（等待 LLM SEO 加工）。\n⚠️ 替換 __SYNC_CATALOG_ES_PUBLIC_KEY__。"
+    }
+  ],
+  "connections": {
+    "Schedule (Daily 06:30)": {
+      "main": [
+        [
+          {
+            "node": "GET ES Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET ES Products": {
+      "main": [
+        [
+          {
+            "node": "Map ES to Creator Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map ES to Creator Format": {
+      "main": [
+        [
+          {
+            "node": "POST to Creator syncCatalogFromES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-06: EasyStore 商品拉取同步。\n用途：排程或手動從 EasyStore 拉取所有商品 → 對應欄位 → 推送至 Creator Service_Catalog。\n觸發：每日 06:30 或手動。\n依賴：Creator C-11 API.syncCatalogFromES 已部署, ES Partner 帳號 + Access Token (C-22)。\n⚠️ 替換 __ES_SHOP__, __ES_ACCESS_TOKEN__, __SYNC_CATALOG_ES_PUBLIC_KEY__。"
+  }
+}

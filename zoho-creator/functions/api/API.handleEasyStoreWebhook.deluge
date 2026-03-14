@@ -1,0 +1,211 @@
+map API.handleEasyStoreWebhook(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.handleEasyStoreWebhook
+	// 函數用途：處理 EasyStore 訂單 Webhook（經由 n8n 轉發） (C-08)
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收 n8n 轉發的 EasyStore 訂單 webhook payload
+	// - 解析訂單資料（order_id, 客戶 email, 金額, 狀態, 商品明細）
+	// - 以 email 匹配 Clients_Report
+	// - 寫入 Product_Orders 訂單紀錄
+	// - 若匹配到的客戶有 Line_User_ID → 可選 LINE 推播通知
+	// - 嘗試更新 Recommendation_Logs 轉換狀態（若有關聯推薦紀錄）
+	//
+	// 參數說明：
+	// @param payload (map) - n8n 轉發的 EasyStore webhook JSON
+	//   - order_id (string): EasyStore 訂單 ID
+	//   - customer_email (string): 客戶 Email
+	//   - order_total (decimal): 訂單總金額
+	//   - order_status (string): 訂單狀態（pending/paid/shipped/completed/cancelled）
+	//   - items (list): 商品明細列表
+	//   - event_type (string): webhook 事件類型（orders/create, orders/paid, orders/fulfilled）
+	//
+	// 回傳格式：
+	// @return (map) - {success: true/false, order_id: "...", message: "..."}
+	//
+	// 相依性：
+	// - Clients_Report（查找）
+	// - Product_Orders（寫入）— TODO: 表尚未建立
+	// - Recommendation_Logs（更新轉換狀態）— TODO: 表尚未建立
+	// - thisapp.API.linePushText（LINE 推播，可選）
+	//
+	// 注意：
+	// - EasyStore webhook 欄位名稱需對照實際 payload 確認
+	// - n8n 工作流 EasyStore_Webhook__Order_Sync.json 負責接收原始 webhook 並轉發至此 API
+	// =============================================================================
+
+	apiResult = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：解析 payload 欄位
+		// ────────────────────────────────────────────────────────────────────
+		if(payload == null)
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "payload 不能為空");
+			return apiResult;
+		}
+
+		orderId = if(payload.containKey("order_id"), payload.get("order_id").toString().trim(), "");
+		customerEmail = if(payload.containKey("customer_email"), payload.get("customer_email").toString().trim(), "");
+		orderTotal = 0.0;
+		if(payload.containKey("order_total") && payload.get("order_total") != null)
+		{
+			try
+			{
+				orderTotal = payload.get("order_total").toDecimal();
+			}
+			catch (numErr)
+			{
+				orderTotal = 0.0;
+			}
+		}
+		orderStatus = if(payload.containKey("order_status"), payload.get("order_status").toString().trim(), "pending");
+		eventType = if(payload.containKey("event_type"), payload.get("event_type").toString().trim(), "");
+
+		// 解析商品明細
+		itemsSummary = "";
+		if(payload.containKey("items") && payload.get("items") != null)
+		{
+			itemsList = payload.get("items");
+			itemNames = List();
+			for each item in itemsList
+			{
+				itemName = if(item.containKey("name"), item.get("name").toString(), "");
+				itemQty = if(item.containKey("quantity"), item.get("quantity").toString(), "1");
+				if(itemName != "")
+				{
+					itemNames.add(itemName + " x" + itemQty);
+				}
+			}
+			itemsSummary = itemNames.toString(",");
+		}
+
+		if(orderId == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "order_id 不能為空");
+			return apiResult;
+		}
+
+		info "API.handleEasyStoreWebhook: 收到訂單 order_id=" + orderId + ", email=" + customerEmail + ", event=" + eventType + ", status=" + orderStatus;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：以 email 匹配 Clients_Report
+		// ────────────────────────────────────────────────────────────────────
+		clientId = "";
+		matchedLineUserId = "";
+
+		if(customerEmail != "" && customerEmail.contains("@"))
+		{
+			emailRecords = Clients_Report[Email == customerEmail];
+			for each c in emailRecords
+			{
+				clientId = c.ID.toString();
+				matchedLineUserId = if(c.Line_User_ID != null, c.Line_User_ID.toString(), "");
+				break;
+			}
+		}
+
+		if(clientId != "")
+		{
+			info "API.handleEasyStoreWebhook: 匹配到 Clients_Report ID=" + clientId + ", lineUserId=" + matchedLineUserId;
+		}
+		else
+		{
+			info "API.handleEasyStoreWebhook: 未匹配到 Clients_Report（email=" + customerEmail + "）";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：寫入 Product_Orders
+		// ────────────────────────────────────────────────────────────────────
+
+		/* TODO: Product_Orders 表尚未建立，以下為預期邏輯 */
+		/*
+		rawJson = payload.toString();
+
+		newOrder = insert into Product_Orders
+		[
+			Added_User=zoho.loginuser
+			EasyStore_Order_ID=orderId
+			Client_Link=if(clientId != "", clientId.toLong(), null)
+			Line_User_ID=matchedLineUserId
+			Customer_Email=customerEmail
+			Order_Total=orderTotal
+			Order_Status=orderStatus
+			Items_Summary=itemsSummary
+			EasyStore_Raw=rawJson
+			Created_At=zoho.currenttime
+		];
+		info "API.handleEasyStoreWebhook: 已寫入 Product_Orders，ID=" + newOrder.toString();
+		*/
+		info "API.handleEasyStoreWebhook: [PLACEHOLDER] 預期寫入 Product_Orders - order_id=" + orderId + ", client_id=" + clientId + ", total=" + orderTotal.toString() + ", items=" + itemsSummary;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：可選 LINE 推播通知
+		//   僅在匹配到客戶且有 Line_User_ID 且為付款完成事件時推播
+		// ────────────────────────────────────────────────────────────────────
+		linePushed = false;
+		if(matchedLineUserId != "" && (eventType == "orders/paid" || orderStatus == "paid"))
+		{
+			try
+			{
+				notifyText = "【訂單付款完成通知】\n\n" + "您的訂單已付款成功！\n" + "訂單編號：" + orderId + "\n" + "訂單金額：NT$" + orderTotal.toString() + "\n" + "商品：" + itemsSummary + "\n\n" + "感謝您的購買，我們會盡快為您出貨。";
+				pushResult = thisapp.API.linePushText(matchedLineUserId, notifyText);
+				linePushed = true;
+				info "API.handleEasyStoreWebhook: LINE push 結果=" + if(pushResult != null, pushResult.toString(), "null");
+			}
+			catch (pushErr)
+			{
+				info "API.handleEasyStoreWebhook: LINE push 失敗 - " + pushErr.toString();
+				// LINE push 失敗不影響主流程
+			}
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：嘗試更新 Recommendation_Logs 轉換狀態
+		//   若此訂單來自推薦導流，更新對應的 Recommendation_Logs
+		// ────────────────────────────────────────────────────────────────────
+
+		/* TODO: Recommendation_Logs 表尚未建立，以下為預期邏輯 */
+		/*
+		// 嘗試以 Line_User_ID 或 client_id 找到最近的未轉換推薦紀錄
+		if(clientId != "")
+		{
+			// 查找最近 7 天內未轉換的推薦紀錄
+			sevenDaysAgo = zoho.currenttime.subDay(7);
+			recentRecs = Recommendation_Logs[Line_User_ID == matchedLineUserId && Converted_At == null && Recommended_At >= sevenDaysAgo];
+			for each rec in recentRecs
+			{
+				rec.Converted_At = zoho.currenttime;
+				rec.Conversion_Type = "product";
+				info "API.handleEasyStoreWebhook: 已更新 Recommendation_Logs 轉換狀態，ID=" + rec.ID.toString();
+				break;
+			}
+		}
+		*/
+		info "API.handleEasyStoreWebhook: [PLACEHOLDER] 預期更新 Recommendation_Logs 轉換狀態 - client_id=" + clientId;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：回傳成功結果
+		// ────────────────────────────────────────────────────────────────────
+		apiResult.put("success", true);
+		apiResult.put("order_id", orderId);
+		apiResult.put("client_id", clientId);
+		apiResult.put("client_matched", if(clientId != "", true, false));
+		apiResult.put("line_pushed", linePushed);
+		apiResult.put("message", "訂單已處理");
+		return apiResult;
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "系統錯誤：" + e.toString());
+		info "API.handleEasyStoreWebhook: 系統錯誤 - " + e.toString();
+		return apiResult;
+	}
+}

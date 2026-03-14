@@ -1,0 +1,130 @@
+map API.syncCatalogFromSB(list serviceList)
+{
+	// =============================================================================
+	// 函數名稱：API.syncCatalogFromSB
+	// 函數用途：接收 n8n 推送的 SimplyBook 服務清單，同步至 Service_Catalog
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 編號：C-10
+	// 功能描述：
+	//   - 接收 n8n 從 SB getEventList 拉取後推送的服務清單（list of maps）
+	//   - 逐筆比對 External_ID，已存在→更新，不存在→新增
+	//   - 回傳同步統計：{success, synced, created, updated}
+	// 參數說明：
+	//   - serviceList (list): SB 服務清單，每筆 map 含 id, name, description,
+	//     duration, price, picture_path, is_active, position
+	// 回傳格式：map - {success: boolean, synced: number, created: number, updated: number}
+	// 相依性：Service_Catalog
+	// =============================================================================
+	apiResult = Map();
+	createdCount = 0;
+	updatedCount = 0;
+	syncedCount = 0;
+	try
+	{
+		if(serviceList == null || serviceList.size() == 0)
+		{
+			apiResult.put("success", true);
+			apiResult.put("synced", 0);
+			apiResult.put("created", 0);
+			apiResult.put("updated", 0);
+			apiResult.put("message", "serviceList 為空，無需同步");
+			return apiResult;
+		}
+		/* 逐筆處理 SB 服務項目 */
+		for each  serviceItem in serviceList
+		{
+			sbId = serviceItem.get("id").toString();
+			sbName = if(serviceItem.get("name") != null, serviceItem.get("name").toString(), "");
+			sbDescription = if(serviceItem.get("description") != null, serviceItem.get("description").toString(), "");
+			sbDuration = if(serviceItem.get("duration") != null, serviceItem.get("duration").toString(), "");
+			sbPrice = 0.0;
+			if(serviceItem.get("price") != null)
+			{
+				try
+				{
+					sbPrice = serviceItem.get("price").toDecimal();
+				}
+				catch (priceErr)
+				{
+					sbPrice = 0.0;
+				}
+			}
+			sbPicturePath = if(serviceItem.get("picture_path") != null, serviceItem.get("picture_path").toString(), "");
+			sbIsActive = false;
+			if(serviceItem.get("is_active") != null)
+			{
+				isActiveVal = serviceItem.get("is_active").toString().toLowerCase();
+				sbIsActive = if(isActiveVal == "true" || isActiveVal == "1", true, false);
+			}
+			sbPosition = 0;
+			if(serviceItem.get("position") != null)
+			{
+				try
+				{
+					sbPosition = serviceItem.get("position").toLong();
+				}
+				catch (posErr)
+				{
+					sbPosition = 0;
+				}
+			}
+			/* TODO: 表尚未建立 — Service_Catalog 查詢與寫入 */
+			/*
+			// --- 查詢是否已存在 ---
+			existingRecords = Service_Catalog[External_ID == sbId && Source == "SimplyBook"];
+			if(existingRecords.count() > 0)
+			{
+				// 已存在 → 更新
+				for each  existingRec in existingRecords
+				{
+					existingRec.Name = sbName;
+					existingRec.Raw_Description = sbDescription;
+					existingRec.Price = sbPrice;
+					existingRec.Image_URL = sbPicturePath;
+					existingRec.Active = sbIsActive;
+					existingRec.Priority_Score = sbPosition;
+					existingRec.Last_Synced_From = zoho.currenttime;
+					existingRec.Specifications = "時長：" + sbDuration + " 分鐘";
+					break;
+				}
+				updatedCount = updatedCount + 1;
+			}
+			else
+			{
+				// 不存在 → 新增
+				newRec = insert into Service_Catalog
+				[
+					Added_User = zoho.loginuser
+					Source = "SimplyBook"
+					External_ID = sbId
+					Name = sbName
+					Raw_Description = sbDescription
+					Price = sbPrice
+					Image_URL = sbPicturePath
+					Active = sbIsActive
+					Priority_Score = sbPosition
+					Specifications = "時長：" + sbDuration + " 分鐘"
+					Sync_Status = "pending"
+					Last_Synced_From = zoho.currenttime
+				];
+				createdCount = createdCount + 1;
+			}
+			*/
+			syncedCount = syncedCount + 1;
+		}
+		apiResult.put("success", true);
+		apiResult.put("synced", syncedCount);
+		apiResult.put("created", createdCount);
+		apiResult.put("updated", updatedCount);
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "同步失敗：" + e.toString());
+		apiResult.put("synced", syncedCount);
+		apiResult.put("created", createdCount);
+		apiResult.put("updated", updatedCount);
+	}
+	return apiResult;
+}

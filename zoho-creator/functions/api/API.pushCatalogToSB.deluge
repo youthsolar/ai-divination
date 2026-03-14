@@ -1,0 +1,149 @@
+map API.pushCatalogToSB(string catalogId)
+{
+	// =============================================================================
+	// 函數名稱：API.pushCatalogToSB
+	// 函數用途：將 Service_Catalog 清洗後的資料回寫至 SimplyBook
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 編號：C-12
+	// 功能描述：
+	//   - 讀取 Service_Catalog 指定記錄
+	//   - 取得 SB Admin API token（JSON-RPC getUserToken）
+	//   - 呼叫 SB editEvent JSON-RPC 回寫 Cleaned_Description
+	//   - 更新 Sync_Status=synced, Last_Synced_To=now
+	// 參數說明：
+	//   - catalogId (string): Service_Catalog 記錄 ID
+	// 回傳格式：map - {success: boolean, sb_response: string}
+	// 相依性：Service_Catalog, SimplyBook Admin API
+	// =============================================================================
+	apiResult = Map();
+	try
+	{
+		if(catalogId == null || catalogId.trim() == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "catalogId 不能為空");
+			return apiResult;
+		}
+		/* TODO: 表尚未建立 — Service_Catalog 讀取 */
+		/*
+		catalogRec = Service_Catalog[ID == catalogId.toLong()];
+		if(catalogRec.count() == 0)
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "找不到 Service_Catalog 記錄：" + catalogId);
+			return apiResult;
+		}
+		catalogRecord = Map();
+		for each  rec in catalogRec
+		{
+			catalogRecord.put("External_ID", rec.External_ID);
+			catalogRecord.put("Name", rec.Name);
+			catalogRecord.put("Cleaned_Description", rec.Cleaned_Description);
+			catalogRecord.put("SEO_Title", rec.SEO_Title);
+			catalogRecord.put("SEO_Description", rec.SEO_Description);
+			catalogRecord.put("Source", rec.Source);
+			break;
+		}
+		if(catalogRecord.get("Source") != "SimplyBook")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "此記錄非 SimplyBook 來源，無法回寫 SB");
+			return apiResult;
+		}
+		*/
+		// --- 模擬讀取（TODO: 表建立後移除） ---
+		catalogRecord = Map();
+		catalogRecord.put("External_ID", "");
+		catalogRecord.put("Name", "");
+		catalogRecord.put("Cleaned_Description", "");
+		catalogRecord.put("SEO_Title", "");
+		catalogRecord.put("SEO_Description", "");
+		/* TODO: SimplyBook App Variables 尚未設定 */
+		// =============================================================
+		// 步驟一：取得 SB Admin API Token（getUserToken）
+		// =============================================================
+		sbCompanyLogin = thisapp.variables.SimplyBook.Company_Login;
+		sbAdminUsername = thisapp.variables.SimplyBook.Admin_Username;
+		sbAdminPassword = thisapp.variables.SimplyBook.Admin_Password;
+		tokenUrl = "https://user-api.simplybook.me/admin/auth";
+		tokenPayload = Map();
+		tokenPayload.put("jsonrpc", "2.0");
+		tokenPayload.put("method", "getUserToken");
+		tokenParams = List();
+		tokenParams.add(sbCompanyLogin);
+		tokenParams.add(sbAdminUsername);
+		tokenParams.add(sbAdminPassword);
+		tokenPayload.put("params", tokenParams);
+		tokenPayload.put("id", 1);
+		tokenHeaders = Map();
+		tokenHeaders.put("Content-Type", "application/json");
+		tokenResponse = invokeurl
+		[
+			url: tokenUrl
+			type: POST
+			parameters: tokenPayload.toString()
+			headers: tokenHeaders
+		];
+		adminToken = "";
+		if(tokenResponse != null)
+		{
+			tokenJson = tokenResponse.toMap();
+			if(tokenJson.get("result") != null)
+			{
+				adminToken = tokenJson.get("result").toString();
+			}
+			else
+			{
+				apiResult.put("success", false);
+				apiResult.put("message", "SB getUserToken 失敗：" + tokenResponse.toString());
+				return apiResult;
+			}
+		}
+		// =============================================================
+		// 步驟二：呼叫 editEvent JSON-RPC
+		// =============================================================
+		eventId = catalogRecord.get("External_ID");
+		editUrl = "https://user-api.simplybook.me/admin";
+		editPayload = Map();
+		editPayload.put("jsonrpc", "2.0");
+		editPayload.put("method", "editEvent");
+		/* editEvent 參數：[event_id, {name, description}] */
+		eventData = Map();
+		eventData.put("name", catalogRecord.get("Name"));
+		eventData.put("description", catalogRecord.get("Cleaned_Description"));
+		editParams = List();
+		editParams.add(eventId);
+		editParams.add(eventData);
+		editPayload.put("params", editParams);
+		editPayload.put("id", 2);
+		editHeaders = Map();
+		editHeaders.put("Content-Type", "application/json");
+		editHeaders.put("X-Company-Login", sbCompanyLogin);
+		editHeaders.put("X-Token", adminToken);
+		editResponse = invokeurl
+		[
+			url: editUrl
+			type: POST
+			parameters: editPayload.toString()
+			headers: editHeaders
+		];
+		/* TODO: 表尚未建立 — 更新 Sync_Status */
+		/*
+		for each  rec in Service_Catalog[ID == catalogId.toLong()]
+		{
+			rec.Sync_Status = "synced";
+			rec.Last_Synced_To = zoho.currenttime;
+			break;
+		}
+		*/
+		apiResult.put("success", true);
+		apiResult.put("sb_response", if(editResponse != null, editResponse.toString(), ""));
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "回寫 SB 失敗：" + e.toString());
+	}
+	return apiResult;
+}

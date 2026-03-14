@@ -1,0 +1,109 @@
+map API.pushCatalogToES(string catalogId)
+{
+	// =============================================================================
+	// 函數名稱：API.pushCatalogToES
+	// 函數用途：將 Service_Catalog 清洗後的資料回寫至 EasyStore
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 編號：C-13
+	// 功能描述：
+	//   - 讀取 Service_Catalog 指定記錄
+	//   - 呼叫 EasyStore REST API PUT /products/{external_id}.json
+	//   - 回寫 title, body_html, meta_title, meta_description
+	//   - 更新 Sync_Status=synced, Last_Synced_To=now
+	// 參數說明：
+	//   - catalogId (string): Service_Catalog 記錄 ID
+	// 回傳格式：map - {success: boolean, es_response: string}
+	// 相依性：Service_Catalog, EasyStore REST API
+	// =============================================================================
+	apiResult = Map();
+	try
+	{
+		if(catalogId == null || catalogId.trim() == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "catalogId 不能為空");
+			return apiResult;
+		}
+		/* TODO: 表尚未建立 — Service_Catalog 讀取 */
+		/*
+		catalogRec = Service_Catalog[ID == catalogId.toLong()];
+		if(catalogRec.count() == 0)
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "找不到 Service_Catalog 記錄：" + catalogId);
+			return apiResult;
+		}
+		catalogRecord = Map();
+		for each  rec in catalogRec
+		{
+			catalogRecord.put("External_ID", rec.External_ID);
+			catalogRecord.put("Name", rec.Name);
+			catalogRecord.put("Cleaned_Description", rec.Cleaned_Description);
+			catalogRecord.put("SEO_Title", rec.SEO_Title);
+			catalogRecord.put("SEO_Description", rec.SEO_Description);
+			catalogRecord.put("Source", rec.Source);
+			break;
+		}
+		if(catalogRecord.get("Source") != "EasyStore")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "此記錄非 EasyStore 來源，無法回寫 ES");
+			return apiResult;
+		}
+		*/
+		// --- 模擬讀取（TODO: 表建立後移除） ---
+		catalogRecord = Map();
+		catalogRecord.put("External_ID", "");
+		catalogRecord.put("Name", "");
+		catalogRecord.put("Cleaned_Description", "");
+		catalogRecord.put("SEO_Title", "");
+		catalogRecord.put("SEO_Description", "");
+		/* TODO: EasyStore App Variables 尚未設定 */
+		// =============================================================
+		// 步驟一：組裝 EasyStore API 請求
+		// =============================================================
+		esShopUrl = thisapp.variables.EasyStore.Shop_URL;
+		esAccessToken = thisapp.variables.EasyStore.Access_Token;
+		externalId = catalogRecord.get("External_ID");
+		esApiUrl = "https://" + esShopUrl + "/api/3.0/products/" + externalId + ".json";
+		/* 組裝 PUT body */
+		productBody = Map();
+		productData = Map();
+		productData.put("title", catalogRecord.get("Name"));
+		productData.put("body_html", catalogRecord.get("Cleaned_Description"));
+		productData.put("meta_title", catalogRecord.get("SEO_Title"));
+		productData.put("meta_description", catalogRecord.get("SEO_Description"));
+		productBody.put("product", productData);
+		// =============================================================
+		// 步驟二：呼叫 EasyStore PUT API
+		// =============================================================
+		esHeaders = Map();
+		esHeaders.put("Content-Type", "application/json");
+		esHeaders.put("EasyStore-Access-Token", esAccessToken);
+		esResponse = invokeurl
+		[
+			url: esApiUrl
+			type: PUT
+			parameters: productBody.toString()
+			headers: esHeaders
+		];
+		/* TODO: 表尚未建立 — 更新 Sync_Status */
+		/*
+		for each  rec in Service_Catalog[ID == catalogId.toLong()]
+		{
+			rec.Sync_Status = "synced";
+			rec.Last_Synced_To = zoho.currenttime;
+			break;
+		}
+		*/
+		apiResult.put("success", true);
+		apiResult.put("es_response", if(esResponse != null, esResponse.toString(), ""));
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "回寫 ES 失敗：" + e.toString());
+	}
+	return apiResult;
+}

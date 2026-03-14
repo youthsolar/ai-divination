@@ -1,0 +1,262 @@
+map API.handleSimplyBookWebhook(map payload)
+{
+	// =============================================================================
+	// 函數名稱：API.handleSimplyBookWebhook
+	// 函數用途：處理 SimplyBook 預約 Webhook（經由 n8n 轉發） (C-07)
+	// 平台：Zoho Creator Custom API
+	// 命名空間：API
+	//
+	// 功能描述：
+	// - 接收 n8n 轉發的 SimplyBook webhook payload
+	// - 解析預約資料（booking_id, 客戶資訊, 服務/老師資訊）
+	// - 查找或建立 Clients_Report（以 line_user_id 優先匹配，其次 email）
+	// - 寫入 Booking_Logs 預約紀錄
+	// - 若客戶有 Line_User_ID，透過 LINE 推播預約確認訊息
+	//
+	// 參數說明：
+	// @param payload (map) - n8n 轉發的 SimplyBook webhook JSON
+	//   - booking_id (string): SimplyBook 預約 ID
+	//   - client_email (string): 客戶 Email
+	//   - client_first_name (string): 客戶名
+	//   - client_last_name (string): 客戶姓
+	//   - client_phone (string): 客戶電話
+	//   - service_id (string): SB 服務 ID
+	//   - service_name (string): SB 服務名稱
+	//   - provider_id (string): SB 老師 ID
+	//   - provider_name (string): SB 老師名稱
+	//   - start_datetime (string): 預約開始時間
+	//   - custom_fields (map): 自訂欄位（含 line_user_id）
+	//
+	// 回傳格式：
+	// @return (map) - {success: true/false, booking_id: "...", message: "..."}
+	//
+	// 相依性：
+	// - Clients_Report（查找/建立）
+	// - Booking_Logs（寫入）— TODO: 表尚未建立
+	// - thisapp.API.linePushText（LINE 推播）
+	//
+	// 注意：
+	// - SB webhook 欄位名稱為「假設值」，需對照 SimplyBook 實際 payload 確認
+	// - n8n 工作流 SimplyBook_Webhook__Booking_Sync.json 負責接收原始 webhook 並轉發至此 API
+	// =============================================================================
+
+	apiResult = Map();
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：解析 payload 欄位
+		//   注意：以下欄位名稱為假設值，需待 n8n 接收 raw payload 後確認真實結構
+		// ────────────────────────────────────────────────────────────────────
+		if(payload == null)
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "payload 不能為空");
+			return apiResult;
+		}
+
+		bookingId = if(payload.containKey("booking_id"), payload.get("booking_id").toString().trim(), "");
+		clientEmail = if(payload.containKey("client_email"), payload.get("client_email").toString().trim(), "");
+		clientFirstName = if(payload.containKey("client_first_name"), payload.get("client_first_name").toString().trim(), "");
+		clientLastName = if(payload.containKey("client_last_name"), payload.get("client_last_name").toString().trim(), "");
+		clientPhone = if(payload.containKey("client_phone"), payload.get("client_phone").toString().trim(), "");
+		serviceId = if(payload.containKey("service_id"), payload.get("service_id").toString().trim(), "");
+		serviceName = if(payload.containKey("service_name"), payload.get("service_name").toString().trim(), "");
+		providerId = if(payload.containKey("provider_id"), payload.get("provider_id").toString().trim(), "");
+		providerName = if(payload.containKey("provider_name"), payload.get("provider_name").toString().trim(), "");
+		startDatetime = if(payload.containKey("start_datetime"), payload.get("start_datetime").toString().trim(), "");
+
+		// 從 custom_fields 取得 line_user_id
+		// 注意：SimplyBook custom_fields 的欄位路徑需對照實際 webhook 結構確認
+		lineUserId = "";
+		if(payload.containKey("custom_fields") && payload.get("custom_fields") != null)
+		{
+			customFields = payload.get("custom_fields");
+			if(customFields.containKey("line_user_id"))
+			{
+				lineUserId = customFields.get("line_user_id").toString().trim();
+			}
+		}
+		// 備用：部分 SB webhook 可能將 line_user_id 放在頂層
+		if(lineUserId == "" && payload.containKey("line_user_id"))
+		{
+			lineUserId = payload.get("line_user_id").toString().trim();
+		}
+
+		if(bookingId == "")
+		{
+			apiResult.put("success", false);
+			apiResult.put("message", "booking_id 不能為空");
+			return apiResult;
+		}
+
+		info "API.handleSimplyBookWebhook: 收到預約 booking_id=" + bookingId + ", email=" + clientEmail + ", lineUserId=" + lineUserId;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：查找或建立 Clients_Report
+		//   匹配優先序：line_user_id > email
+		// ────────────────────────────────────────────────────────────────────
+		clientId = "";
+		matchedLineUserId = lineUserId;
+
+		// 2a) 以 line_user_id 匹配
+		if(lineUserId != "")
+		{
+			clientRecords = Clients_Report[Line_User_ID == lineUserId];
+			for each c in clientRecords
+			{
+				clientId = c.ID.toString();
+				// 更新可能缺少的欄位
+				if(clientEmail != "" && (c.Email == null || c.Email == ""))
+				{
+					c.Email = clientEmail;
+				}
+				if(clientPhone != "" && (c.Phone_Number == null || c.Phone_Number == ""))
+				{
+					c.Phone_Number = clientPhone;
+				}
+				if(clientLastName != "" && clientLastName != "(LINE)")
+				{
+					c.Visitor_Name.last_name = clientLastName;
+				}
+				if(clientFirstName != "" && clientFirstName != "使用者")
+				{
+					c.Visitor_Name.first_name = clientFirstName;
+				}
+				break;
+			}
+		}
+
+		// 2b) line_user_id 無匹配 → 以 email 匹配
+		if(clientId == "" && clientEmail != "" && clientEmail.contains("@"))
+		{
+			emailRecords = Clients_Report[Email == clientEmail];
+			for each c in emailRecords
+			{
+				clientId = c.ID.toString();
+				matchedLineUserId = if(c.Line_User_ID != null, c.Line_User_ID.toString(), "");
+				// 補上 line_user_id（如有）
+				if(lineUserId != "" && (c.Line_User_ID == null || c.Line_User_ID == ""))
+				{
+					c.Line_User_ID = lineUserId;
+					matchedLineUserId = lineUserId;
+				}
+				break;
+			}
+		}
+
+		// 2c) 都無匹配 → 建立新 Clients_Report
+		if(clientId == "")
+		{
+			displayLast = if(clientLastName != "", clientLastName, "(SimplyBook)");
+			displayFirst = if(clientFirstName != "", clientFirstName, "客戶");
+			newClient = insert into Clients_Report
+			[
+				Added_User=zoho.loginuser
+				Client_Type="SimplyBook"
+				Visitor_Name.last_name=displayLast
+				Visitor_Name.first_name=displayFirst
+				Line_User_ID=lineUserId
+				Email=clientEmail
+				Phone_Number=clientPhone
+			];
+			if(newClient != null)
+			{
+				clientId = newClient.toString();
+				info "API.handleSimplyBookWebhook: 新建 Clients_Report，ID=" + clientId;
+			}
+			else
+			{
+				info "API.handleSimplyBookWebhook: 建立 Clients_Report 失敗";
+			}
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：寫入 Booking_Logs
+		// ────────────────────────────────────────────────────────────────────
+
+		/* TODO: Booking_Logs 表尚未建立，以下為預期邏輯 */
+		/*
+		bookingDateTime = null;
+		if(startDatetime != "")
+		{
+			try
+			{
+				bookingDateTime = startDatetime.toDate("yyyy-MM-dd'T'HH:mm:ss");
+			}
+			catch (dtErr)
+			{
+				try
+				{
+					bookingDateTime = startDatetime.toDate("yyyy-MM-dd HH:mm:ss");
+				}
+				catch (dtErr2)
+				{
+					bookingDateTime = zoho.currenttime;
+					info "API.handleSimplyBookWebhook: 日期解析失敗，使用 currenttime - " + startDatetime;
+				}
+			}
+		}
+
+		rawJson = payload.toString();
+
+		newBooking = insert into Booking_Logs
+		[
+			Added_User=zoho.loginuser
+			Booking_ID=bookingId
+			Client_Link=clientId.toLong()
+			Line_User_ID=matchedLineUserId
+			Provider_Name=providerName
+			Provider_ID=providerId
+			Service_Name=serviceName
+			Service_ID=serviceId
+			Booking_DateTime=bookingDateTime
+			Status="待確認"
+			Recommendation_Source="auto_trigger"
+			SimplyBook_Raw=rawJson
+			Created_At=zoho.currenttime
+		];
+		info "API.handleSimplyBookWebhook: 已寫入 Booking_Logs，ID=" + newBooking.toString();
+		*/
+		info "API.handleSimplyBookWebhook: [PLACEHOLDER] 預期寫入 Booking_Logs - booking_id=" + bookingId + ", client_id=" + clientId + ", service=" + serviceName + ", provider=" + providerName;
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：LINE 推播預約確認訊息
+		//   僅在客戶有 Line_User_ID 時推播
+		// ────────────────────────────────────────────────────────────────────
+		if(matchedLineUserId != "")
+		{
+			try
+			{
+				confirmText = "【預約確認通知】\n\n" + "您已成功預約以下服務：\n" + "服務項目：" + serviceName + "\n" + "諮詢老師：" + providerName + "\n" + "預約時間：" + startDatetime + "\n" + "預約編號：" + bookingId + "\n\n" + "如需取消或更改預約，請聯繫客服。";
+				pushResult = thisapp.API.linePushText(matchedLineUserId, confirmText);
+				info "API.handleSimplyBookWebhook: LINE push 結果=" + if(pushResult != null, pushResult.toString(), "null");
+			}
+			catch (pushErr)
+			{
+				info "API.handleSimplyBookWebhook: LINE push 失敗 - " + pushErr.toString();
+				// LINE push 失敗不影響主流程
+			}
+		}
+		else
+		{
+			info "API.handleSimplyBookWebhook: 無 Line_User_ID，跳過 LINE push";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：回傳成功結果
+		// ────────────────────────────────────────────────────────────────────
+		apiResult.put("success", true);
+		apiResult.put("booking_id", bookingId);
+		apiResult.put("client_id", clientId);
+		apiResult.put("line_pushed", if(matchedLineUserId != "", true, false));
+		apiResult.put("message", "預約已處理");
+		return apiResult;
+	}
+	catch (e)
+	{
+		apiResult.put("success", false);
+		apiResult.put("message", "系統錯誤：" + e.toString());
+		info "API.handleSimplyBookWebhook: 系統錯誤 - " + e.toString();
+		return apiResult;
+	}
+}

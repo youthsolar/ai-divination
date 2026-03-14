@@ -1,0 +1,153 @@
+{
+  "name": "SimplyBook Webhook — Booking Sync (N-02)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "simplybook",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "SB Webhook (IN)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "simplybook-booking",
+      "notes": "接收 SimplyBook webhook POST。\n事件類型：new_booking, updated_booking, cancelled_booking, notification\nURL: https://n8n.winds.tw/webhook/simplybook"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 解析 SimplyBook webhook payload\n// 提取 booking_id, client info, service info, provider info, line_user_id\nconst payload = $json;\n\nconst booking_id = payload.booking_id || payload.id || '';\nconst event_type = payload.notification_type || 'new_booking';\n\n// Client info\nconst client_name = (payload.client_name || payload.client_first_name || '') + ' ' + (payload.client_last_name || '');\nconst client_email = payload.client_email || '';\nconst client_phone = payload.client_phone || '';\n\n// Service / Provider\nconst service_id = payload.event_id || payload.service_id || '';\nconst service_name = payload.event_name || payload.service_name || '';\nconst provider_id = payload.unit_id || payload.provider_id || '';\nconst provider_name = payload.unit_name || payload.provider_name || '';\n\n// Booking datetime\nconst booking_datetime = payload.start_date_time || payload.start_date || '';\n\n// Custom field: line_user_id（SimplyBook intake form 自訂欄位）\nconst custom_fields = payload.additional_fields || payload.custom_fields || {};\nconst line_user_id = custom_fields.line_user_id || '';\n\n// Price\nconst price = payload.price || 0;\n\nreturn [{\n  json: {\n    booking_id,\n    event_type,\n    client_name: client_name.trim(),\n    client_email,\n    client_phone,\n    service_id,\n    service_name,\n    provider_id,\n    provider_name,\n    booking_datetime,\n    line_user_id,\n    price,\n    raw_payload: JSON.stringify(payload)\n  }\n}];"
+      },
+      "name": "Parse SB Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "解析 SimplyBook webhook payload。\n⚠️ 欄位名稱需對照 SB 實際 payload 確認（目前部分為假設值）。\n建議先用此 workflow 接收 raw payload 確認真實結構後再調整。\nline_user_id 來自 SB 自訂欄位 custom_field[line_user_id]。"
+    },
+    {
+      "parameters": {
+        "url": "https://www.zohoapis.com/creator/custom/uneedwind/handleSimplyBookWebhook?publickey=__SB_WEBHOOK_PUBLIC_KEY__",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"booking_id\": \"{{ $json.booking_id }}\",\n  \"event_type\": \"{{ $json.event_type }}\",\n  \"client_name\": \"{{ $json.client_name }}\",\n  \"client_email\": \"{{ $json.client_email }}\",\n  \"client_phone\": \"{{ $json.client_phone }}\",\n  \"service_id\": \"{{ $json.service_id }}\",\n  \"service_name\": \"{{ $json.service_name }}\",\n  \"provider_id\": \"{{ $json.provider_id }}\",\n  \"provider_name\": \"{{ $json.provider_name }}\",\n  \"booking_datetime\": \"{{ $json.booking_datetime }}\",\n  \"line_user_id\": \"{{ $json.line_user_id }}\",\n  \"price\": {{ $json.price }},\n  \"raw_payload\": {{ JSON.stringify($json.raw_payload) }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "POST to Creator API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        780,
+        300
+      ],
+      "notes": "呼叫 Creator API.handleSimplyBookWebhook (C-07)。\n功能：查找/建立 Clients_Report → 寫入 Booking_Logs → LINE push 預約確認。\n⚠️ 請將 __SB_WEBHOOK_PUBLIC_KEY__ 替換為實際的 Creator Custom API public key。"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.code }}",
+              "operation": "equals",
+              "value2": "3000"
+            }
+          ]
+        }
+      },
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ],
+      "notes": "檢查 Creator API 回傳是否成功。\nZoho Creator Custom API 成功時 code=3000。"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 記錄錯誤訊息\nconst error = {\n  workflow: 'SimplyBook_Webhook__Booking_Sync',\n  timestamp: new Date().toISOString(),\n  input: $json,\n  message: 'Creator API call failed or returned error'\n};\n\nconsole.error(JSON.stringify(error));\n\nreturn [{ json: error }];"
+      },
+      "name": "Log Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        400
+      ],
+      "notes": "錯誤處理：記錄失敗原因。\n後續可加 retry 邏輯或通知管理員。"
+    }
+  ],
+  "connections": {
+    "SB Webhook (IN)": {
+      "main": [
+        [
+          {
+            "node": "Parse SB Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse SB Payload": {
+      "main": [
+        [
+          {
+            "node": "POST to Creator API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST to Creator API": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "TEMPLATE",
+  "meta": {
+    "templateCreds": true,
+    "description": "N-02: SimplyBook 預約 Webhook 同步。\n用途：接收 SimplyBook webhook（new_booking/updated_booking/cancelled_booking）→ 解析 payload → 轉發至 Creator API.handleSimplyBookWebhook。\n入口：POST /webhook/simplybook\n依賴：Creator C-07 API.handleSimplyBookWebhook 已部署。\n⚠️ 欄位名稱需對照 SB 實際 payload 確認。\n⚠️ 替換 __SB_WEBHOOK_PUBLIC_KEY__。"
+  }
+}

@@ -1,0 +1,170 @@
+map LLM.recommendNextAction(string originalQuestion, string questionType, string freeSummary, map clientHistory, list filteredCatalog)
+{
+	// =============================================================================
+	// 函數名稱：LLM.recommendNextAction
+	// 函數用途：LLM 智慧推薦引擎 — 根據占卜結果推薦最適合的服務/商品 (C-06)
+	// 平台：Zoho Creator
+	// 命名空間：LLM
+	//
+	// 功能描述：
+	// - 核心推薦引擎，使用 Claude Haiku 進行語義比對
+	// - 接收已預篩的 Service_Catalog 項目（由呼叫端以 Target_Question_Types 過濾）
+	// - 組裝 prompt 讓 LLM 比對使用者問題 + 占卜結果 vs 候選項目
+	// - 回傳 1-2 個推薦項目（含推薦理由與急迫程度）
+	// - Fallback：JSON 解析失敗/空結果均回傳 null（由呼叫端退回 offer_unlock）
+	//
+	// 參數說明：
+	// @param originalQuestion (string) - 使用者原始問題（Divination_Logs.Original_Question）
+	// @param questionType (string) - 問題類型（7 類之一：愛情/婚姻/工作/財運/健康/入煞/其他）
+	// @param freeSummary (string) - ~300 字免費摘要
+	// @param clientHistory (map) - 客戶歷史資訊
+	//   - purchase_count (int): 符令購買次數
+	//   - last_divination_days_ago (int): 上次占卜距今天數
+	//   - is_first_time (boolean): 是否為首次使用
+	// @param filteredCatalog (list) - 已篩選的 Service_Catalog 項目列表（Active=true 且包含該問題類型）
+	//   每個項目為 map：{ Catalog_ID, LLM_Description, Price, Name }
+	//
+	// 回傳格式：
+	// @return (map) - 成功時回傳 {recommendations: [{catalog_id, reason, urgency}]}
+	//                 失敗時回傳 null
+	//
+	// 相依性：
+	// - thisapp.LLM.callChat（統一 LLM 呼叫介面）
+	// - Service_Catalog（由呼叫端預篩後傳入 filteredCatalog）
+	// =============================================================================
+
+	try
+	{
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 1：驗證輸入 — 候選目錄不可為空
+		// ────────────────────────────────────────────────────────────────────
+		if(filteredCatalog == null || filteredCatalog.size() == 0)
+		{
+			info "LLM.recommendNextAction: filteredCatalog 為空，回傳 null（退回 offer_unlock）";
+			return null;
+		}
+		if(originalQuestion == null || originalQuestion.trim() == "")
+		{
+			info "LLM.recommendNextAction: originalQuestion 為空，回傳 null";
+			return null;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 2：組裝客戶歷史描述字串
+		// ────────────────────────────────────────────────────────────────────
+		historyDesc = "首次使用";
+		if(clientHistory != null)
+		{
+			isFirstTime = if(clientHistory.containKey("is_first_time"), clientHistory.get("is_first_time"), true);
+			if(isFirstTime == false)
+			{
+				purchaseCount = if(clientHistory.containKey("purchase_count"), clientHistory.get("purchase_count"), 0);
+				lastDivDaysAgo = if(clientHistory.containKey("last_divination_days_ago"), clientHistory.get("last_divination_days_ago"), 0);
+				historyDesc = "曾購買 " + purchaseCount.toString() + " 張符令 / 上次占卜 " + lastDivDaysAgo.toString() + " 天前";
+			}
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 3：組裝候選項目清單（格式：ID:{Catalog_ID} | {LLM_Description} | NT${Price}）
+		// ────────────────────────────────────────────────────────────────────
+		catalogLines = "";
+		for each item in filteredCatalog
+		{
+			catalogId = if(item.containKey("Catalog_ID"), item.get("Catalog_ID").toString(), "");
+			llmDesc = if(item.containKey("LLM_Description"), item.get("LLM_Description").toString(), "");
+			price = if(item.containKey("Price"), item.get("Price").toString(), "0");
+			catalogLines = catalogLines + "ID:" + catalogId + " | " + llmDesc + " | NT$" + price + "\n";
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 4：組裝 System Prompt 與 User Prompt（依 §3.2 設計）
+		// ────────────────────────────────────────────────────────────────────
+		systemPrompt = "你是一位專業的占卜諮詢顧問。根據客戶的問題、占卜結果和個人狀況，從以下服務/商品目錄中推薦最適合的 1-2 個選項。回傳嚴格 JSON 格式，不要包含任何其他文字。";
+
+		userPrompt = "【客戶問題】" + originalQuestion + "\n" + "【問題類型】" + questionType + "\n" + "【占卜結果摘要】" + freeSummary + "\n" + "【客戶歷史】" + historyDesc + "\n\n" + "【可推薦項目】\n" + catalogLines + "\n" + "請推薦最適合此客戶的 1-2 個項目。回傳格式：\n" + "{\n" + "  \"recommendations\": [\n" + "    {\"catalog_id\": \"ID\", \"reason\": \"推薦理由（30字內）\", \"urgency\": \"high|medium|low\"}\n" + "  ]\n" + "}\n\n" + "規則：\n" + "- 優先推薦符令（成本最低、門檻最低），除非問題明顯需要老師諮詢或法器\n" + "- 如果問題涉及「入煞」或「健康」且情況緊急，優先推薦老師諮詢\n" + "- reason 要針對客戶的具體問題，不要泛泛而談\n" + "- urgency 反映客戶問題的急迫程度";
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 5：呼叫 LLM（使用 Haiku 模型，成本優化）
+		// ────────────────────────────────────────────────────────────────────
+		llmOpts = Map();
+		llmOpts.put("model", "claude-haiku-4-5-20251001");
+		llmOpts.put("max_tokens", 300);
+		llmOpts.put("temperature", 0.3);
+
+		info "LLM.recommendNextAction: 呼叫 LLM，候選項目數=" + filteredCatalog.size();
+		llmResponse = thisapp.LLM.callChat(systemPrompt, userPrompt, llmOpts);
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 6：解析 JSON 回應
+		// ────────────────────────────────────────────────────────────────────
+		if(llmResponse == null || llmResponse.trim() == "")
+		{
+			info "LLM.recommendNextAction: LLM 回應為空，回傳 null";
+			return null;
+		}
+
+		// 清理可能的 markdown code block 包裝
+		cleanedResponse = llmResponse.trim();
+		if(cleanedResponse.startsWith("```json"))
+		{
+			cleanedResponse = cleanedResponse.replaceFirst("```json", "").trim();
+		}
+		if(cleanedResponse.startsWith("```"))
+		{
+			cleanedResponse = cleanedResponse.replaceFirst("```", "").trim();
+		}
+		if(cleanedResponse.endsWith("```"))
+		{
+			cleanedResponse = cleanedResponse.subString(0, cleanedResponse.length() - 3).trim();
+		}
+
+		info "LLM.recommendNextAction: LLM 原始回應=" + cleanedResponse;
+
+		// 嘗試解析 JSON
+		resultMap = Map();
+		try
+		{
+			resultMap = cleanedResponse.toMap();
+		}
+		catch (parseErr)
+		{
+			info "LLM.recommendNextAction: JSON 解析失敗 - " + parseErr.toString() + "，回傳 null";
+			return null;
+		}
+
+		// ────────────────────────────────────────────────────────────────────
+		// 步驟 7：驗證回應結構 — 必須包含 recommendations 陣列且不為空
+		// ────────────────────────────────────────────────────────────────────
+		if(!resultMap.containKey("recommendations"))
+		{
+			info "LLM.recommendNextAction: 回應缺少 recommendations 欄位，回傳 null";
+			return null;
+		}
+
+		recommendations = resultMap.get("recommendations");
+		if(recommendations == null || recommendations.size() == 0)
+		{
+			info "LLM.recommendNextAction: recommendations 為空，回傳 null";
+			return null;
+		}
+
+		// 驗證每個推薦項目的必要欄位
+		for each rec in recommendations
+		{
+			if(!rec.containKey("catalog_id") || !rec.containKey("reason") || !rec.containKey("urgency"))
+			{
+				info "LLM.recommendNextAction: 推薦項目缺少必要欄位（catalog_id/reason/urgency），回傳 null";
+				return null;
+			}
+		}
+
+		info "LLM.recommendNextAction: 成功取得 " + recommendations.size() + " 個推薦";
+		return resultMap;
+	}
+	catch (e)
+	{
+		// 任何未預期的錯誤均退回 null（由呼叫端使用 offer_unlock fallback）
+		info "LLM.recommendNextAction: 系統錯誤 - " + e.toString() + "，回傳 null";
+		return null;
+	}
+}
