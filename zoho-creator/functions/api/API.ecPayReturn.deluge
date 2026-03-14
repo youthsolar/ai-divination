@@ -117,6 +117,11 @@ string API.ecPayReturn(map ecpay_params)
 		}
 
 		// 3) 付款成功後通知編排層推播交付連結（Zoho Flow 主線 / n8n 備援）
+		// ⚠️ 【客訴風險】order_rec 在此 try 區塊內設定，若此區塊拋出例外：
+		//    → /delivery-push（LINE 交付連結）不會執行
+		//    → Step 4 的 /paid-divination（LLM 完整解讀）也不會執行
+		//    → 用戶付款後 LINE 完全無通知，但訂單已標記 Paid（靜默失敗）
+		// TODO：重構將 Step 2 的 order 物件直接傳下，避免二次查詢單點故障
 		try
 		{
 			if(new_status == "Paid" && should_notify == true)
