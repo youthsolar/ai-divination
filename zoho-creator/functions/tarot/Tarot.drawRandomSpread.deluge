@@ -52,6 +52,7 @@ list Tarot.drawRandomSpread()
 						// 準備儲存單張牌結果的 Map
 						card_result_map = Map();
 						card_result_map.put("Card_ID",drawn_card_record.ID);
+						card_result_map.put("Card_Name",if(drawn_card_record.Card_Name != null, drawn_card_record.Card_Name.toString(), ""));
 						if(orientation == 1)
 						{
 							// 正位
