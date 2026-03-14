@@ -53,6 +53,10 @@ const LIFF_ORDER_KEY   = 'FrOCmCUszzMjTZOeaDNAwETkA';
 const LIFF_STATUS_URL  = 'https://www.zohoapis.com/creator/custom/uneedwind/liffGetLatestStatus';
 const LIFF_STATUS_KEY  = '6bQPVRAGPUu2RxX46hjZpNN6F';
 
+// delivery.html 取內容 proxy（避免 CORS）
+const GET_TALISMAN_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/getTalismanByToken';
+const GET_TALISMAN_KEY = 'x5U6EZMS8UCC0StpSDYEYAFZP';
+
 // ECPay 付款回調 → Creator ecPayReturn
 const ECPAY_RETURN_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/ecPayReturn';
 const ECPAY_RETURN_KEY = 'FBkXOAvTNkFgyZevwbST4ga4x';
@@ -357,6 +361,30 @@ app.get('/pay/:token', (req, res) => {
   paymentStore.delete(req.params.token); // 一次性使用
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(entry.html);
+});
+
+// =============================================================================
+// delivery.html CORS proxy（避免瀏覽器直接呼叫 Creator 被擋）
+// POST /delivery-content { token } → Creator getTalismanByToken → 回傳內容
+// =============================================================================
+app.post('/delivery-content', async (req, res) => {
+  setCORSHeaders(res);
+  const body = (typeof req.body === 'string') ? (() => { try { return JSON.parse(req.body); } catch(e) { return {}; } })() : (req.body || {});
+  const token = (body.token || '').trim();
+  if (!token) return res.json({ ok: false, reason: 'missing_token', message: '缺少 Token' });
+
+  const result = await callCreatorPOST(GET_TALISMAN_URL, GET_TALISMAN_KEY, { token }, 30000);
+  if (result.ok && result.data) {
+    res.json(result.data);
+  } else {
+    res.json({ ok: false, reason: 'server_error', message: '伺服器錯誤，請稍後再試' });
+  }
+});
+
+// OPTIONS preflight for /delivery-content
+app.options('/delivery-content', (req, res) => {
+  setCORSHeaders(res);
+  res.status(204).end();
 });
 
 // =============================================================================
