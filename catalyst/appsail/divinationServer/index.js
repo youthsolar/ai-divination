@@ -343,6 +343,108 @@ app.get('/pay/:token', (req, res) => {
 });
 
 // =============================================================================
+// 交付連結推播端點（取代 Zoho Flow / n8n）
+// Creator ecPayReturn 付款成功後呼叫此端點推播 LINE 交付連結
+// =============================================================================
+app.post('/delivery-push', (req, res) => {
+  const body = req.body || {};
+  const lineUserId = (body.lineUserId || '').trim();
+  const deliveryUrl = (body.deliveryUrl || '').trim();
+  const merchantTradeNo = (body.merchantTradeNo || '').trim();
+
+  console.log(`[/delivery-push] lineUserId=${lineUserId} merchantTradeNo=${merchantTradeNo}`);
+
+  if (!lineUserId || !deliveryUrl) {
+    return res.status(400).json({ ok: false, error: 'missing lineUserId or deliveryUrl' });
+  }
+
+  res.json({ ok: true, status: 'pushing' });
+
+  // 推播 LINE Flex Message 交付連結
+  const flexMessage = {
+    to: lineUserId,
+    messages: [{
+      type: 'flex',
+      altText: '✅ 付款完成！點擊領取您的完整解讀與符令',
+      contents: {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'text',
+            text: '✅ 付款成功',
+            color: '#27AE60',
+            weight: 'bold',
+            size: 'md'
+          }],
+          backgroundColor: '#F0FFF0',
+          paddingAll: '12px'
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '您的完整占卜解讀與改運符令已準備好',
+              size: 'sm',
+              color: '#333333',
+              wrap: true
+            },
+            {
+              type: 'text',
+              text: '連結有效期限：7 天',
+              size: 'xxs',
+              color: '#999999',
+              margin: 'sm'
+            }
+          ],
+          paddingAll: '16px'
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'button',
+            action: {
+              type: 'uri',
+              label: '🏮 領取完整解讀與符令',
+              uri: deliveryUrl
+            },
+            style: 'primary',
+            color: '#8B4513',
+            height: 'sm'
+          }],
+          paddingAll: '12px',
+          backgroundColor: '#FFF8DC'
+        }
+      }
+    }]
+  };
+
+  const msgBody = JSON.stringify(flexMessage);
+  const req2 = https.request('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${LINE_CHANNEL_TOKEN}`,
+      'Content-Length': Buffer.byteLength(msgBody)
+    }
+  }, (res2) => {
+    let data = '';
+    res2.on('data', c => data += c);
+    res2.on('end', () => {
+      console.log(`[/delivery-push] LINE push status=${res2.statusCode} body=${data}`);
+    });
+  });
+  req2.on('error', (e) => console.error('[/delivery-push] LINE error:', e.message));
+  req2.write(msgBody);
+  req2.end();
+});
+
+// =============================================================================
 // ECPay 付款回調端點（取代 Vercel proxy）
 // ECPay ServerNotify → AppSail → 立即回 "1|OK" → 背景呼叫 Creator ecPayReturn
 // =============================================================================
