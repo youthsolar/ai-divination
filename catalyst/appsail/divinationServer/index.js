@@ -55,7 +55,7 @@ const LIFF_STATUS_KEY  = '6bQPVRAGPUu2RxX46hjZpNN6F';
 
 // ECPay 付款回調 → Creator ecPayReturn
 const ECPAY_RETURN_URL = 'https://www.zohoapis.com/creator/custom/uneedwind/ecPayReturn';
-const ECPAY_RETURN_KEY = '__ECPAY_RETURN_PUBLIC_KEY__'; // TODO: Jeffery 建立 ecPayReturn Custom API 後填入
+const ECPAY_RETURN_KEY = 'FBkXOAvTNkFgyZevwbST4ga4x';
 
 // LIFF 來源（GitHub Pages）
 const LIFF_ORIGIN = 'https://youthsolar.github.io';
