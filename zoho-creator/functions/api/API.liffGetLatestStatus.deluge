@@ -1,4 +1,4 @@
-map API.liffGetLatestStatus(string lineUserId)
+map API.liffGetLatestStatus(string lineUserId, string afterId)
 {
 	// =============================================================================
 	// 函數名稱：API.liffGetLatestStatus
@@ -49,12 +49,19 @@ map API.liffGetLatestStatus(string lineUserId)
 			return result;
 		}
 
-		// 3) 取最新一筆（依 Divination_Timestamp 降序）
+		// 3) 取最新一筆，排除 afterId 以前的舊記錄（防止重複回傳上一筆結果）
+		after_id_long = 0;
+		if(afterId != null && afterId != "" && afterId != "0")
+		{
+			try { after_id_long = afterId.toLong(); } catch(eAid) { after_id_long = 0; }
+		}
 		latest_time = null;
 		latest_log = null;
 		for each log in logs
 		{
-			if(latest_time == null || log.Divination_Timestamp > latest_time)
+			// 跳過 ID <= afterId 的舊記錄
+			if(after_id_long > 0 && log.ID <= after_id_long) { skip = true; } else { skip = false; }
+			if(!skip && (latest_time == null || log.Divination_Timestamp > latest_time))
 			{
 				latest_time = log.Divination_Timestamp;
 				latest_log = log;

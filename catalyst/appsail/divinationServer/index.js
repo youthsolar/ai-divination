@@ -277,6 +277,7 @@ app.post('/liff-submit', (req, res) => {
 app.get('/liff-status', async (req, res) => {
   setCORSHeaders(res);
   const lineUserId = req.query.lineUserId || '';
+  const afterId = req.query.afterId || '0';
   if (!lineUserId) return res.json({ ready: false });
 
   if (LIFF_STATUS_KEY === 'LIFF_STATUS_PUBLIC_KEY') {
@@ -284,7 +285,7 @@ app.get('/liff-status', async (req, res) => {
     return res.json({ ready: false, error: 'status_api_not_configured' });
   }
 
-  const result = await callCreatorGET(LIFF_STATUS_URL, LIFF_STATUS_KEY, { lineUserId });
+  const result = await callCreatorGET(LIFF_STATUS_URL, LIFF_STATUS_KEY, { lineUserId, afterId });
   if (result.ok && result.data && result.data.result) {
     res.json(result.data.result);
   } else {

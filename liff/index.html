@@ -1177,7 +1177,7 @@
     }
 
     // 非同步占卜：輪詢等待 LLM 結果（最多 90 秒，每 4 秒查一次）
-    function startPolling(uid) {
+    function startPolling(uid, afterId) {
       var loadingEl = $("loadingSection");
       var topicEl   = $("topicSection");
       if (topicEl)  topicEl.style.display  = "none";
@@ -1192,7 +1192,8 @@
 
       var timer = setInterval(function() {
         attempts++;
-        fetch(APPSAIL + "/liff-status?lineUserId=" + encodeURIComponent(uid))
+        var afterIdParam = afterId ? ("&afterId=" + encodeURIComponent(afterId)) : "";
+        fetch(APPSAIL + "/liff-status?lineUserId=" + encodeURIComponent(uid) + afterIdParam)
           .then(function(r) { return r.json(); })
           .then(function(d) {
             if (d.ready && d.summary) {
@@ -1322,7 +1323,7 @@
 
         // 非同步模式：後端立即回 pending: true，前端輪詢等結果
         if (data.pending) {
-          startPolling(data.lineUserId || lineUserId);
+          startPolling(data.lineUserId || lineUserId, divinationLogId);
           return;
         }
 
