@@ -151,6 +151,7 @@ map API.getTalismanByToken(map payload)
 						raw_primary = if(dil.Primary_Talisman_Image != null, dil.Primary_Talisman_Image.toString(), "");
 						// 五張牌圖
 						card_img_fields = List();
+						// Card_Image 是 HTML 或 URL 字串欄位（非 Lookup），直接 toString()
 						card_img_fields.add(if(dil.Card_1_Image != null, dil.Card_1_Image.toString(), ""));
 						card_img_fields.add(if(dil.Card_2_Image != null, dil.Card_2_Image.toString(), ""));
 						card_img_fields.add(if(dil.Card_3_Image != null, dil.Card_3_Image.toString(), ""));

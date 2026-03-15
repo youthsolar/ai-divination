@@ -277,11 +277,11 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 					card_display_list = List();
 					cpos = 1;
 					cid_list = List();
-					cid_list.add(if(dl.Card_1_Link != null, dl.Card_1_Link, 0));
-					cid_list.add(if(dl.Card_2_Link != null, dl.Card_2_Link, 0));
-					cid_list.add(if(dl.Card_3_Link != null, dl.Card_3_Link, 0));
-					cid_list.add(if(dl.Card_4_Link != null, dl.Card_4_Link, 0));
-					cid_list.add(if(dl.Card_5_Link != null, dl.Card_5_Link, 0));
+					cid_list.add(if(dl.Card_1_Link != null, dl.Card_1_Link.ID, 0));
+					cid_list.add(if(dl.Card_2_Link != null, dl.Card_2_Link.ID, 0));
+					cid_list.add(if(dl.Card_3_Link != null, dl.Card_3_Link.ID, 0));
+					cid_list.add(if(dl.Card_4_Link != null, dl.Card_4_Link.ID, 0));
+					cid_list.add(if(dl.Card_5_Link != null, dl.Card_5_Link.ID, 0));
 					crev_list = List();
 					crev_list.add(if(dl.Card_1_Reversed == true, true, false));
 					crev_list.add(if(dl.Card_2_Reversed == true, true, false));
