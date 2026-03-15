@@ -453,10 +453,7 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 		// 7) Push summary to LINE（Flex Message 含圖；無圖降級文字）
 		try
 		{
-			liff_base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null, thisapp.variables.System.DeliveryPageBaseURL.toString(), "");
 			// 解鎖 CTA 連結指向 LIFF 入口（不直接暴露 divination ID）
-			cta_url = if(liff_base_url != "", liff_base_url.replace("/delivery.html","").replace("delivery.html",""), liff_base_url);
-			// 若有 LIFF ID 設定可組完整 URL，否則用 DeliveryPageBaseURL 的根目錄
 			liff_entry = "https://liff.line.me/2009168674-G2KqF3Jv";
 
 			// 塔羅：spreadText 用牌陣清單；易經：空（解讀本身已含卦象）
