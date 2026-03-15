@@ -51,6 +51,37 @@
 | 26 | Last_Synced_To | 上次回寫 | datetime | 否 | |
 | 27 | Sync_Status | 同步狀態 | picklist | 否 | 選項：pending / draft / rejected / pending_sync / synced / conflict |
 
+### Zia 建表指令（複製貼上用）
+
+請建立一個名為「服務目錄」的表單，link name 為 Service_Catalog，包含以下欄位：
+Source（來源）是必填的下拉選單，選項為 SimplyBook、EasyStore、Talisman。
+External_ID（外部ID）是單行文字。
+Name（名稱）是必填的單行文字，用來存項目或商品名稱。
+Category（分類）是多選欄位。
+Purpose（目的）是多行文字。
+Functions（功能）是多行文字。
+Specifications（規格）是多行文字。
+Target_Question_Types（適用問題類型）是多選欄位，選項為愛情、婚姻、工作、財運、健康、入煞、其他。
+Target_Situations（適用情境）是多行文字。
+Price（價格）是小數欄位，單位為 TWD。
+Booking_URL（預約連結）是 URL 欄位。
+Product_URL（商品連結）是 URL 欄位。
+Provider_Name（老師名稱）是單行文字。
+Image_URL（圖片網址）是 URL 欄位。
+Priority_Score（排序權重）是數字欄位。
+Active（啟用）是布林欄位，預設為 true。
+LLM_Description（LLM描述）是多行文字，用來存給 AI 讀的一段式描述。
+Raw_Description（原始描述）是多行文字。
+SEO_Title（SEO標題）是單行文字。
+SEO_Description（SEO描述）是單行文字。
+SEO_Keywords（SEO關鍵字）是單行文字。
+OG_Title（OG標題）是單行文字。
+OG_Description（OG描述）是單行文字。
+Cleaned_Description（清洗描述）是多行文字。
+Last_Synced_From（上次拉取）是日期時間欄位。
+Last_Synced_To（上次回寫）是日期時間欄位。
+Sync_Status（同步狀態）是下拉選單，選項為 pending、draft、rejected、pending_sync、synced、conflict。
+
 ---
 
 ## 表 2：Recommendation_Logs（推薦追蹤）
@@ -72,6 +103,21 @@
 | 11 | Conversion_Type | 轉換類型 | picklist | 否 | 選項：talisman / booking / product |
 
 > 不需要獨立的 Line_User_ID 欄位，因為透過 Divination_Log_Link → Divination_Logs.Client_Link → Clients_Report.Line_User_ID 即可追溯。
+
+### Zia 建表指令（複製貼上用）
+
+請建立一個名為「推薦紀錄」的表單，link name 為 Recommendation_Logs，包含以下欄位：
+Divination_Log_Link（占卜紀錄）是 lookup 欄位，關聯到 Divination_Logs 表單。
+Catalog_Items_Shown（展示項目）是多行文字，用來存 JSON 格式資料。
+LLM_Response_Raw（LLM原始回應）是多行文字。
+Primary_Catalog_ID（主推薦ID）是單行文字。
+Primary_Reason（推薦理由）是單行文字。
+Primary_Urgency（急迫度）是下拉選單，選項為 high、medium、low。
+Recommended_At（推薦時間）是日期時間欄位。
+Clicked_At（點擊時間）是日期時間欄位，可為空。
+Clicked_Catalog_ID（點擊項目ID）是單行文字，可為空。
+Converted_At（轉換時間）是日期時間欄位，可為空。
+Conversion_Type（轉換類型）是下拉選單，選項為 talisman、booking、product。
 
 ---
 
@@ -98,6 +144,24 @@
 
 > 不需要獨立的 Line_User_ID 欄位，透過 Client_Link → Clients_Report.Line_User_ID 取得。
 
+### Zia 建表指令（複製貼上用）
+
+請建立一個名為「預約紀錄」的表單，link name 為 Booking_Logs，包含以下欄位：
+Booking_ID（預約ID）是必填的單行文字，設為唯一值，用來存 SimplyBook 預約 ID。
+Client_Link（個案）是 lookup 欄位，關聯到 Clients_Report 表單。
+Provider_Name（老師名稱）是單行文字。
+Provider_ID（老師ID）是單行文字，用來存 SimplyBook provider ID。
+Service_Name（服務項目）是單行文字。
+Service_ID（服務ID）是單行文字，用來存 SimplyBook service ID。
+Booking_DateTime（預約時間）是日期時間欄位。
+Status（狀態）是下拉選單，選項為待確認、已確認、已完成、已取消、未到。
+Source_Divination_Log（來源占卜）是 lookup 欄位，關聯到 Divination_Logs 表單，可為空。
+Recommendation_Source（推薦來源）是下拉選單，選項為 auto_trigger、manual、rich_menu。
+SimplyBook_Raw（原始資料）是多行文字，用來存 SimplyBook webhook 的 JSON 資料。
+Price（價格）是小數欄位。
+Created_At（建立時間）是日期時間欄位。
+Updated_At（更新時間）是日期時間欄位。
+
 ---
 
 ## 表 4：Teachers（老師主檔）
@@ -113,6 +177,17 @@
 | 5 | Photo_URL | 頭像網址 | URL | 否 | |
 | 6 | Active | 啟用 | boolean | 否 | 預設 true |
 | 7 | Sort_Order | 排序 | number | 否 | |
+
+### Zia 建表指令（複製貼上用）
+
+請建立一個名為「老師」的表單，link name 為 Teachers，包含以下欄位：
+Name（姓名）是必填的單行文字。
+SimplyBook_Provider_ID（SB老師ID）是單行文字，用來存 SimplyBook 的 provider ID。
+Specialty_Question_Types（專長領域）是多選欄位，選項為愛情、婚姻、工作、財運、健康、入煞。
+Description（簡介）是多行文字。
+Photo_URL（頭像網址）是 URL 欄位。
+Active（啟用）是布林欄位，預設為 true。
+Sort_Order（排序）是數字欄位。
 
 ---
 
@@ -135,6 +210,20 @@
 
 > 不需要獨立的 Line_User_ID 欄位，透過 Client_Link → Clients_Report.Line_User_ID 取得。
 
+### Zia 建表指令（複製貼上用）
+
+請建立一個名為「商品訂單」的表單，link name 為 Product_Orders，包含以下欄位：
+EasyStore_Order_ID（訂單ID）是必填的單行文字，設為唯一值，用來存 EasyStore 訂單 ID。
+Client_Link（個案）是 lookup 欄位，關聯到 Clients_Report 表單，可為空。
+Customer_Email（客戶信箱）是 email 欄位。
+Order_Total（訂單金額）是小數欄位。
+Order_Status（訂單狀態）是下拉選單，選項為 pending、paid、shipped、completed、cancelled。
+Items_Summary（商品明細）是多行文字，用來存 JSON 格式資料。
+Recommendation_Link（推薦來源）是 lookup 欄位，關聯到 Recommendation_Logs 表單，可為空。
+EasyStore_Raw（原始資料）是多行文字，用來存 EasyStore webhook 的 JSON 資料。
+Created_At（建立時間）是日期時間欄位。
+Updated_At（更新時間）是日期時間欄位。
+
 ---
 
 ## 修改現有表：Divination_Logs（紀錄）
@@ -149,6 +238,16 @@
 | 4 | 新增 | Oracle_Poem_Text | 籤文 | multi-line | 最大 500 字 |
 | 5 | 新增 | Oracle_Interpretation_Snippet | 籤解摘要 | multi-line | 最大 2000 字 |
 | 6 | 新增 | Oracle_Fortune_Level | 吉凶等級 | single-line | 最大 100 字 |
+
+### Zia 修改指令（複製貼上用）
+
+請在現有的 Divination_Logs（紀錄）表單中做以下修改：
+第一，在現有的 Divination_Method（占卜方法）下拉選單中，新增一個選項「籤詩」，現有選項為易經和塔羅，不要刪除。
+第二，新增 Oracle_System（籤詩系統）欄位，是下拉選單，選項為 KongMing、GuanYin、GuanDi、None，預設值為 None。
+第三，新增 Oracle_Sign_Order（籤序）欄位，是數字欄位，整數，範圍 0 到 384。
+第四，新增 Oracle_Poem_Text（籤文）欄位，是多行文字，最大 500 字。
+第五，新增 Oracle_Interpretation_Snippet（籤解摘要）欄位，是多行文字，最大 2000 字。
+第六，新增 Oracle_Fortune_Level（吉凶等級）欄位，是單行文字，最大 100 字。
 
 ---
 
