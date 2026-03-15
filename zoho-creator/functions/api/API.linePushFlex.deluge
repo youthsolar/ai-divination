@@ -1,0 +1,195 @@
+map API.linePushFlex(string lineUserId, string imageUrl, string spreadText, string summaryText, string ctaUrl)
+{
+	// =============================================================================
+	// 函數名稱：API.linePushFlex
+	// 函數用途：LINE Flex Message 推播（含圖片 + 牌陣/卦象 + 摘要 + 解鎖按鈕）
+	// 平台：Zoho Creator
+	// 命名空間：API
+	// 功能描述：
+	//   送出 LINE Flex Message Bubble，結構：
+	//   - hero: 主圖（符令圖 / 塔羅主牌 / 易經卦象圖）
+	//   - body: 牌陣清單（塔羅用）+ 免費摘要文字
+	//   - footer: 解鎖按鈕（CTA，連到 LIFF）
+	//   若 imageUrl 為空則降級為純文字推播
+	// 參數說明：
+	//   - lineUserId (string): LINE 使用者 ID
+	//   - imageUrl   (string): 主圖 HTTPS URL（可空，空則降級文字）
+	//   - spreadText (string): 牌陣清單文字（塔羅五張牌，可空）
+	//   - summaryText(string): 免費摘要內容（300 字）
+	//   - ctaUrl     (string): 解鎖按鈕連結（LIFF URL）
+	// 回傳格式：map - {success, api_response} 或 {success:false, message}
+	// 相依性：thisapp.variables.System.LINE_ChannelAccessToken, API.linePushText
+	// =============================================================================
+	res = Map();
+	try
+	{
+		token = if(thisapp.variables.System.LINE_ChannelAccessToken != null, thisapp.variables.System.LINE_ChannelAccessToken.toString(), "");
+		if(token == "")
+		{
+			res.put("success",false);
+			res.put("message","LINE token 未設定");
+			return res;
+		}
+		if(lineUserId == null || lineUserId.trim() == "")
+		{
+			res.put("success",false);
+			res.put("message","lineUserId 為空");
+			return res;
+		}
+
+		// ── 若無圖片 URL，降級為純文字推播 ──
+		hasImage = (imageUrl != null && imageUrl.trim() != "" && imageUrl.startsWith("http"));
+		if(!hasImage)
+		{
+			fallbackText = summaryText;
+			if(spreadText != null && spreadText.trim() != "")
+			{
+				fallbackText = spreadText + "\n\n" + summaryText;
+			}
+			if(ctaUrl != null && ctaUrl.trim() != "")
+			{
+				fallbackText = fallbackText + "\n\n👉 解鎖完整版/購買符令：" + ctaUrl;
+			}
+			return thisapp.API.linePushText(lineUserId, fallbackText);
+		}
+
+		// ── 建構 Flex Message Bubble ──
+
+		// --- Hero（主圖）---
+		heroContent = Map();
+		heroContent.put("type","image");
+		heroContent.put("url",imageUrl);
+		heroContent.put("size","full");
+		heroContent.put("aspectRatio","1:1");
+		heroContent.put("aspectMode","cover");
+
+		// --- Body（文字內容）---
+		bodyContents = List();
+
+		// 標題
+		titleItem = Map();
+		titleItem.put("type","text");
+		titleItem.put("text","🌙 占卜摘要");
+		titleItem.put("weight","bold");
+		titleItem.put("size","md");
+		titleItem.put("color","#5A2D82");
+		bodyContents.add(titleItem);
+
+		// 塔羅牌陣（若有）
+		if(spreadText != null && spreadText.trim() != "")
+		{
+			sepBefore = Map();
+			sepBefore.put("type","separator");
+			sepBefore.put("margin","md");
+			bodyContents.add(sepBefore);
+
+			spreadTitle = Map();
+			spreadTitle.put("type","text");
+			spreadTitle.put("text","🃏 本次塔羅牌陣（五張）：");
+			spreadTitle.put("size","sm");
+			spreadTitle.put("weight","bold");
+			spreadTitle.put("color","#8B1A1A");
+			spreadTitle.put("margin","md");
+			bodyContents.add(spreadTitle);
+
+			spreadItem = Map();
+			spreadItem.put("type","text");
+			spreadItem.put("text",spreadText);
+			spreadItem.put("wrap",true);
+			spreadItem.put("size","sm");
+			spreadItem.put("color","#555555");
+			bodyContents.add(spreadItem);
+		}
+
+		// 分隔線
+		sepItem = Map();
+		sepItem.put("type","separator");
+		sepItem.put("margin","md");
+		bodyContents.add(sepItem);
+
+		// 摘要文字（最多 2000 字，LINE 限制）
+		displaySummary = if(summaryText != null, summaryText, "");
+		if(displaySummary.length() > 2000) { displaySummary = displaySummary.subString(0,2000) + "…（完整解讀請解鎖）"; }
+
+		summaryItem = Map();
+		summaryItem.put("type","text");
+		summaryItem.put("text",displaySummary);
+		summaryItem.put("wrap",true);
+		summaryItem.put("size","sm");
+		summaryItem.put("color","#333333");
+		summaryItem.put("margin","md");
+		bodyContents.add(summaryItem);
+
+		bodyBox = Map();
+		bodyBox.put("type","box");
+		bodyBox.put("layout","vertical");
+		bodyBox.put("contents",bodyContents);
+		bodyBox.put("paddingAll","16px");
+		bodyBox.put("spacing","sm");
+
+		// --- Footer（解鎖按鈕）---
+		footerContents = List();
+		if(ctaUrl != null && ctaUrl.trim() != "")
+		{
+			ctaAction = Map();
+			ctaAction.put("type","uri");
+			ctaAction.put("label","🏮 解鎖完整版解讀及改運符令 NT$360");
+			ctaAction.put("uri",ctaUrl);
+
+			ctaButton = Map();
+			ctaButton.put("type","button");
+			ctaButton.put("action",ctaAction);
+			ctaButton.put("style","primary");
+			ctaButton.put("color","#8B1A1A");
+			ctaButton.put("height","sm");
+			footerContents.add(ctaButton);
+		}
+
+		footerBox = Map();
+		footerBox.put("type","box");
+		footerBox.put("layout","vertical");
+		footerBox.put("contents",footerContents);
+		footerBox.put("paddingAll","12px");
+
+		// --- Bubble 組合 ---
+		bubble = Map();
+		bubble.put("type","bubble");
+		bubble.put("hero",heroContent);
+		bubble.put("body",bodyBox);
+		if(footerContents.size() > 0) { bubble.put("footer",footerBox); }
+
+		// --- Flex Message 外層 ---
+		flexMsg = Map();
+		flexMsg.put("type","flex");
+		flexMsg.put("altText","🌙 占卜摘要已準備好，點此查看並解鎖完整版");
+		flexMsg.put("contents",bubble);
+
+		msgList = List();
+		msgList.add(flexMsg);
+
+		bodyMap = Map();
+		bodyMap.put("to",lineUserId);
+		bodyMap.put("messages",msgList);
+
+		headers = Map();
+		headers.put("Authorization","Bearer " + token);
+		headers.put("Content-Type","application/json");
+
+		api_response = invokeurl
+		[
+			url: "https://api.line.me/v2/bot/message/push"
+			type: POST
+			parameters: bodyMap.toString()
+			headers: headers
+		];
+
+		res.put("success",true);
+		res.put("api_response",api_response);
+	}
+	catch (e)
+	{
+		res.put("success",false);
+		res.put("message","LINE flex push error: " + e.toString());
+	}
+	return res;
+}

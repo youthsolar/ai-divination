@@ -185,6 +185,19 @@
 
     <!-- Content State -->
     <div id="contentState" style="display:none;">
+
+      <!-- 主圖（符令/卦象圖），有圖才顯示 -->
+      <div id="primaryImageWrap" style="display:none;text-align:center;margin-bottom:16px;">
+        <img id="primaryImage" src="" alt="符令圖"
+          style="max-width:280px;width:100%;border-radius:12px;box-shadow:0 4px 16px rgba(91,45,130,0.25);" />
+      </div>
+
+      <!-- 塔羅五張牌圖格，有圖才顯示 -->
+      <div id="cardGridWrap" style="display:none;margin-bottom:16px;">
+        <p style="font-size:13px;color:#8B1A1A;font-weight:bold;margin-bottom:8px;">🃏 本次塔羅牌陣</p>
+        <div id="cardGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"></div>
+      </div>
+
       <div class="winds-card">
         <div id="contentText" class="winds-content-text"></div>
       </div>
@@ -226,12 +239,38 @@
       $("errorState").style.display = "none";
     }
 
-    function showContent(text, meta) {
+    function showContent(text, meta, primaryImageUrl, cardImages) {
       $("loadingState").style.display = "none";
       $("contentState").style.display = "block";
       $("errorState").style.display = "none";
 
-      // Convert \n to actual line breaks for display
+      // 主圖（符令/卦象圖）
+      if (primaryImageUrl) {
+        $("primaryImage").src = primaryImageUrl;
+        $("primaryImageWrap").style.display = "block";
+      } else {
+        $("primaryImageWrap").style.display = "none";
+      }
+
+      // 塔羅五張牌圖格
+      var cardGrid = $("cardGrid");
+      cardGrid.innerHTML = "";
+      if (cardImages && cardImages.length > 0) {
+        cardImages.forEach(function(url, i) {
+          if (url) {
+            var img = document.createElement("img");
+            img.src = url;
+            img.alt = "第" + (i + 1) + "張牌";
+            img.style.cssText = "width:100%;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);";
+            cardGrid.appendChild(img);
+          }
+        });
+        $("cardGridWrap").style.display = "block";
+      } else {
+        $("cardGridWrap").style.display = "none";
+      }
+
+      // 文字內容（\n 轉換為換行）
       $("contentText").textContent = text;
 
       if (meta) {
@@ -276,7 +315,10 @@
           if (data.purchased_at) meta += "購買時間：" + data.purchased_at;
           if (data.expires_at) meta += (meta ? "  |  " : "") + "有效期至：" + data.expires_at;
 
-          showContent(content, meta);
+          var primaryImageUrl = data.primary_image_url || "";
+          var cardImages = data.card_images || [];
+
+          showContent(content, meta, primaryImageUrl, cardImages);
 
           // Store content for share
           window._deliveryContent = content;

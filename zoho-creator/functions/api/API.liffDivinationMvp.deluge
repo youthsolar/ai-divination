@@ -380,21 +380,91 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 		next_action.put("element",talisman_element_1);
 		api_result.put("next_action",next_action);
 
-		// 6) Push summary to LINE (MVP: text + unlock hint)
+		// 6) 取得主圖 URL（塔羅 → Primary_Talisman_Image；易經 → I_Ching_Form.Gua_symbol_Image）
+		primary_image_url = "";
 		try
 		{
-			base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null,thisapp.variables.System.DeliveryPageBaseURL.toString(),"");
-			// Security: free summary link should NOT expose numeric div id. Link back to LIFF entry only.
-			unlock_hint = "\n\n👉 解鎖完整版/購買符令：" + (if(base_url != "", base_url, "（待設定 LIFF URL）"));
-			// 塔羅在摘要前加上牌陣清單；易經解讀本身已含卦象資訊
-			divination_header = "";
-			if(div_method == "塔羅" && tarot_card_display != "")
+			if(div_method == "塔羅" && new_log_id != "")
 			{
-				divination_header = "🃏 本次塔羅牌陣（五張）：\n" + tarot_card_display + "\n\n";
+				// 從 Divination_Logs 讀 Primary_Talisman_Image（tarotDivinationFunction 已寫入）
+				img_log_recs = Divination_Logs[ID == new_log_id.toLong()];
+				for each ilr in img_log_recs
+				{
+					raw_img = if(ilr.Primary_Talisman_Image != null, ilr.Primary_Talisman_Image.toString(), "");
+					if(raw_img != "")
+					{
+						// 從 HTML img 標籤提取 URL（處理 src='...' 和 src="..."）
+						if(raw_img.startsWith("http"))
+						{
+							primary_image_url = raw_img;
+						}
+						else if(raw_img.contains("src='"))
+						{
+							s1 = raw_img.indexOf("src='") + 5;
+							tmp1 = raw_img.subString(s1);
+							e1 = tmp1.indexOf("'");
+							if(e1 > 0) { primary_image_url = tmp1.subString(0, e1); }
+						}
+						else if(raw_img.contains("src=\""))
+						{
+							s2 = raw_img.indexOf("src=\"") + 5;
+							tmp2 = raw_img.subString(s2);
+							e2 = tmp2.indexOf("\"");
+							if(e2 > 0) { primary_image_url = tmp2.subString(0, e2); }
+						}
+					}
+					break;
+				}
 			}
-			line_text = "【免費摘要】\n" + divination_header + summary_text + unlock_hint;
-			push_res = thisapp.API.linePushText(lineUserId,line_text);
+			else if(div_method == "易經" && hex_code != "")
+			{
+				// 從 I_Ching_Form 讀卦象圖（Gua_symbol_Image HTML）
+				ic_recs = I_Ching_Form[yao == hex_code];
+				for each icr in ic_recs
+				{
+					raw_gua = if(icr.Gua_symbol_Image != null, icr.Gua_symbol_Image.toString(), "");
+					if(raw_gua != "")
+					{
+						if(raw_gua.startsWith("http"))
+						{
+							primary_image_url = raw_gua;
+						}
+						else if(raw_gua.contains("src='"))
+						{
+							gs1 = raw_gua.indexOf("src='") + 5;
+							gtmp1 = raw_gua.subString(gs1);
+							ge1 = gtmp1.indexOf("'");
+							if(ge1 > 0) { primary_image_url = gtmp1.subString(0, ge1); }
+						}
+						else if(raw_gua.contains("src=\""))
+						{
+							gs2 = raw_gua.indexOf("src=\"") + 5;
+							gtmp2 = raw_gua.subString(gs2);
+							ge2 = gtmp2.indexOf("\"");
+							if(ge2 > 0) { primary_image_url = gtmp2.subString(0, ge2); }
+						}
+					}
+					break;
+				}
+			}
+		}
+		catch (imgErr) { info "取主圖 URL 失敗：" + imgErr; }
+
+		// 7) Push summary to LINE（Flex Message 含圖；無圖降級文字）
+		try
+		{
+			liff_base_url = if(thisapp.variables.System.DeliveryPageBaseURL != null, thisapp.variables.System.DeliveryPageBaseURL.toString(), "");
+			// 解鎖 CTA 連結指向 LIFF 入口（不直接暴露 divination ID）
+			cta_url = if(liff_base_url != "", liff_base_url.replace("/delivery.html","").replace("delivery.html",""), liff_base_url);
+			// 若有 LIFF ID 設定可組完整 URL，否則用 DeliveryPageBaseURL 的根目錄
+			liff_entry = "https://liff.line.me/2009168674-G2KqF3Jv";
+
+			// 塔羅：spreadText 用牌陣清單；易經：空（解讀本身已含卦象）
+			flex_spread = if(div_method == "塔羅" && tarot_card_display != "", "🃏 本次塔羅牌陣（五張）：\n" + tarot_card_display, "");
+
+			push_res = thisapp.API.linePushFlex(lineUserId, primary_image_url, flex_spread, summary_text, liff_entry);
 			api_result.put("line_pushed", if(push_res != null && push_res.get("success") == true, true, false));
+			api_result.put("primary_image_url", primary_image_url);
 			if(push_res != null && push_res.get("success") == false)
 			{
 				api_result.put("line_push_error", push_res.get("message"));

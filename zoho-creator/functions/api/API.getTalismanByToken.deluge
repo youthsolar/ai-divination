@@ -126,6 +126,88 @@ map API.getTalismanByToken(map payload)
 			// 優先順序：完整版解讀 > hexagram_content > 空字串
 			displayContent = if(fullInterpretation != "", fullInterpretation, hexagramContent);
 
+			// ── 取得圖片欄位 ──
+			// 主圖（符令/卦象）URL、塔羅五張牌圖 URL 列表
+			primary_image_url = "";
+			card_images = List();
+			divination_method = "";
+			hexagram_code_val = "";
+
+			if(divLogLinkVal != "")
+			{
+				div_img_logs = Divination_Logs[ID == divLogLinkVal.toLong()];
+				for each dil in div_img_logs
+				{
+					divination_method = if(dil.Divination_Method != null, dil.Divination_Method.toString(), "");
+					hexagram_code_val = if(dil.Hexagram_Code != null, dil.Hexagram_Code.toString(), "");
+
+					// 提取圖片 URL 的輔助 inline
+					// 支援：純 URL、src='...'、src="..."
+					extractImageUrlInline = "";
+					raw_primary = "";
+
+					if(divination_method == "塔羅")
+					{
+						raw_primary = if(dil.Primary_Talisman_Image != null, dil.Primary_Talisman_Image.toString(), "");
+						// 五張牌圖
+						card_img_fields = List();
+						card_img_fields.add(if(dil.Card_1_Image != null, dil.Card_1_Image.toString(), ""));
+						card_img_fields.add(if(dil.Card_2_Image != null, dil.Card_2_Image.toString(), ""));
+						card_img_fields.add(if(dil.Card_3_Image != null, dil.Card_3_Image.toString(), ""));
+						card_img_fields.add(if(dil.Card_4_Image != null, dil.Card_4_Image.toString(), ""));
+						card_img_fields.add(if(dil.Card_5_Image != null, dil.Card_5_Image.toString(), ""));
+						for each cf in card_img_fields
+						{
+							cf_url = "";
+							if(cf.startsWith("http")) { cf_url = cf; }
+							else if(cf.contains("src='"))
+							{
+								cfs1 = cf.indexOf("src='") + 5;
+								cftmp = cf.subString(cfs1);
+								cfe = cftmp.indexOf("'");
+								if(cfe > 0) { cf_url = cftmp.subString(0, cfe); }
+							}
+							else if(cf.contains("src=\""))
+							{
+								cfs2 = cf.indexOf("src=\"") + 5;
+								cftmp2 = cf.subString(cfs2);
+								cfe2 = cftmp2.indexOf("\"");
+								if(cfe2 > 0) { cf_url = cftmp2.subString(0, cfe2); }
+							}
+							if(cf_url != "") { card_images.add(cf_url); }
+						}
+					}
+					else if(divination_method == "易經" && hexagram_code_val != "")
+					{
+						// 易經：從 I_Ching_Form 取卦象圖
+						ic_recs2 = I_Ching_Form[yao == hexagram_code_val];
+						for each icr2 in ic_recs2
+						{
+							raw_primary = if(icr2.Gua_symbol_Image != null, icr2.Gua_symbol_Image.toString(), "");
+							break;
+						}
+					}
+
+					// 解析主圖 URL
+					if(raw_primary.startsWith("http")) { primary_image_url = raw_primary; }
+					else if(raw_primary.contains("src='"))
+					{
+						ps1 = raw_primary.indexOf("src='") + 5;
+						ptmp1 = raw_primary.subString(ps1);
+						pe1 = ptmp1.indexOf("'");
+						if(pe1 > 0) { primary_image_url = ptmp1.subString(0, pe1); }
+					}
+					else if(raw_primary.contains("src=\""))
+					{
+						ps2 = raw_primary.indexOf("src=\"") + 5;
+						ptmp2 = raw_primary.subString(ps2);
+						pe2 = ptmp2.indexOf("\"");
+						if(pe2 > 0) { primary_image_url = ptmp2.subString(0, pe2); }
+					}
+					break;
+				}
+			}
+
 			resp.put("ok",true);
 			resp.put("item_name",itemName);
 			resp.put("description",description);
@@ -133,6 +215,9 @@ map API.getTalismanByToken(map payload)
 			resp.put("full_interpretation",fullInterpretation);
 			resp.put("purchased_at",purchaseTime);
 			resp.put("expires_at",expiryStr);
+			resp.put("divination_method",divination_method);
+			resp.put("primary_image_url",primary_image_url);
+			resp.put("card_images",card_images);
 			resp.put("message","符令已為您準備好，請在有效期內使用。");
 			break;
 		}
