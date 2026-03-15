@@ -55,6 +55,7 @@ map API.liffGetLatestStatus(string lineUserId, string afterId)
 		{
 			try { after_id_long = afterId.toLong(); } catch(eAid) { after_id_long = 0; }
 		}
+		info "PINNI-DEBUG liffGetLatestStatus: lineUserId=" + lineUserId + " afterId=" + afterId + " after_id_long=" + after_id_long;
 		latest_time = null;
 		latest_log = null;
 		for each log in logs

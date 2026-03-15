@@ -128,7 +128,8 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			{
 				try { birth_dt = birthday.toDate("yyyy-MM-dd"); } catch (eBdt2) { birth_dt = null; }
 			}
-			if(birth_dt != null) { update_map.put("Date_Of_Birth", birth_dt); }
+			info "PINNI-DEBUG birth_dt(update): " + if(birth_dt != null, birth_dt.toString("yyyy-MM-dd HH:mm:ss"), "NULL") + " | raw birthday: " + birthday;
+if(birth_dt != null) { update_map.put("Date_Of_Birth", birth_dt); }
 			// 用原生 Deluge 語法直接更新（不需要 Connection）
 			for each rec in Clients_Report[ID == client_id.toLong()]
 			{
@@ -156,6 +157,7 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			{
 				try { birth_dt = birthday.toDate("yyyy-MM-dd"); } catch (eBdt4) { birth_dt = zoho.currenttime; }
 			}
+			info "PINNI-DEBUG birth_dt(new): " + if(birth_dt != null, birth_dt.toString("yyyy-MM-dd HH:mm:ss"), "NULL") + " | raw birthday: " + birthday;
 			display_last = if(v2_lastName != "", v2_lastName, "(LINE)");
 			display_first = if(v2_firstName != "", v2_firstName, "使用者");
 			new_client = insert into Clients_Report
@@ -281,11 +283,17 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 					card_display_list = List();
 					cpos = 1;
 					cid_list = List();
-					cid_list.add(if(dl.Card_1_Link != null, dl.Card_1_Link.ID, 0));
-					cid_list.add(if(dl.Card_2_Link != null, dl.Card_2_Link.ID, 0));
-					cid_list.add(if(dl.Card_3_Link != null, dl.Card_3_Link.ID, 0));
-					cid_list.add(if(dl.Card_4_Link != null, dl.Card_4_Link.ID, 0));
-					cid_list.add(if(dl.Card_5_Link != null, dl.Card_5_Link.ID, 0));
+					c1_id = if(dl.Card_1_Link != null, dl.Card_1_Link.ID, 0);
+					c2_id = if(dl.Card_2_Link != null, dl.Card_2_Link.ID, 0);
+					c3_id = if(dl.Card_3_Link != null, dl.Card_3_Link.ID, 0);
+					c4_id = if(dl.Card_4_Link != null, dl.Card_4_Link.ID, 0);
+					c5_id = if(dl.Card_5_Link != null, dl.Card_5_Link.ID, 0);
+					info "PINNI-DEBUG card_ids: " + c1_id + "," + c2_id + "," + c3_id + "," + c4_id + "," + c5_id;
+					cid_list.add(c1_id.toLong());
+					cid_list.add(c2_id.toLong());
+					cid_list.add(c3_id.toLong());
+					cid_list.add(c4_id.toLong());
+					cid_list.add(c5_id.toLong());
 					crev_list = List();
 					crev_list.add(if(dl.Card_1_Reversed == true, true, false));
 					crev_list.add(if(dl.Card_2_Reversed == true, true, false));
@@ -296,7 +304,9 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 					{
 						if(cid != null && cid != 0)
 						{
-							c_recs = All_Tarot_Cards[ID == cid];
+							info "PINNI-DEBUG querying card cid=" + cid + " type=" + cid.getClass().toString();
+						c_recs = All_Tarot_Cards[ID == cid];
+						info "PINNI-DEBUG card_recs count=" + c_recs.count();
 							for each cr in c_recs
 							{
 								c_name = if(cr.Card_Name != null, cr.Card_Name.toString(), "");
