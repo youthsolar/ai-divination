@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🌙 找風問幸福 — 易經 × 塔羅 × 靈性占卜</title>
+  <style>
+    /* ===========================================
+       Winds Design System — LIFF V2
+       =========================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #faf8f6;
+      color: #474747;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @keyframes windsFadeInUp {
+      0%   { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .winds-page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    .winds-hidden { display: none !important; }
+
+    /* --- Header --- */
+    .winds-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .winds-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 6px 0;
+    }
+    .winds-header p {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    /* --- Status message --- */
+    .winds-status {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      animation: windsFadeInUp 0.3s ease-out;
+    }
+    .winds-status.info  { background: #e7f1ff; border: 1px solid #cfe2ff; color: #1a4a7a; }
+    .winds-status.warn  { background: #fff3cd; border: 1px solid #ffc107; color: #664d03; }
+    .winds-status.err   { background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
+
+    /* ===========================================
+       Three-layer Topic Cards
+       =========================================== */
+    .winds-topic-section {
+      margin: 0 0 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .winds-topic-row,
+    .winds-sub-row,
+    .winds-third-row,
+    #birthCardWrapper {
+      box-sizing: border-box;
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .winds-sub-row,
+    .winds-third-row { display: none !important; }
+    .winds-sub-row.active,
+    .winds-third-row.active {
+      display: flex !important;
+      animation: windsFadeInUp 0.6s ease-out forwards;
+    }
+
+    /* Stage 1: first layer selected */
+    .winds-topic-section.winds-has-sub-selected:not(.winds-has-third-selected) .winds-topic-row {
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      justify-content: center;
+    }
+
+    /* Stage 2: first + second layers selected — two columns */
+    .winds-topic-section.winds-has-sub-selected.winds-has-third-selected:not(.winds-step-3) .winds-topic-row,
+    .winds-topic-section.winds-has-sub-selected.winds-has-third-selected:not(.winds-step-3) .winds-sub-row.active {
+      flex: 0 0 calc(50% - 6px) !important;
+      max-width: calc(50% - 6px) !important;
+    }
+
+    /* Stage 3: all three layers selected — three columns */
+    .winds-topic-section.winds-step-3 .winds-topic-row,
+    .winds-topic-section.winds-step-3 .winds-sub-row.active,
+    .winds-topic-section.winds-step-3 .winds-third-row.active {
+      flex: 0 0 calc(33.33% - 8px) !important;
+      max-width: calc(33.33% - 8px) !important;
+    }
+
+    /* --- Card base styles --- */
+    .winds-topic-card,
+    .winds-sub-card,
+    .winds-third-card {
+      box-sizing: border-box;
+      flex: 0 0 calc(50% - 6px) !important;
+      max-width: calc(50% - 6px) !important;
+      background: #ffffff;
+      border: 0.5px solid #5a656b;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      color: #474747;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
+    }
+
+    .winds-topic-card-title,
+    .winds-sub-card-title,
+    .winds-third-card-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .winds-topic-card:hover,
+    .winds-sub-card:hover,
+    .winds-third-card:hover {
+      border-color: #5a656b;
+      background: #f0e6e6;
+      color: #3b262a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    }
+
+    /* Stage 1: selected first-layer card keeps original width */
+    .winds-topic-section.winds-has-sub-selected:not(.winds-has-third-selected) .winds-topic-card.active {
+      flex: 0 0 calc(50% - 6px) !important;
+      max-width: calc(50% - 6px) !important;
+      border-color: #5a656b;
+      background: #f0e6e6;
+      color: #3b262a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    }
+
+    /* Stage 2 & 3: selected cards fill their row */
+    .winds-topic-section.winds-has-sub-selected.winds-has-third-selected .winds-topic-card.active,
+    .winds-topic-section.winds-has-sub-selected.winds-has-third-selected .winds-sub-card.active,
+    .winds-topic-section.winds-step-3 .winds-topic-card.active,
+    .winds-topic-section.winds-step-3 .winds-sub-card.active,
+    .winds-topic-section.winds-step-3 .winds-third-card.active {
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      border-color: #5a656b;
+      background: #f0e6e6;
+      color: #3b262a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    }
+
+    /* --- Form card (inside topic section) --- */
+    #birthCardWrapper { margin-top: 0; }
+    #birthCardWrapper:not(.winds-hidden) {
+      animation: windsFadeInUp 0.6s ease-out forwards;
+    }
+
+    .winds-bottom-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .winds-input-card {
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      border: 0.5px solid #5a656b;
+      font-size: 12px;
+      color: #474747;
+    }
+
+    .winds-contact-row,
+    .winds-birth-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .winds-contact-field {
+      flex: 1 1 100px;
+      min-width: 100px;
+    }
+    .winds-contact-field label {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .winds-required { color: #d9534f; margin-left: 2px; }
+
+    .winds-input,
+    .birth-card-input {
+      width: 100%;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid #dcd2d2;
+      font-size: 12px !important;
+      outline: none;
+      color: #474747;
+      box-sizing: border-box;
+      height: 30px;
+      background: #fff;
+    }
+    .winds-input::placeholder,
+    .birth-card-input::placeholder { font-size: 12px !important; color: #999999; }
+    .winds-input:focus,
+    .birth-card-input:focus {
+      border-color: #5a656b;
+      box-shadow: 0 0 0 1px rgba(90,101,107,0.18);
+    }
+    .birth-card-input[type="date"],
+    .birth-card-input[type="time"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    .winds-textarea {
+      width: 100%;
+      min-height: 110px;
+      border-radius: 6px;
+      border: 1px solid #dcd2d2;
+      padding: 6px 7px;
+      font-size: 12px !important;
+      resize: vertical;
+      outline: none;
+      line-height: 1.6;
+      color: #474747;
+      font-family: inherit;
+      background: #fff;
+    }
+    .winds-textarea::placeholder { font-size: 12px !important; color: #999999; }
+    .winds-textarea:focus {
+      border-color: #5a656b;
+      box-shadow: 0 0 0 1px rgba(90,101,107,0.18);
+    }
+
+    .winds-char-counter {
+      text-align: right;
+      font-size: 11px;
+      margin-top: 2px;
+      color: #777777;
+    }
+
+    .winds-submit-row { text-align: center; margin-top: 10px; }
+
+    /* --- Buttons --- */
+    .winds-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .winds-btn:active { transform: scale(0.98); }
+    .winds-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+    .winds-btn-primary {
+      background: #3b262a;
+      color: #fff;
+    }
+    .winds-btn-primary:hover { background: #4a333a; }
+
+    .winds-btn-gold {
+      background: #c9a84c;
+      color: #3b262a;
+      font-size: 14px;
+    }
+    .winds-btn-gold:hover { background: #b8963f; }
+    .winds-btn-gold:disabled { background: #ccc; color: #888; }
+
+    /* ===========================================
+       Loading Animation
+       =========================================== */
+    .winds-loading {
+      text-align: center;
+      padding: 60px 20px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-dots {
+      margin-bottom: 20px;
+    }
+    .winds-dots span {
+      display: inline-block;
+      width: 10px; height: 10px;
+      margin: 0 4px;
+      background: #c9a84c;
+      border-radius: 50%;
+      animation: windsBounce 1.2s infinite ease-in-out;
+    }
+    .winds-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .winds-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes windsBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1);   opacity: 1; }
+    }
+    .winds-loading-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 6px;
+    }
+    .winds-loading-sub {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    /* ===========================================
+       Result Card
+       =========================================== */
+    .winds-result {
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+    .winds-result-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 18px;
+      border: 0.5px solid #dcd2d2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+    .winds-result-label {
+      font-size: 14px;
+      color: #c9a84c;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .winds-result-divider {
+      height: 1px;
+      background: linear-gradient(to right, #c9a84c, transparent);
+      margin-bottom: 14px;
+    }
+    .winds-result-text {
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 14px;
+      color: #3b262a;
+      padding: 14px;
+      background: #faf8f6;
+      border-radius: 8px;
+      border: 1px solid #f0e6e6;
+      margin-bottom: 16px;
+    }
+
+    /* --- Footer --- */
+    .winds-footer {
+      text-align: center;
+      color: #999;
+      font-size: 11px;
+      margin-top: 24px;
+    }
+
+    /* ===========================================
+       RWD — Mobile
+       =========================================== */
+    @media (max-width: 768px) {
+      .winds-topic-section { display: block; gap: 0; }
+
+      .winds-topic-row,
+      .winds-sub-row,
+      .winds-third-row,
+      #birthCardWrapper,
+      .winds-topic-section.winds-has-sub-selected:not(.winds-has-third-selected) .winds-topic-row,
+      .winds-topic-section.winds-has-sub-selected.winds-has-third-selected:not(.winds-step-3) .winds-topic-row,
+      .winds-topic-section.winds-has-sub-selected.winds-has-third-selected:not(.winds-step-3) .winds-sub-row.active,
+      .winds-topic-section.winds-step-3 .winds-topic-row,
+      .winds-topic-section.winds-step-3 .winds-sub-row.active,
+      .winds-topic-section.winds-step-3 .winds-third-row.active {
+        flex: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-top: 12px !important;
+      }
+
+      .winds-topic-card,
+      .winds-sub-card,
+      .winds-third-card {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+      }
+
+      .winds-topic-section.winds-has-sub-selected:not(.winds-has-third-selected) .winds-topic-card.active,
+      .winds-topic-section.winds-has-sub-selected.winds-has-third-selected .winds-topic-card.active,
+      .winds-topic-section.winds-has-sub-selected.winds-has-third-selected .winds-sub-card.active,
+      .winds-topic-section.winds-step-3 .winds-topic-card.active,
+      .winds-topic-section.winds-step-3 .winds-sub-card.active,
+      .winds-topic-section.winds-step-3 .winds-third-card.active {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+      }
+
+      .winds-bottom-row { flex-direction: column; }
+
+      .winds-input-card {
+        flex: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+
+      .winds-contact-field {
+        flex: 1 1 calc(50% - 5px) !important;
+        max-width: calc(50% - 5px) !important;
+        min-width: calc(50% - 5px) !important;
+      }
+
+      .winds-birth-row {
+        flex-wrap: nowrap !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="winds-page">
+    <!-- Header -->
+    <div class="winds-header">
+      <h1>🌙 找風問幸福</h1>
+      <p>易經 × 塔羅 × 靈性占卜</p>
+    </div>
+
+    <!-- Status message -->
+    <div id="status" class="winds-status"></div>
+
+    <!-- ============================
+         State A: Three-layer Topic Cards
+         ============================ -->
+    <div class="winds-topic-section" id="topicSection">
+      <!-- 第一層：3 類 -->
+      <div class="winds-topic-row">
+        <div class="winds-topic-card" data-topic="love">
+          <div class="winds-topic-card-title">感情與婚姻困擾</div>
+          <div>關於感情、婚姻、關係拉扯與擔心，想看清彼此的真實想法與走向。</div>
+        </div>
+        <div class="winds-topic-card" data-topic="career">
+          <div class="winds-topic-card-title">事業與財富規劃</div>
+          <div>包含工作方向、轉職創業、財務壓力與收入穩定度，想釐清下一步。</div>
+        </div>
+        <div class="winds-topic-card" data-topic="health">
+          <div class="winds-topic-card-title">身心與健康狀態</div>
+          <div>對身心狀態、睡眠、壓力或長期不適感到擔心，希望調整能量。</div>
+        </div>
+      </div>
+
+      <!-- 第二層：感情 -->
+      <div class="winds-sub-row" id="winds-sub-love">
+        <div class="winds-sub-card" data-sub="love-reunion">
+          <div class="winds-sub-card-title">復合與舊愛</div>
+          <div>分手後想知道是否還有機會，或徹底放下。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="love-crush">
+          <div class="winds-sub-card-title">暗戀與曖昧</div>
+          <div>想知道對方心意、發展可能或行動時機。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="love-partner">
+          <div class="winds-sub-card-title">伴侶與婚姻</div>
+          <div>解決爭執、冷淡、懷疑或改善關係。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="love-single">
+          <div class="winds-sub-card-title">單身與桃花</div>
+          <div>求正緣、斬爛桃花、查詢桃花運勢。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：感情/復合 -->
+      <div class="winds-third-row" id="winds-third-love-reunion">
+        <div class="winds-third-card" data-third="1.1.1">
+          <div class="winds-third-card-title">我們分手了，我想知道復合機會有多大？</div>
+          <div>想知道對方是否已真分，還是有機會。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.1.2">
+          <div class="winds-third-card-title">我想知道他跟我分手的真正原因是什麼？</div>
+          <div>對方沒說清楚，想查清是否有隱情。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.1.3">
+          <div class="winds-third-card-title">這段感情讓我好痛苦，我該放下還是繼續等？</div>
+          <div>需要一個明確的指引，幫助我做決定讓我好好走下去。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.1.4">
+          <div class="winds-third-card-title">我放不下他，想知道他現在對我的感覺是怎樣？</div>
+          <div>想確認對方當下的心意與感覺。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：感情/暗戀 -->
+      <div class="winds-third-row" id="winds-third-love-crush">
+        <div class="winds-third-card" data-third="1.2.1">
+          <div class="winds-third-card-title">我喜歡他，想知道我們有沒有可能在一起？</div>
+          <div>看雙方的緣分能量與未來走向。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.2.2">
+          <div class="winds-third-card-title">他對我忽冷忽熱，想知道他到底喜不喜歡我？</div>
+          <div>想直接看清對方的心意與態度。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.2.3">
+          <div class="winds-third-card-title">我想向他告白，但不知道現在是不是好時機？</div>
+          <div>希望行動的時機點與成功率。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.2.4">
+          <div class="winds-third-card-title">這段曖昧關係一直沒結果，有沒有隱藏問題想我沒看見的？</div>
+          <div>查出曖昧無法推進的根本原因。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：感情/伴侶 -->
+      <div class="winds-third-row" id="winds-third-love-partner">
+        <div class="winds-third-card" data-third="1.3.1">
+          <div class="winds-third-card-title">最近常吵架，想知道我們是不是不合或有冤家債？</div>
+          <div>看關係中的因果業力與相處癥結。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.3.2">
+          <div class="winds-third-card-title">我想知道這段婚姻/感情，未來一年的走向如何？</div>
+          <div>看雙方感情運勢的起伏。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.3.3">
+          <div class="winds-third-card-title">我懷疑有第三者，或對我不忠，能幫我查嗎？</div>
+          <div>查對方是否有曖昧或隱情事件。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.3.4">
+          <div class="winds-third-card-title">我想挽救這段關係，有沒有建議或方向？</div>
+          <div>尋求改善關係的具體做法。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：感情/單身 -->
+      <div class="winds-third-row" id="winds-third-love-single">
+        <div class="winds-third-card" data-third="1.4.1">
+          <div class="winds-third-card-title">我單身很久了，想知道什麼時候會有正緣？</div>
+          <div>查桃花運勢與正緣出現的時間點。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.4.2">
+          <div class="winds-third-card-title">為什麼我總是遇到爛桃花？是不是我有什麼問題？</div>
+          <div>探索感情一直不順的深層原因。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.4.3">
+          <div class="winds-third-card-title">我想斬桃花，請告訴我怎樣能招到好對象？</div>
+          <div>希望斬桃花的具體方法與建議。</div>
+        </div>
+        <div class="winds-third-card" data-third="1.4.4">
+          <div class="winds-third-card-title">我想知道這幾個月的桃花運勢如何？</div>
+          <div>看近期的感情能量場。</div>
+        </div>
+      </div>
+
+      <!-- 第二層：事業 -->
+      <div class="winds-sub-row" id="winds-sub-career">
+        <div class="winds-sub-card" data-sub="career-job">
+          <div class="winds-sub-card-title">求職與換工作</div>
+          <div>轉職評估、去留抉擇、面試運勢。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="career-business">
+          <div class="winds-sub-card-title">創業與副業</div>
+          <div>創業運勢、合夥人篩選、生意診斷。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="career-office">
+          <div class="winds-sub-card-title">職場人際與升遷</div>
+          <div>防小人、升遷機會、辦公室風水。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="career-wealth">
+          <div class="winds-sub-card-title">投資與財運</div>
+          <div>正偏財運、漏財原因、投資吉凶。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：事業/求職 -->
+      <div class="winds-third-row" id="winds-third-career-job">
+        <div class="winds-third-card" data-third="2.1.1">
+          <div class="winds-third-card-title">我現在這份工作做得好痛苦，該轉職還是繼續？</div>
+          <div>面臨留或去的抉擇，需要指引。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.1.2">
+          <div class="winds-third-card-title">我想換工作，想知道換到新環境會不會更好？</div>
+          <div>預估換工作的運勢與發展情況。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.1.3">
+          <div class="winds-third-card-title">我一直找不到合適的工作，是不是運勢被卡住？</div>
+          <div>查找無形的阻礙或業力。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.1.4">
+          <div class="winds-third-card-title">我有幾個工作機會在選，哪一個比較適合我？</div>
+          <div>針對選項進行評估與建議。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：事業/創業 -->
+      <div class="winds-third-row" id="winds-third-career-business">
+        <div class="winds-third-card" data-third="2.2.1">
+          <div class="winds-third-card-title">我想創業/做副業，想知道我有沒有創業的命？</div>
+          <div>看個人的事業能量與時機穩定度。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.2.2">
+          <div class="winds-third-card-title">最近生意變差，想知道是什麼原因造成的？</div>
+          <div>查出生意下滑的外因或內部能量損傷。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.2.3">
+          <div class="winds-third-card-title">我想跟人合夥，想預先看這個合作對象能不能信？</div>
+          <div>預篩合夥人的能量與誠信。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.2.4">
+          <div class="winds-third-card-title">我想擴大經營，不知道這個決策是否正確？</div>
+          <div>針對重大商業決策進行占卜指引。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：事業/職場 -->
+      <div class="winds-third-row" id="winds-third-career-office">
+        <div class="winds-third-card" data-third="2.3.1">
+          <div class="winds-third-card-title">我在公司是不是被小人針對？為什麼一直不順？</div>
+          <div>查職場上的小人與陰性干擾。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.3.2">
+          <div class="winds-third-card-title">我想知道今年有沒有升遷加薪的機會？</div>
+          <div>預測職場運勢的走向。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.3.3">
+          <div class="winds-third-card-title">跟主管/同事處不來，該怎樣改善關係？</div>
+          <div>尋求改善職場關係的方法。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.3.4">
+          <div class="winds-third-card-title">我覺得職公室風水或氣場怪怪的，是否有問題？</div>
+          <div>感受工作環境的能量場。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：事業/財運 -->
+      <div class="winds-third-row" id="winds-third-career-wealth">
+        <div class="winds-third-card" data-third="2.4.1">
+          <div class="winds-third-card-title">我想知道我這一生的財帛運穩不穩？</div>
+          <div>看本命財帛與財富大局。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.4.2">
+          <div class="winds-third-card-title">最近一直破財，錢怎麼也留不住，想查原因？</div>
+          <div>找出漏財的漏洞與原因。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.4.3">
+          <div class="winds-third-card-title">我想投資這個項目，能幫我占卜適不適合嗎？</div>
+          <div>預測特定投資項目的成敗。</div>
+        </div>
+        <div class="winds-third-card" data-third="2.4.4">
+          <div class="winds-third-card-title">未來半年的偏財運如何？適合增加收入嗎？</div>
+          <div>看短期的偏財能量。</div>
+        </div>
+      </div>
+
+      <!-- 第二層：健康 -->
+      <div class="winds-sub-row" id="winds-sub-health">
+        <div class="winds-sub-card" data-sub="health-body">
+          <div class="winds-sub-card-title">身體健康</div>
+          <div>不明病因、手術平安、健康運勢。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="health-mind">
+          <div class="winds-sub-card-title">心理與情緒</div>
+          <div>憂鬱焦慮、失眠多夢、情緒不穩。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="health-spirit">
+          <div class="winds-sub-card-title">靈異與運勢</div>
+          <div>卡陰中煞、居家風水、祖先問題。</div>
+        </div>
+        <div class="winds-sub-card" data-sub="health-family">
+          <div class="winds-sub-card-title">家庭與寵物</div>
+          <div>小孩收驚、寵物溝通、家人運勢。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：健康/身體 -->
+      <div class="winds-third-row" id="winds-third-health-body">
+        <div class="winds-third-card" data-third="3.1.1">
+          <div class="winds-third-card-title">身體檢查都正常，但就是覺得不舒服，想查原因？</div>
+          <div>探索現代醫學查不出的無形干擾。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.1.2">
+          <div class="winds-third-card-title">我想知道今年的健康運勢，要注意什麼？</div>
+          <div>預測健康狀態與潛在風險。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.1.3">
+          <div class="winds-third-card-title">小孩生病一直好不了，是不是有冤家債或外煞？</div>
+          <div>查看小孩的健康是否受業力糾纏。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.1.4">
+          <div class="winds-third-card-title">即將要做手術，想問手術順不順利？</div>
+          <div>針對醫療行為進行祈福與預測平安。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：健康/心理 -->
+      <div class="winds-third-row" id="winds-third-health-mind">
+        <div class="winds-third-card" data-third="3.2.1">
+          <div class="winds-third-card-title">我最近心情好低落、焦慮，找不出原因。</div>
+          <div>探尋心緒波動的能量來源與解方。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.2.2">
+          <div class="winds-third-card-title">常做惡夢、驚醒，為什麼會這樣？</div>
+          <div>分析是心理壓力還是外靈影響。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.2.3">
+          <div class="winds-third-card-title">總是容易累、睡不好、壓力大。</div>
+          <div>解析夢境與睡眠品質的能量阻礙。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.2.4">
+          <div class="winds-third-card-title">心裡有個結打不開，鬱悶很久一直建議我該怎麼調整。</div>
+          <div>尋求心理上的指引。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：健康/靈異 -->
+      <div class="winds-third-row" id="winds-third-health-spirit">
+        <div class="winds-third-card" data-third="3.3.1">
+          <div class="winds-third-card-title">我覺得運氣好差，為什麼一直不順利？是否卡到陰？</div>
+          <div>查自身氣場是否卡陰或中煞。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.3.2">
+          <div class="winds-third-card-title">小孩常有怪夢或怪事，是不是看到什麼了？</div>
+          <div>鑑別小孩的靈敏體質或陰性干擾。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.3.3">
+          <div class="winds-third-card-title">我想問祖先有沒有好？有沒有需要做的？</div>
+          <div>查否祖先姻緣或願力未圓滿。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.3.4">
+          <div class="winds-third-card-title">我想了解我的家居環境或指定空間是否適合？</div>
+          <div>探索個人的體質與能量類型。</div>
+        </div>
+      </div>
+
+      <!-- 第三層：健康/家庭 -->
+      <div class="winds-third-row" id="winds-third-health-family">
+        <div class="winds-third-card" data-third="3.4.1">
+          <div class="winds-third-card-title">小孩最近易驚嚇、常哭鬧，是不是驚到了？</div>
+          <div>查小孩是否受驚或受影響。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.4.2">
+          <div class="winds-third-card-title">家裡的寵物最近怪怪的，想知道牠怎麼了？</div>
+          <div>與寵物溝通，了解牠的身心狀況。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.4.3">
+          <div class="winds-third-card-title">擔心家人的運勢，想幫他們問前後運或該注意。</div>
+          <div>查否家人運勢有風險需防範。</div>
+        </div>
+        <div class="winds-third-card" data-third="3.4.4">
+          <div class="winds-third-card-title">過世的親人現在過得好不好？</div>
+          <div>探察已故親人在另一個世界的狀態。</div>
+        </div>
+      </div>
+
+      <!-- ============================
+           State B: Personal Info Form
+           ============================ -->
+      <div id="birthCardWrapper" class="winds-hidden">
+        <div class="winds-bottom-row">
+          <div class="winds-input-card">
+            <div class="winds-contact-row">
+              <div class="winds-contact-field">
+                <label for="windsLastName">姓<span class="winds-required">*</span></label>
+                <input id="windsLastName" type="text" class="winds-input" placeholder="請輸入姓氏">
+              </div>
+              <div class="winds-contact-field">
+                <label for="windsFirstName">名<span class="winds-required">*</span></label>
+                <input id="windsFirstName" type="text" class="winds-input" placeholder="請輸入名字">
+              </div>
+              <div class="winds-contact-field">
+                <label for="windsPhone">手機<span class="winds-required">*</span></label>
+                <input id="windsPhone" type="tel" class="winds-input" placeholder="09xxxxxxxx">
+              </div>
+              <div class="winds-contact-field">
+                <label for="windsEmail">Email<span class="winds-required">*</span></label>
+                <input id="windsEmail" type="email" class="winds-input" placeholder="example@gmail.com">
+              </div>
+            </div>
+
+            <div class="winds-birth-row">
+              <div class="winds-contact-field">
+                <label for="birthDate">出生日期<span class="winds-required">*</span></label>
+                <input id="birthDate" type="date" class="birth-card-input">
+              </div>
+              <div class="winds-contact-field">
+                <label for="birthTime">出生時間<span class="winds-required">*</span></label>
+                <input id="birthTime" type="time" step="300" class="birth-card-input">
+              </div>
+            </div>
+
+            <label style="display:block; font-size:11px; font-weight:600; margin-bottom:4px;">引導問題<span class="winds-required">*</span></label>
+            <textarea id="windsSummary" class="winds-textarea" maxlength="200" placeholder="選完上方情境後會自動填入，你也可以手動補充描述"></textarea>
+            <div id="winds-char-counter" class="winds-char-counter">0 / 200</div>
+
+            <div class="winds-submit-row">
+              <button id="submitBtn" class="winds-btn winds-btn-primary">🔮 送出占卜</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end .winds-topic-section -->
+
+    <!-- ============================
+         State C-Loading
+         ============================ -->
+    <div id="loadingSection" style="display:none;">
+      <div class="winds-loading">
+        <div class="winds-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="winds-loading-title">正在為您解讀命盤中…</p>
+        <p class="winds-loading-sub">通常需要 30–60 秒，請稍候</p>
+      </div>
+    </div>
+
+    <!-- ============================
+         State C-Result
+         ============================ -->
+    <div id="resultSection" style="display:none;">
+      <div class="winds-result">
+        <div class="winds-result-card">
+          <div class="winds-result-label">✨ 免費摘要</div>
+          <div class="winds-result-divider"></div>
+          <div id="summaryText" class="winds-result-text"></div>
+          <button id="unlockBtn" class="winds-btn winds-btn-gold">🏮 解鎖完整版解讀及改運符令 NT$360</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="winds-footer">找風問幸福 &copy; 宇風企管顧問有限公司</div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  (function() {
+    "use strict";
+
+    // ===========================================
+    // Config
+    // ===========================================
+    var LIFF_ID = "2009168674-G2KqF3Jv";
+    // 透過 AppSail CORS 代理（Zoho Creator Custom API 不支援瀏覽器直接呼叫）
+    var APPSAIL = "https://divinationserver-10121308063.development.catalystappsail.com";
+    var DIVINATION_API  = APPSAIL + "/liff-submit";
+    var CREATE_ORDER_API = APPSAIL + "/liff-order";
+    var PREFILL_API      = APPSAIL + "/liff-prefill";
+
+    // ===========================================
+    // State
+    // ===========================================
+    var lineUserId = "";
+    var divinationLogId = "";
+    var divinationElement = "";   // 由 liffDivinationMvp 回傳（next_action.element）
+    var divinationTalismanName = "改運符令";  // 預設，可被回傳值覆蓋
+
+    var selectedTopicKey = null;
+    var selectedTopicTitle = "";
+    var selectedTopicDesc = "";
+    var selectedSubKey = null;
+    var selectedSubTitle = "";
+    var selectedSubDesc = "";
+    var selectedThirdKey = null;
+    var selectedThirdTitle = "";
+    var selectedThirdDesc = "";
+
+    var topicSection = document.getElementById("topicSection");
+
+    // ===========================================
+    // Helpers
+    // ===========================================
+    function $(id) { return document.getElementById(id); }
+
+    function forEachNode(list, cb) {
+      Array.prototype.forEach.call(list, cb);
+    }
+
+    function showStatus(msg, type) {
+      var el = $("status");
+      if (!el) return;
+      el.className = "winds-status " + (type || "info");
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    function hideStatus() {
+      var el = $("status");
+      if (el) el.style.display = "none";
+    }
+
+    function getInputs() {
+      return {
+        lastNameInput:  $("windsLastName"),
+        firstNameInput: $("windsFirstName"),
+        phoneInput:     $("windsPhone"),
+        emailInput:     $("windsEmail"),
+        birthDateInput: $("birthDate"),
+        birthTimeInput: $("birthTime"),
+        summaryInput:   $("windsSummary"),
+        charCounter:    $("winds-char-counter"),
+        birthWrap:      $("birthCardWrapper")
+      };
+    }
+
+    // ===========================================
+    // UI State Sync
+    // ===========================================
+    function syncUIState() {
+      if (!topicSection) return;
+      var hasTopicActive = document.querySelector(".winds-topic-card.active");
+      var hasSubActive   = document.querySelector(".winds-sub-card.active");
+      var hasThirdActive = document.querySelector(".winds-third-card.active");
+
+      if (!hasTopicActive && !hasSubActive && !hasThirdActive) {
+        topicSection.classList.remove("winds-has-sub-selected", "winds-has-third-selected", "winds-step-3");
+      } else if (!hasTopicActive) {
+        topicSection.classList.remove("winds-has-sub-selected", "winds-has-third-selected", "winds-step-3");
+      } else if (hasTopicActive && !hasSubActive) {
+        topicSection.classList.remove("winds-has-third-selected", "winds-step-3");
+      } else if (hasSubActive && !hasThirdActive) {
+        topicSection.classList.remove("winds-step-3");
+      }
+    }
+
+    function resetAll() {
+      var topicCards = document.querySelectorAll(".winds-topic-card");
+      var subRows    = document.querySelectorAll(".winds-sub-row");
+      var subCards   = document.querySelectorAll(".winds-sub-card");
+      var thirdRows  = document.querySelectorAll(".winds-third-row");
+      var thirdCards = document.querySelectorAll(".winds-third-card");
+      var ref = getInputs();
+
+      forEachNode(topicCards, function(c) { c.classList.remove("active", "winds-hidden"); });
+      forEachNode(subRows,   function(r) { r.classList.remove("active"); });
+      forEachNode(subCards,   function(c) { c.classList.remove("active", "winds-hidden"); });
+      forEachNode(thirdRows,  function(r) { r.classList.remove("active"); });
+      forEachNode(thirdCards, function(c) { c.classList.remove("active", "winds-hidden"); });
+
+      if (ref.birthWrap) ref.birthWrap.classList.add("winds-hidden");
+
+      selectedTopicKey = null; selectedTopicTitle = ""; selectedTopicDesc = "";
+      selectedSubKey   = null; selectedSubTitle   = ""; selectedSubDesc   = "";
+      selectedThirdKey = null; selectedThirdTitle = ""; selectedThirdDesc = "";
+
+      if (topicSection) {
+        topicSection.classList.remove("winds-has-sub-selected", "winds-has-third-selected", "winds-step-3");
+      }
+    }
+
+    // ===========================================
+    // Card Interaction Handlers
+    // ===========================================
+    function handleTopicClick(card) {
+      var topic = card.getAttribute("data-topic");
+      if (!topic) return;
+      var subRow = $("winds-sub-" + topic);
+      if (!subRow) return;
+
+      if (card.classList.contains("active")) {
+        resetAll();
+        return;
+      }
+
+      resetAll();
+      selectedTopicKey = topic;
+
+      var titleEl = card.querySelector(".winds-topic-card-title");
+      selectedTopicTitle = titleEl ? titleEl.textContent.trim() : "";
+      var divs = card.querySelectorAll("div");
+      selectedTopicDesc = divs.length >= 2 ? divs[1].textContent.trim() : "";
+
+      card.classList.add("active");
+      forEachNode(document.querySelectorAll(".winds-topic-card"), function(other) {
+        if (other !== card) other.classList.add("winds-hidden");
+      });
+      subRow.classList.add("active");
+
+      if (topicSection) topicSection.classList.add("winds-has-sub-selected");
+    }
+
+    function handleSubClick(card) {
+      var key = card.getAttribute("data-sub");
+      if (!key) return;
+      var thirdRow = $("winds-third-" + key);
+      var row = card.parentNode;
+      var rowCards = row ? row.querySelectorAll(".winds-sub-card") : [];
+      var ref = getInputs();
+
+      if (card.classList.contains("active")) {
+        forEachNode(rowCards, function(c) { c.classList.remove("active", "winds-hidden"); });
+        forEachNode(document.querySelectorAll(".winds-third-row"), function(r) { r.classList.remove("active"); });
+        forEachNode(document.querySelectorAll(".winds-third-card"), function(c) { c.classList.remove("active", "winds-hidden"); });
+        if (ref.birthWrap) ref.birthWrap.classList.add("winds-hidden");
+        selectedSubKey = null; selectedThirdKey = null;
+        if (topicSection) {
+          topicSection.classList.remove("winds-has-third-selected", "winds-step-3");
+        }
+        setTimeout(syncUIState, 10);
+        return;
+      }
+
+      selectedSubKey = key;
+      var subTitleEl = card.querySelector(".winds-sub-card-title");
+      selectedSubTitle = subTitleEl ? subTitleEl.textContent.trim() : "";
+      var divs2 = card.querySelectorAll("div");
+      selectedSubDesc = divs2.length >= 2 ? divs2[1].textContent.trim() : "";
+
+      forEachNode(rowCards, function(c) {
+        if (c === card) { c.classList.add("active"); c.classList.remove("winds-hidden"); }
+        else { c.classList.remove("active"); c.classList.add("winds-hidden"); }
+      });
+
+      // Clear any previous third selections
+      forEachNode(document.querySelectorAll(".winds-third-row"), function(r) { r.classList.remove("active"); });
+      forEachNode(document.querySelectorAll(".winds-third-card"), function(c) { c.classList.remove("active", "winds-hidden"); });
+      selectedThirdKey = null; selectedThirdTitle = ""; selectedThirdDesc = "";
+      if (ref.birthWrap) ref.birthWrap.classList.add("winds-hidden");
+
+      if (thirdRow) thirdRow.classList.add("active");
+      if (topicSection) {
+        topicSection.classList.add("winds-has-third-selected");
+        topicSection.classList.remove("winds-step-3");
+      }
+    }
+
+    function handleThirdClick(card) {
+      var key = card.getAttribute("data-third");
+      if (!key) return;
+      var row = card.parentNode;
+      var rowCards = row ? row.querySelectorAll(".winds-third-card") : [];
+      var ref = getInputs();
+
+      if (card.classList.contains("active")) {
+        card.classList.remove("active");
+        forEachNode(rowCards, function(c) { c.classList.remove("winds-hidden"); });
+        if (ref.birthWrap) ref.birthWrap.classList.add("winds-hidden");
+        selectedThirdKey = null; selectedThirdTitle = ""; selectedThirdDesc = "";
+        if (topicSection) topicSection.classList.remove("winds-step-3");
+        setTimeout(syncUIState, 10);
+        return;
+      }
+
+      selectedThirdKey = key;
+      var titleEl = card.querySelector(".winds-third-card-title");
+      selectedThirdTitle = titleEl ? titleEl.textContent.trim() : "";
+      var divs = card.querySelectorAll("div");
+      selectedThirdDesc = divs.length >= 2 ? divs[1].textContent.trim() : "";
+
+      forEachNode(rowCards, function(c) {
+        if (c === card) { c.classList.add("active"); c.classList.remove("winds-hidden"); }
+        else { c.classList.remove("active"); c.classList.add("winds-hidden"); }
+      });
+
+      if (topicSection) topicSection.classList.add("winds-step-3");
+
+      if (ref.birthWrap) {
+        ref.birthWrap.classList.remove("winds-hidden");
+        setTimeout(function() {
+          ref.birthWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 100);
+      }
+
+      updateSummaryTemplate();
+    }
+
+    // ===========================================
+    // Form: Summary Template
+    // ===========================================
+    function updateSummaryTemplate() {
+      var ref = getInputs();
+      if (!ref.summaryInput) return;
+      if (!selectedTopicTitle || !selectedSubTitle || !selectedThirdTitle) return;
+
+      var template = "我目前最想處理的問題是「" + selectedTopicTitle + " - " + selectedSubTitle +
+        "」，狀況比較接近「" + selectedThirdTitle + "」：" + selectedThirdDesc +
+        " 實際情況是：（請簡單在後面補充）";
+
+      ref.summaryInput.value = template;
+      updateCharCounter();
+    }
+
+    function updateCharCounter() {
+      var ref = getInputs();
+      if (!ref.summaryInput || !ref.charCounter) return;
+      var len = ref.summaryInput.value ? ref.summaryInput.value.length : 0;
+      ref.charCounter.textContent = len + " / 200";
+    }
+
+    // ===========================================
+    // Form: Validation
+    // ===========================================
+    function validatePhoneLocal(phone) {
+      if (!phone) return false;
+      return /^09\d{8}$/.test(phone.trim());
+    }
+
+    function formatPhoneToE164TW(phone) {
+      if (!validatePhoneLocal(phone)) return null;
+      return "+886" + phone.trim().slice(1);
+    }
+
+    function validateGmail(email) {
+      if (!email) return false;
+      return email.trim().toLowerCase().endsWith("@gmail.com");
+    }
+
+    // ===========================================
+    // Form: Default on First Focus
+    // ===========================================
+    function applyDefaultOnFirstFocus(inputId, defaultValue) {
+      var input = $(inputId);
+      if (!input) return;
+      var initialized = false;
+      function handler() {
+        if (!initialized && !input.value) {
+          input.value = defaultValue;
+          initialized = true;
+        }
+      }
+      input.addEventListener("focus", handler);
+      input.addEventListener("click", handler);
+    }
+
+    // 頁面載入立刻設預設值（不等 focus），回訪用戶有資料時會被 prefill 覆蓋
+    (function() {
+      var bd = $("birthDate"); if (bd && !bd.value) bd.value = "1990-07-01";
+      var bt = $("birthTime"); if (bt && !bt.value) bt.value = "12:00";
+    })();
+
+    // ===========================================
+    // Page State Transitions
+    // ===========================================
+    function showLoading() {
+      $("topicSection").style.display = "none";
+      $("loadingSection").style.display = "block";
+      $("resultSection").style.display = "none";
+      hideStatus();
+    }
+
+    function showResult(summaryHtml) {
+      $("topicSection").style.display = "none";
+      $("loadingSection").style.display = "none";
+      $("resultSection").style.display = "block";
+      $("summaryText").textContent = summaryHtml;
+    }
+
+    // 非同步占卜：輪詢等待 LLM 結果（最多 90 秒，每 4 秒查一次）
+    function startPolling(uid, afterId) {
+      var loadingEl = $("loadingSection");
+      var topicEl   = $("topicSection");
+      if (topicEl)  topicEl.style.display  = "none";
+      if (loadingEl) {
+        loadingEl.style.display = "block";
+        var msgEl = loadingEl.querySelector("p") || loadingEl;
+        msgEl.textContent = "🔮 占卜進行中，請稍候…（約30-60秒）";
+      }
+
+      var attempts = 0;
+      var maxAttempts = 23; // 23 × 4s = 92s
+
+      var timer = setInterval(function() {
+        attempts++;
+        var afterIdParam = afterId ? ("&afterId=" + encodeURIComponent(afterId)) : "";
+        fetch(APPSAIL + "/liff-status?lineUserId=" + encodeURIComponent(uid) + afterIdParam)
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.ready && d.summary) {
+              clearInterval(timer);
+              divinationLogId = d.reading_id || "";
+              // 儲存符令元素（從 next_action 取得，供後續建立訂單用）
+              if (d.next_action) {
+                divinationElement = d.next_action.element || "";
+                divinationTalismanName = d.next_action.talisman_name || "改運符令";
+              }
+              showResult(d.summary);
+            } else if (attempts >= maxAttempts) {
+              clearInterval(timer);
+              if (loadingEl) loadingEl.style.display = "none";
+              showStatus("占卜正在進行，結果將透過 LINE 推送，請留意通知 🔔", "warn");
+              showForm();
+            }
+          })
+          .catch(function() {
+            if (attempts >= maxAttempts) {
+              clearInterval(timer);
+              if (loadingEl) loadingEl.style.display = "none";
+              showStatus("占卜正在進行，結果將透過 LINE 推送，請留意通知 🔔", "warn");
+              showForm();
+            }
+          });
+      }, 4000);
+    }
+
+    function showForm() {
+      $("topicSection").style.display = "";
+      $("loadingSection").style.display = "none";
+      $("resultSection").style.display = "none";
+    }
+
+    // ===========================================
+    // Submit Handler
+    // ===========================================
+    function handleSubmit() {
+      var ref = getInputs();
+
+      // Validation
+      if (!ref.lastNameInput || !ref.lastNameInput.value.trim()) {
+        showStatus("請先輸入姓氏。", "err"); return;
+      }
+      if (!ref.firstNameInput || !ref.firstNameInput.value.trim()) {
+        showStatus("請先輸入名字。", "err"); return;
+      }
+      var phoneLocal = ref.phoneInput ? ref.phoneInput.value.trim() : "";
+      if (!validatePhoneLocal(phoneLocal)) {
+        showStatus("請輸入正確的手機號碼（例如 0912345678）。", "err"); return;
+      }
+      var emailVal = ref.emailInput ? ref.emailInput.value.trim() : "";
+      if (!validateGmail(emailVal)) {
+        showStatus("Email 目前僅接受 @gmail.com 信箱。", "err"); return;
+      }
+      if (!ref.birthDateInput || !ref.birthDateInput.value) {
+        showStatus("請先選擇你的出生日期。", "err"); return;
+      }
+      if (!ref.birthTimeInput || !ref.birthTimeInput.value) {
+        showStatus("請選擇你的出生時間（若不確定可選大約時間）。", "err"); return;
+      }
+      if (!selectedThirdKey) {
+        showStatus("請先在上方選擇一張對應的情境卡片。", "err"); return;
+      }
+      var summaryText = ref.summaryInput ? ref.summaryInput.value.trim() : "";
+      if (!summaryText) {
+        showStatus("請簡單補充目前的實際狀況。", "err"); return;
+      }
+
+      hideStatus();
+      showLoading();
+
+      var phoneE164 = formatPhoneToE164TW(phoneLocal);
+      var birthday = ref.birthDateInput.value;
+      if (ref.birthTimeInput.value) {
+        birthday += " " + ref.birthTimeInput.value;
+      }
+
+      // Store form data for unlock button
+      window._formData = {
+        lastName:  ref.lastNameInput.value.trim(),
+        firstName: ref.firstNameInput.value.trim(),
+        phone:     phoneE164,
+        email:     emailVal,
+        birthday:  birthday
+      };
+
+      fetch(DIVINATION_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          lineUserId: lineUserId,
+          birthday:   birthday,
+          question:   summaryText,
+          lastName:   ref.lastNameInput.value.trim(),
+          firstName:  ref.firstNameInput.value.trim(),
+          phone:      phoneE164,
+          email:      emailVal,
+          topicKey:   selectedTopicKey || "",
+          subKey:     selectedSubKey || "",
+          thirdKey:   selectedThirdKey || "",
+          topicTitle: selectedTopicTitle || "",
+          subTitle:   selectedSubTitle || "",
+          thirdTitle: selectedThirdTitle || ""
+        })
+      })
+      .then(function(resp) {
+        if (!resp.ok) {
+          return resp.json().catch(function() { return {}; }).then(function(d) {
+            throw new Error("HTTP " + resp.status + "：" + (d.message || "伺服器錯誤"));
+          });
+        }
+        return resp.json();
+      })
+      .then(function(data) {
+        if (data.success === false) {
+          showForm();
+          showStatus(data.message || "發生錯誤", "err");
+          return;
+        }
+        if (data.blocked) {
+          showForm();
+          showStatus(data.message || "冷卻中，請稍後再來", "warn");
+          return;
+        }
+
+        // 非同步模式：後端立即回 pending: true，前端輪詢等結果
+        if (data.pending) {
+          startPolling(data.lineUserId || lineUserId, divinationLogId);
+          return;
+        }
+
+        divinationLogId = data.reading_id || "";
+        if (data.next_action) {
+          divinationElement = data.next_action.element || "";
+          divinationTalismanName = data.next_action.talisman_name || "改運符令";
+        }
+        var summary = data.summary_text || "";
+        showResult(summary);
+
+        if (data.line_pushed === false) {
+          showStatus("摘要已產生，但 LINE 推播未成功", "warn");
+        }
+      })
+      .catch(function(e) {
+        showForm();
+        showStatus("錯誤：" + e.toString(), "err");
+      });
+    }
+
+    // ===========================================
+    // Unlock Handler (ECPay)
+    // ===========================================
+    function handleUnlock() {
+      var btn = $("unlockBtn");
+      if (!btn || btn.disabled) return;
+
+      if (!divinationLogId) {
+        showStatus("系統錯誤：找不到占卜記錄 ID", "err");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "處理中…";
+
+      var fd = window._formData || {};
+
+      fetch(CREATE_ORDER_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          firstName:    fd.firstName || "",
+          lastName:     fd.lastName || "",
+          email:        fd.email || "",
+          phoneNumber:  fd.phone || "",
+          divinationId: divinationLogId,
+          talismanName: divinationTalismanName,
+          element:      divinationElement,
+          price:        "360",
+          lineUserId:   lineUserId
+        })
+      })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        if (data.success && data.data && data.data.paymentToken) {
+          // LINE WebView 無法直接跳轉付款，顯示付款按鈕讓用戶點擊
+          var payUrl = "https://divinationserver-10121308063.development.catalystappsail.com/pay/" + data.data.paymentToken;
+          btn.disabled = false;
+          btn.textContent = "💳 前往付款 NT$360 →";
+          btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (liff && liff.openWindow) {
+              liff.openWindow({ url: payUrl, external: true });
+            } else {
+              window.location.href = payUrl;
+            }
+          };
+        } else {
+          showStatus(data.message || "建立訂單失敗", "err");
+          btn.disabled = false;
+          btn.textContent = "🏮 解鎖完整版解讀及改運符令 NT$360";
+        }
+      })
+      .catch(function(e) {
+        showStatus("付款錯誤：" + e.toString(), "err");
+        btn.disabled = false;
+        btn.textContent = "🏮 解鎖完整版解讀及改運符令 NT$360";
+      });
+    }
+
+    // ===========================================
+    // Event Listeners
+    // ===========================================
+    document.addEventListener("click", function(e) {
+      var target = e.target;
+      var topicCard = target.closest ? target.closest(".winds-topic-card") : null;
+      if (topicCard) { handleTopicClick(topicCard); return; }
+      var subCard = target.closest ? target.closest(".winds-sub-card") : null;
+      if (subCard) { handleSubClick(subCard); return; }
+      var thirdCard = target.closest ? target.closest(".winds-third-card") : null;
+      if (thirdCard) { handleThirdClick(thirdCard); return; }
+    });
+
+    $("submitBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      handleSubmit();
+    });
+
+    $("unlockBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      handleUnlock();
+    });
+
+    var summaryEl = $("windsSummary");
+    if (summaryEl) {
+      summaryEl.addEventListener("input", updateCharCounter);
+      updateCharCounter();
+    }
+
+    // Handle browser back navigation
+    window.addEventListener("pageshow", function() {
+      setTimeout(syncUIState, 50);
+    });
+
+    // ===========================================
+    // LIFF Init
+    // ===========================================
+    liff.init({ liffId: LIFF_ID }).then(function() {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+      return liff.getProfile();
+    }).then(function(profile) {
+      if (profile) {
+        lineUserId = profile.userId;
+        // 回訪用戶預填：用 LINE UID 查詢既有個案資料
+        if (lineUserId) {
+          fetch(PREFILL_API + "?lineUserId=" + encodeURIComponent(lineUserId), {
+            method: "GET"
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            // Creator 回傳 {result:{found,data}} 兩層，相容處理
+            var pd = (d.result && d.result.found) ? d.result.data : (d.found ? d.data : null);
+            if (pd) {
+              var ref = getInputs();
+              if (pd.lastName  && ref.lastNameInput)  ref.lastNameInput.value  = pd.lastName;
+              if (pd.firstName && ref.firstNameInput) ref.firstNameInput.value = pd.firstName;
+              if (pd.phone     && ref.phoneInput)     ref.phoneInput.value     = pd.phone;
+              if (pd.email     && ref.emailInput)     ref.emailInput.value     = pd.email;
+              if (pd.birthDate && ref.birthDateInput) ref.birthDateInput.value = pd.birthDate;
+              if (pd.birthTime && ref.birthTimeInput) ref.birthTimeInput.value = pd.birthTime;
+            }
+          })
+          .catch(function() { /* 預填失敗不影響主流程 */ });
+        }
+      }
+    }).catch(function(e) {
+      showStatus("LIFF 初始化失敗：" + e, "err");
+    });
+
+  })();
+  </script>
+</body>
+</html>

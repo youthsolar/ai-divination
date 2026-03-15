@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🏮 完整版解讀 — 找風問幸福</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #faf8f6;
+      color: #474747;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @keyframes windsFadeInUp {
+      0%   { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .winds-page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    /* --- Header --- */
+    .winds-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .winds-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 6px 0;
+    }
+    .winds-header-divider {
+      height: 2px;
+      background: linear-gradient(to right, transparent, #c9a84c, transparent);
+      margin: 12px 40px;
+    }
+
+    /* --- Content Card --- */
+    .winds-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 20px;
+      border: 0.5px solid #dcd2d2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+
+    .winds-content-text {
+      white-space: pre-wrap;
+      line-height: 1.9;
+      font-size: 15px;
+      color: #3b262a;
+    }
+
+    /* --- Loading --- */
+    .winds-loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .winds-dots { margin-bottom: 20px; }
+    .winds-dots span {
+      display: inline-block;
+      width: 10px; height: 10px;
+      margin: 0 4px;
+      background: #c9a84c;
+      border-radius: 50%;
+      animation: windsBounce 1.2s infinite ease-in-out;
+    }
+    .winds-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .winds-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes windsBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1);   opacity: 1; }
+    }
+    .winds-loading-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 6px;
+    }
+    .winds-loading-sub {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    /* --- Error --- */
+    .winds-error {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .winds-error-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    .winds-error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 8px;
+    }
+    .winds-error-desc {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* --- Buttons --- */
+    .winds-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      text-align: center;
+      text-decoration: none;
+    }
+    .winds-btn:active { transform: scale(0.98); }
+
+    .winds-btn-primary {
+      background: #3b262a;
+      color: #fff;
+    }
+    .winds-btn-primary:hover { background: #4a333a; }
+
+    .winds-btn-outline {
+      background: #fff;
+      color: #3b262a;
+      border: 1px solid #5a656b;
+      margin-top: 10px;
+    }
+    .winds-btn-outline:hover { background: #f0e6e6; }
+
+    /* --- Meta --- */
+    .winds-meta {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    /* --- Footer --- */
+    .winds-footer {
+      text-align: center;
+      color: #999;
+      font-size: 11px;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="winds-page">
+    <!-- Header -->
+    <div class="winds-header">
+      <h1>🏮 完整版解讀</h1>
+      <div class="winds-header-divider"></div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState">
+      <div class="winds-loading">
+        <div class="winds-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="winds-loading-title">載入中…</p>
+        <p class="winds-loading-sub">正在取得您的解讀內容</p>
+      </div>
+    </div>
+
+    <!-- Content State -->
+    <div id="contentState" style="display:none;">
+
+      <!-- 主圖（符令/卦象圖），有圖才顯示 -->
+      <div id="primaryImageWrap" style="display:none;text-align:center;margin-bottom:16px;">
+        <img id="primaryImage" src="" alt="符令圖"
+          style="max-width:280px;width:100%;border-radius:12px;box-shadow:0 4px 16px rgba(91,45,130,0.25);" />
+      </div>
+
+      <!-- 塔羅五張牌圖格，有圖才顯示 -->
+      <div id="cardGridWrap" style="display:none;margin-bottom:16px;">
+        <p style="font-size:13px;color:#8B1A1A;font-weight:bold;margin-bottom:8px;">🃏 本次塔羅牌陣</p>
+        <div id="cardGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"></div>
+      </div>
+
+      <div class="winds-card">
+        <div id="contentText" class="winds-content-text"></div>
+      </div>
+
+      <button id="shareBtn" class="winds-btn winds-btn-primary">分享到 LINE 好友</button>
+      <a id="divinationLink" href="index.html" class="winds-btn winds-btn-outline">再次占卜</a>
+
+      <div id="metaInfo" class="winds-meta"></div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" style="display:none;">
+      <div class="winds-error">
+        <div class="winds-error-icon">🔒</div>
+        <p id="errorTitle" class="winds-error-title"></p>
+        <p id="errorDesc" class="winds-error-desc"></p>
+      </div>
+      <a href="index.html" class="winds-btn winds-btn-outline" style="margin-top:20px;">前往占卜</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="winds-footer">找風問幸福 &copy; 宇風企管顧問有限公司</div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  (function() {
+    "use strict";
+
+    var LIFF_ID = "2009168674-G2KqF3Jv";
+    var DELIVERY_API = "https://divinationserver-10121308063.development.catalystappsail.com/delivery-content";
+
+    function $(id) { return document.getElementById(id); }
+
+    function showLoading() {
+      $("loadingState").style.display = "block";
+      $("contentState").style.display = "none";
+      $("errorState").style.display = "none";
+    }
+
+    function showContent(text, meta, primaryImageUrl, cardImages) {
+      $("loadingState").style.display = "none";
+      $("contentState").style.display = "block";
+      $("errorState").style.display = "none";
+
+      // 主圖（符令/卦象圖）
+      if (primaryImageUrl) {
+        $("primaryImage").src = primaryImageUrl;
+        $("primaryImageWrap").style.display = "block";
+      } else {
+        $("primaryImageWrap").style.display = "none";
+      }
+
+      // 塔羅五張牌圖格
+      var cardGrid = $("cardGrid");
+      cardGrid.innerHTML = "";
+      if (cardImages && cardImages.length > 0) {
+        cardImages.forEach(function(url, i) {
+          if (url) {
+            var img = document.createElement("img");
+            img.src = url;
+            img.alt = "第" + (i + 1) + "張牌";
+            img.style.cssText = "width:100%;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);";
+            cardGrid.appendChild(img);
+          }
+        });
+        $("cardGridWrap").style.display = "block";
+      } else {
+        $("cardGridWrap").style.display = "none";
+      }
+
+      // 文字內容（\n 轉換為換行）
+      $("contentText").textContent = text;
+
+      if (meta) {
+        $("metaInfo").textContent = meta;
+      }
+    }
+
+    function showError(title, desc) {
+      $("loadingState").style.display = "none";
+      $("contentState").style.display = "none";
+      $("errorState").style.display = "block";
+      $("errorTitle").textContent = title;
+      $("errorDesc").textContent = desc;
+    }
+
+    function getDeliveryToken() {
+      var params = new URLSearchParams(window.location.search);
+      return params.get("deliveryToken") || "";
+    }
+
+    function fetchDelivery(token) {
+      if (!token) {
+        showError("連結無效", "缺少交付 Token，請確認您的付款確認訊息中的連結是否完整。");
+        return;
+      }
+
+      fetch(DELIVERY_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ token: token })
+      })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        if (data.ok === true) {
+          // Build display text — prefer hexagram_content (may contain full interpretation)
+          var content = data.hexagram_content || data.description || "";
+          if (!content) {
+            content = data.item_name ? ("您的 " + data.item_name + " 已備妥。") : "內容載入中，請稍後重試。";
+          }
+
+          var meta = "";
+          if (data.purchased_at) meta += "購買時間：" + data.purchased_at;
+          if (data.expires_at) meta += (meta ? "  |  " : "") + "有效期至：" + data.expires_at;
+
+          var primaryImageUrl = data.primary_image_url || "";
+          var cardImages = data.card_images || [];
+
+          showContent(content, meta, primaryImageUrl, cardImages);
+
+          // Store content for share
+          window._deliveryContent = content;
+        } else {
+          // Handle specific error reasons
+          var reason = data.reason || "unknown";
+          if (reason === "not_found") {
+            showError("連結已失效或無使用權限", data.message || "找不到此記錄，請確認連結是否正確。");
+          } else if (reason === "not_paid") {
+            showError("解讀生成中，請稍後再試", data.message || "此訂單尚未完成付款。");
+          } else if (reason === "expired") {
+            showError("此連結已過期", data.message || "連結有效期 7 天，如需重新取得請透過 LINE 聯繫我們。");
+          } else if (reason === "missing_token") {
+            showError("連結無效", data.message || "缺少必要參數。");
+          } else {
+            showError("系統暫時無法取得內容", data.message || "請稍後重試。");
+          }
+        }
+      })
+      .catch(function(e) {
+        showError("系統暫時無法取得內容", "請稍後重試。（" + e.toString() + "）");
+      });
+    }
+
+    // Share to LINE friends
+    function handleShare() {
+      var content = window._deliveryContent || "";
+      if (!content) return;
+
+      // Truncate for share message (LINE has limits)
+      var shareText = "🏮 我的占卜解讀\n\n" + (content.length > 300 ? content.substring(0, 300) + "..." : content) + "\n\n——來自「找風問幸福」";
+
+      if (liff.isApiAvailable("shareTargetPicker")) {
+        liff.shareTargetPicker([{
+          type: "text",
+          text: shareText
+        }]).catch(function() {
+          // Fallback: do nothing
+        });
+      }
+    }
+
+    // Event listeners
+    $("shareBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      handleShare();
+    });
+
+    // Init
+    showLoading();
+    var token = getDeliveryToken();
+
+    // delivery.html 不需要 LINE 身份驗證，delivery token 本身即為授權憑證
+    liff.init({ liffId: LIFF_ID }).then(function() {
+      fetchDelivery(token);
+    }).catch(function() {
+      fetchDelivery(token);
+    });
+
+  })();
+  </script>
+</body>
+</html>

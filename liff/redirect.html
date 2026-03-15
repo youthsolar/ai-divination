@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>正在開啟商品頁面 — 找風問幸福</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #faf8f6;
+      color: #474747;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @keyframes windsFadeInUp {
+      0%   { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .winds-page {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      animation: windsFadeInUp 0.5s ease-out;
+    }
+
+    /* --- Header --- */
+    .winds-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .winds-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b262a;
+      margin: 0 0 6px 0;
+    }
+    .winds-header-divider {
+      height: 2px;
+      background: linear-gradient(to right, transparent, #c9a84c, transparent);
+      margin: 12px 40px;
+    }
+
+    /* --- Loading --- */
+    .winds-loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .winds-dots { margin-bottom: 20px; }
+    .winds-dots span {
+      display: inline-block;
+      width: 10px; height: 10px;
+      margin: 0 4px;
+      background: #c9a84c;
+      border-radius: 50%;
+      animation: windsBounce 1.2s infinite ease-in-out;
+    }
+    .winds-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .winds-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes windsBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1);   opacity: 1; }
+    }
+    .winds-loading-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 6px;
+    }
+    .winds-loading-sub {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+    }
+
+    /* --- Error --- */
+    .winds-error {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .winds-error-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    .winds-error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #3b262a;
+      margin: 0 0 8px;
+    }
+    .winds-error-desc {
+      font-size: 13px;
+      color: #5a656b;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* --- Footer --- */
+    .winds-footer {
+      text-align: center;
+      color: #999;
+      font-size: 11px;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="winds-page">
+    <!-- Header -->
+    <div class="winds-header">
+      <h1>找風問幸福</h1>
+      <div class="winds-header-divider"></div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState">
+      <div class="winds-loading">
+        <div class="winds-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="winds-loading-title">正在為您開啟商品頁面...</p>
+        <p class="winds-loading-sub">請稍候，即將為您導向</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" style="display:none;">
+      <div class="winds-error">
+        <div class="winds-error-icon">&#128722;</div>
+        <p id="errorTitle" class="winds-error-title"></p>
+        <p id="errorDesc" class="winds-error-desc"></p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="winds-footer">找風問幸福 &copy; 宇風企管顧問有限公司</div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  (function() {
+    "use strict";
+
+    var LIFF_ID = "2009168674-G2KqF3Jv";
+    var APPSAIL = "https://divinationserver-10121308063.development.catalystappsail.com";
+
+    function $(id) { return document.getElementById(id); }
+
+    function showError(title, desc) {
+      $("loadingState").style.display = "none";
+      $("errorState").style.display = "block";
+      $("errorTitle").textContent = title;
+      $("errorDesc").textContent = desc;
+    }
+
+    function getParams() {
+      var params = new URLSearchParams(window.location.search);
+      return {
+        catalogId: params.get("catalog_id") || "",
+        recLogId: params.get("rec_log_id") || "",
+        redirectUrl: params.get("url") || ""
+      };
+    }
+
+    /**
+     * 追蹤點擊並導向商品頁
+     * TODO: AppSail /liff-track-click 端點尚未建立
+     */
+    function trackClickAndRedirect(lineUserId, params) {
+      if (!params.recLogId) {
+        // 沒有推薦紀錄 ID，直接導向
+        doRedirect(params.redirectUrl);
+        return;
+      }
+
+      var trackBody = {
+        recommendationLogId: params.recLogId,
+        clickedCatalogId: params.catalogId
+      };
+
+      if (lineUserId) {
+        trackBody.lineUserId = lineUserId;
+      }
+
+      fetch(APPSAIL + "/liff-track-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trackBody)
+      })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        // 追蹤成功，取得 redirect URL（優先使用 URL 參數，次要使用 API 回傳）
+        var targetUrl = params.redirectUrl || (data && data.redirect_url) || "";
+        doRedirect(targetUrl);
+      })
+      .catch(function() {
+        // 追蹤失敗，仍然導向（不阻擋使用者）
+        doRedirect(params.redirectUrl);
+      });
+    }
+
+    function doRedirect(url) {
+      if (url) {
+        window.location.href = url;
+      } else {
+        showError("無法開啟商品頁面", "缺少商品連結資訊，請從推薦訊息中重新點擊。");
+      }
+    }
+
+    // === 主流程 ===
+    var params = getParams();
+
+    if (!params.catalogId && !params.redirectUrl) {
+      showError("連結無效", "缺少必要參數，請確認您的連結是否完整。");
+      return;
+    }
+
+    // 嘗試 LIFF 初始化取得 LINE userId
+    liff.init({ liffId: LIFF_ID }).then(function() {
+      var lineUserId = "";
+      if (liff.isLoggedIn()) {
+        return liff.getProfile().then(function(profile) {
+          lineUserId = profile.userId || "";
+          trackClickAndRedirect(lineUserId, params);
+        });
+      } else {
+        // 未登入，不強制登入，直接追蹤（無 userId）
+        trackClickAndRedirect("", params);
+      }
+    }).catch(function() {
+      // LIFF 初始化失敗 → 直接導向，不追蹤
+      if (params.redirectUrl) {
+        window.location.href = params.redirectUrl;
+      } else {
+        showError("無法開啟商品頁面", "系統暫時無法連線，請稍後重試。");
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>
