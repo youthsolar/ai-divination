@@ -59,9 +59,10 @@ map API.liffGetLatestStatus(string lineUserId, string afterId)
 		latest_log = null;
 		for each log in logs
 		{
-			// 跳過 ID <= afterId 的舊記錄
-			if(after_id_long > 0 && log.ID <= after_id_long) { skip = true; } else { skip = false; }
-			if(!skip && (latest_time == null || log.Divination_Timestamp > latest_time))
+			// 跳過 ID <= afterId 的舊記錄（Deluge 用 == false 取代 !）
+			is_new_record = true;
+			if(after_id_long > 0 && log.ID <= after_id_long) { is_new_record = false; }
+			if(is_new_record == true && (latest_time == null || log.Divination_Timestamp > latest_time))
 			{
 				latest_time = log.Divination_Timestamp;
 				latest_log = log;

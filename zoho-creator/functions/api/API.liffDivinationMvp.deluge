@@ -119,8 +119,10 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			birth_dt = null;
 			try
 			{
-				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"（含時間），先嘗試完整解析
-				birth_dt = birthday.toDate("yyyy-MM-dd HH:mm");
+				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"，補 ":00" 後用完整 datetime 解析
+				bday_str = birthday.trim();
+				if(bday_str.contains(" ")) { bday_str = bday_str + ":00"; }
+				birth_dt = bday_str.toDate("yyyy-MM-dd HH:mm:ss");
 			}
 			catch (eBdt1)
 			{
@@ -145,8 +147,10 @@ map API.liffDivinationMvp(string lineUserId, string birthday, string question, s
 			birth_dt = null;
 			try
 			{
-				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"（含時間），先嘗試完整解析
-				birth_dt = birthday.toDate("yyyy-MM-dd HH:mm");
+				// LIFF 送的格式為 "yyyy-MM-dd HH:mm"，補 ":00" 後用完整 datetime 解析
+				bday_str2 = birthday.trim();
+				if(bday_str2.contains(" ")) { bday_str2 = bday_str2 + ":00"; }
+				birth_dt = bday_str2.toDate("yyyy-MM-dd HH:mm:ss");
 			}
 			catch (eBdt3)
 			{
